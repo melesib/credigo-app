@@ -4050,7 +4050,7 @@ function sendSupportRequest(portal) {
   const prioVal = prio ? prio.value : 'normale';
   const ticketId = 'TKT-' + Date.now().toString(36).toUpperCase().slice(-5);
   const ts = new Date().toLocaleString('fr-FR');
-  const user = portal === 'e' ? 'Koné Amadou (Entrepreneur)' : 'Bamba Ousmane (Financeur)';
+  const user = authUser ? authUser.name : 'Utilisateur';
 
   const ticket = {
     id: ticketId,
@@ -5254,7 +5254,7 @@ function _storeEcobankE(account, name) {
 }
 /* ══ NOTIFICATIONS ══ */
 const NOTIFS = [
-  { id:1, type:'invest',   icon:'ti-cash',        bg:'#D1FAE5', color:'#059669', title:'Investissement reçu',               sub:'Bamba Ousmane a investi 5 000 000 FCFA sur votre contrat Route N4.',   time:'Il y a 12 min',  unread:true,  portal:'e' },
+  { id:1, type:'invest',   icon:'ti-cash',        bg:'#D1FAE5', color:'#059669', title:'Investissement reçu',               sub:'Un financeur a investi 5 000 000 FCFA sur votre contrat Route N4.',   time:'Il y a 12 min',  unread:true,  portal:'e' },
   { id:2, type:'kyc',      icon:'ti-shield-check', bg:'#EEE8FF', color:'#6C3FE8', title:'KYC validé',                        sub:'Votre dossier KYC a été approuvé par l\'équipe Credigo. Compte actif !', time:'Il y a 1h',      unread:true,  portal:'e' },
   { id:3, type:'ecobank',  icon:'ti-building-bank',bg:'#E6F2F6', color:'#0B5E78', title:'Compte Ecobank lié',                sub:'Votre compte Ecobank CI a été lié avec succès à votre portefeuille.',    time:'Il y a 2h',      unread:true,  portal:'e' },
   { id:4, type:'remb',     icon:'ti-arrow-down',   bg:'#FEF3C7', color:'#D97706', title:'Remboursement automatique',         sub:'35 000 000 FCFA reçus de AGEROUTE. Remboursement en cours de traitement.', time:'Il y a 3h',    unread:false, portal:'e' },
@@ -5604,10 +5604,10 @@ function authGoogleLogin() {
   setTimeout(function() {
     var user = {
       email: 'demo@credigo.ci',
-      name: authRole === 'e' ? 'Koné Amadou' : 'Bamba Ousmane',
-      initials: authRole === 'e' ? 'KA' : 'BO',
+      name: '',
+      initials: authRole === 'e' ? 'E' : 'F',
       role: authRole,
-      kycStatus: 'pending',
+      kycStatus: 'not_started',
       profileComplete: false,
       provider: 'google'
     };
@@ -5673,12 +5673,13 @@ function authLoginEmail() {
   // ── Repli démo ──
   toast('Connexion en cours…');
   setTimeout(function() {
+    var emailPart = email.split('@')[0];
     var user = {
       email: email,
-      name: authRole === 'e' ? 'Koné Amadou' : 'Bamba Ousmane',
-      initials: authRole === 'e' ? 'KA' : 'BO',
+      name: emailPart,
+      initials: emailPart.substring(0, 2).toUpperCase(),
       role: authRole,
-      kycStatus: 'pending',
+      kycStatus: 'not_started',
       profileComplete: false,
       provider: 'email'
     };
@@ -5742,15 +5743,17 @@ function authSignupEmail() {
 
 /* ── Mode démo (depuis vérification email) ── */
 function authDemoLogin() {
-  var email = (document.getElementById('signup-email') || {}).value || 'demo@credigo.ci';
-  var prenom = (document.getElementById('signup-prenom') || {}).value || (authRole === 'e' ? 'Amadou' : 'Ousmane');
-  var nom    = (document.getElementById('signup-nom') || {}).value || (authRole === 'e' ? 'Koné' : 'Bamba');
+  var email  = (document.getElementById('signup-email') || {}).value || 'demo@credigo.ci';
+  var prenom = (document.getElementById('signup-prenom') || {}).value || '';
+  var nom    = (document.getElementById('signup-nom') || {}).value || '';
+  var name   = (prenom + ' ' + nom).trim() || email.split('@')[0];
+  var initials = name.split(' ').map(function(p){ return p[0]; }).join('').slice(0,2).toUpperCase() || '?';
   var user = {
     email: email,
-    name: prenom + ' ' + nom,
-    initials: (prenom[0] + nom[0]).toUpperCase(),
+    name: name,
+    initials: initials,
     role: authRole,
-    kycStatus: 'pending',
+    kycStatus: 'not_started',
     profileComplete: false,
     provider: 'email'
   };
