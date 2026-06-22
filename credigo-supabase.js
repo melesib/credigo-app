@@ -16,8 +16,8 @@
   // ── Configuration ────────────────────────────────────────────
   // Ces deux valeurs sont injectées au build (voir scripts/inject-env.js)
   // ou peuvent être codées en dur ici si vous ne passez pas par un build.
-  var SUPABASE_URL = window.__CREDIGO_SUPABASE_URL__ || '';
-  var SUPABASE_ANON_KEY = window.__CREDIGO_SUPABASE_ANON_KEY__ || '';
+  var SUPABASE_URL = window.CREDIGO_SUPABASE_URL || '';
+  var SUPABASE_ANON_KEY = window.CREDIGO_SUPABASE_ANON_KEY || '';
 
   var supabaseReady = !!(SUPABASE_URL && SUPABASE_ANON_KEY && window.supabase);
   var sb = supabaseReady ? window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY) : null;
