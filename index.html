@@ -5953,11 +5953,6 @@ function authLogout() {
 }
 
 /* ── Lancer l\'init au chargement ── */
-document.addEventListener('DOMContentLoaded', function() {
-  if (typeof drawLogo === 'function') drawLogo();
-  if (typeof drawAuthLogo === 'function') drawAuthLogo();
-  authInit();
-});
 /* ── Auth logo canvas ── */
 function drawAuthLogo() {
   var c = document.getElementById('auth-logo-canvas');
@@ -6250,44 +6245,270 @@ function updateSwitchVisibility() {
 /* ══ MISE À JOUR AUTH POUR GÉRER L'ONBOARDING ══
    Après connexion, rediriger vers profil si incomplet */
 var _origAuthEnterApp = null;
-document.addEventListener('DOMContentLoaded', function() {
-  // S'exécute après le chargement complet du script principal
-  setTimeout(function() {
-    // Surcharger authEnterApp pour ajouter le flow profil
-    var realAuthEnterApp = window.authEnterApp;
-    if (realAuthEnterApp) {
-      window.authEnterApp = function(user) {
-        realAuthEnterApp(user);
+;
 
-        // Sauvegarder cette session dans la liste de toutes les sessions (multi-portail)
-        try {
-          var allSessions = JSON.parse(localStorage.getItem('credigo_all_sessions') || '[]');
-          var exists = allSessions.some(function(s){ return s.email === user.email && s.role === user.role; });
-          if (!exists) {
-            allSessions.push({ email: user.email, role: user.role, name: user.name });
-            localStorage.setItem('credigo_all_sessions', JSON.stringify(allSessions));
-          }
-        } catch(e) {}
+/* ── Auth sécurisé chargé après le script principal ── */
+/* ══════════════════════════════════════════════════════════════════
+   CREDIGO AUTH — VERSION SÉCURISÉE (app financière)
+   ══════════════════════════════════════════════════════════════════
+   Principes :
+   1. Jamais d'accès sans rôle explicitement choisi par l'utilisateur
+   2. Profil incomplet → bloqué sur l'écran profil, pas d'accès ailleurs
+   3. KYC non approuvé → accès en lecture seule, toute action financière bloquée
+   4. Session corrompue → déconnexion automatique propre
+   5. Google OAuth → rôle obligatoire avant la redirection
+   ══════════════════════════════════════════════════════════════════ */
 
-        updateSwitchVisibility();
-        loadProfileForms();
-
-        // Si le profil est incomplet, aller directement au profil
-        if (!user.profileComplete || user.kycStatus === 'not_started') {
-          setTimeout(function() {
-            showScreen(user.role === 'e' ? 'e-profile' : 'f-profile');
-          }, 300);
-        }
-      };
+/* ── Nettoyage session corrompue ──────────────────────────────────
+   Supprime les sessions avec des noms tests ou des données invalides */
+function authCleanCorruptedSession() {
+  try {
+    var raw = localStorage.getItem('credigo_session');
+    if (!raw) return;
+    var s = JSON.parse(raw);
+    var testNames = ['Koné Amadou', 'Bamba Ousmane', 'Amadou', 'Ousmane', 'KA', 'BO'];
+    var isCorrupted = false;
+    // Session corrompue si le nom est un nom test OU si le rôle est absent
+    if (!s.role || !s.email) isCorrupted = true;
+    if (s.name && testNames.some(function(n){ return s.name.indexOf(n) !== -1; })) isCorrupted = true;
+    // Session corrompue si email est demo@credigo.ci mais pas en dev local
+    if (s.email === 'demo@credigo.ci' && window.location.hostname !== 'localhost') isCorrupted = true;
+    if (isCorrupted) {
+      localStorage.removeItem('credigo_session');
+      localStorage.removeItem('credigo_profile_e');
+      localStorage.removeItem('credigo_profile_f');
+      localStorage.removeItem('credigo_all_sessions');
+      console.info('[Credigo] Session corrompue nettoyée automatiquement.');
     }
-    updateSwitchVisibility();
-  }, 100);
-
-  // Charger les profils si déjà connecté
-  if (typeof authUser !== 'undefined' && authUser) {
-    loadProfileForms();
-    updateSwitchVisibility();
+  } catch(e) {
+    localStorage.removeItem('credigo_session');
   }
+}
+
+/* ── authInit sécurisé ─────────────────────────────────────────── */
+var _origAuthInit = window.authInit;
+window.authInit = function() {
+  authCleanCorruptedSession();
+  if (authLoadSession() && authUser) {
+    // Vérifier que la session a bien un rôle valide
+    if (!authUser.role || (authUser.role !== 'e' && authUser.role !== 'f')) {
+      authClearSession();
+      document.getElementById('auth-overlay').style.display = 'flex';
+      return;
+    }
+    authEnterApp(authUser);
+  } else {
+    document.getElementById('auth-overlay').style.display = 'flex';
+    document.getElementById('kyc-required-banner').style.display = 'none';
+  }
+};
+
+/* ── Google OAuth : FORCER le choix de rôle avant la redirection ─
+   Si l'utilisateur clique "Continuer avec Google" sans avoir choisi
+   son rôle sur l'écran de sélection, on l'oblige à choisir d'abord. */
+var _origAuthGoogleLogin = window.authGoogleLogin;
+window.authGoogleLogin = function() {
+  if (!authRole) {
+    toast('Veuillez d\'abord choisir votre profil : Entrepreneur ou Financeur.');
+    // Ramener à l'écran de choix de rôle
+    var stepLogin = document.getElementById('auth-step-login');
+    var stepRole  = document.getElementById('auth-step-role');
+    if (stepLogin) stepLogin.style.display = 'none';
+    if (stepRole)  stepRole.style.display  = 'block';
+    return;
+  }
+  if (_origAuthGoogleLogin) _origAuthGoogleLogin();
+};
+window.authGoogleSignup = window.authGoogleLogin;
+
+/* ── authHandleSupabaseSession sécurisé ───────────────────────────
+   Appelé au retour de la redirection OAuth Google.
+   Si le rôle est absent (sessionStorage perdu), afficher l'écran
+   de choix de rôle AVANT d'entrer dans l'app. */
+window.authHandleSupabaseSession = function(supaUser) {
+  var pendingRole = null;
+  try {
+    pendingRole = sessionStorage.getItem('credigo_pending_role');
+    sessionStorage.removeItem('credigo_pending_role');
+  } catch(e) {}
+
+  // Si pas de rôle en attente → afficher le choix de rôle pour cette session OAuth
+  if (!pendingRole) {
+    // Stocker les infos Supabase temporairement et demander le rôle
+    try {
+      sessionStorage.setItem('credigo_pending_supauser', JSON.stringify({
+        id: supaUser.id,
+        email: supaUser.email,
+        full_name: (supaUser.user_metadata && supaUser.user_metadata.full_name) || supaUser.email.split('@')[0]
+      }));
+    } catch(e) {}
+
+    // Cacher l'overlay et afficher un écran de choix de rôle post-OAuth
+    var overlay = document.getElementById('auth-overlay');
+    if (overlay) overlay.style.display = 'flex';
+    // Aller à l'étape de sélection de rôle en mode "post-oauth"
+    var stepRole  = document.getElementById('auth-step-role');
+    var stepLogin = document.getElementById('auth-step-login');
+    var stepVerify = document.getElementById('auth-step-verify');
+    if (stepLogin)  stepLogin.style.display  = 'none';
+    if (stepVerify) stepVerify.style.display = 'none';
+    if (stepRole)   stepRole.style.display   = 'block';
+
+    // Surcharger authSelectRole pour cette session pour compléter l'OAuth
+    window._postOAuthPendingUser = supaUser;
+    return;
+  }
+
+  authRole = pendingRole;
+  _completeOAuthLogin(supaUser, pendingRole);
+};
+
+/* Appelé soit depuis authHandleSupabaseSession (rôle en sessionStorage)
+   soit depuis authSelectRole quand _postOAuthPendingUser est défini */
+window._completeOAuthLogin = function(supaUser, role) {
+  var fullName = (supaUser.user_metadata && supaUser.user_metadata.full_name) || supaUser.email.split('@')[0];
+  var nameParts = fullName.split(' ');
+  var initials = nameParts.map(function(p){ return p[0]; }).join('').slice(0,2).toUpperCase() || '?';
+
+  var user = {
+    email: supaUser.email,
+    name: fullName,
+    initials: initials,
+    role: role,
+    kycStatus: 'not_started',
+    profileComplete: false,
+    provider: 'google',
+    authUserId: supaUser.id
+  };
+
+  if (window.CredigoDB && window.CredigoDB.ready) {
+    window.credigoSyncUserToSupabase(user).then(function(syncedUser) {
+      authSaveSession(syncedUser);
+      authEnterApp(syncedUser);
+    });
+  } else {
+    authSaveSession(user);
+    authEnterApp(user);
+  }
+};
+
+/* Surcharge de authSelectRole pour intercepter le cas post-OAuth */
+var _origAuthSelectRole = window.authSelectRole;
+window.authSelectRole = function(role) {
+  // Cas post-OAuth : l'utilisateur vient de choisir son rôle après connexion Google
+  if (window._postOAuthPendingUser) {
+    var supaUser = window._postOAuthPendingUser;
+    window._postOAuthPendingUser = null;
+    authRole = role;
+    _completeOAuthLogin(supaUser, role);
+    return;
+  }
+  // Cas normal
+  if (_origAuthSelectRole) _origAuthSelectRole(role);
+};
+
+/* ── Guard navigation : bloquer si profil incomplet ──────────────
+   Surcharge goSc pour vérifier que le profil est complet avant
+   toute navigation (sauf vers les écrans profil/kyc eux-mêmes). */
+var _origGoSc = window.goSc;
+window.goSc = function(id, portal, el) {
+  var freeScreens = [
+    'e-profile', 'f-profile', 'e-kyc', 'f-kyc-upload',
+    'e-support', 'f-support'  // support toujours accessible
+  ];
+  // Si profil incomplet et écran non autorisé → rediriger vers profil
+  if (authUser && !authUser.profileComplete && freeScreens.indexOf(id) === -1) {
+    toast('Complétez d\'abord votre profil pour accéder à cette section.');
+    var profileScreen = authUser.role === 'e' ? 'e-profile' : 'f-profile';
+    showScreen(profileScreen);
+    // Mettre à jour la sidebar visuellement sans appeler goSc récursivement
+    if (el) {
+      var sidebarId = portal === 'e' ? '#sb-e' : '#sb-f';
+      document.querySelectorAll(sidebarId + ' .slink').forEach(function(l){ l.classList.remove('on'); });
+    }
+    return;
+  }
+  if (_origGoSc) _origGoSc(id, portal, el);
+};
+
+/* ── requireKyc renforcé ──────────────────────────────────────────
+   Vérifie profil complet ET KYC approuvé pour les actions financières */
+window.requireKyc = function(action) {
+  if (!authUser) {
+    showAuthOverlay ? showAuthOverlay() : null;
+    return false;
+  }
+  // Profil incomplet → aller au profil
+  if (!authUser.profileComplete) {
+    toast('Complétez votre profil avant d\'effectuer cette action.');
+    showScreen(authUser.role === 'e' ? 'e-profile' : 'f-profile');
+    return false;
+  }
+  // KYC en attente ou non soumis
+  if (authUser.kycStatus !== 'approved') {
+    var msgs = {
+      'not_started': 'Soumettez votre dossier KYC pour accéder à cette fonctionnalité.',
+      'in_progress': 'Complétez votre dossier KYC pour accéder à cette fonctionnalité.',
+      'pending_review': 'Votre KYC est en cours de validation (24-48h). Vous serez notifié dès l\'approbation.',
+      'rejected': 'Votre KYC a été rejeté. Consultez votre espace KYC pour les corrections nécessaires.'
+    };
+    var msg = msgs[authUser.kycStatus] || 'KYC requis pour cette action.';
+    toast('\uD83D\uDD12 ' + msg);
+    showKycBanner(authUser);
+    if (authUser.kycStatus !== 'pending_review') {
+      setTimeout(function() {
+        showScreen(authUser.role === 'e' ? 'e-kyc' : 'f-kyc-upload');
+      }, 800);
+    }
+    return false;
+  }
+  return true;
+};
+
+/* ── Déconnexion propre ───────────────────────────────────────────
+   Efface toute trace de session locale et Supabase */
+var _origAuthLogout = window.authLogout;
+window.authLogout = function() {
+  // Déconnexion Supabase
+  if (window.CredigoDB && window.CredigoDB.ready && window.credigoSupabaseSignOut) {
+    window.credigoSupabaseSignOut();
+  }
+  // Nettoyage complet localStorage (sauf les profils — ils restent pour pré-remplissage)
+  authClearSession();
+  window._postOAuthPendingUser = null;
+
+  // Reset UI
+  var stepRole   = document.getElementById('auth-step-role');
+  var stepLogin  = document.getElementById('auth-step-login');
+  var stepVerify = document.getElementById('auth-step-verify');
+  if (stepRole)   stepRole.style.display   = 'block';
+  if (stepLogin)  stepLogin.style.display  = 'none';
+  if (stepVerify) stepVerify.style.display = 'none';
+
+  // Reset boutons de rôle
+  var btnE = document.getElementById('role-btn-e');
+  var btnF = document.getElementById('role-btn-f');
+  if (btnE) { btnE.style.borderColor = '#E5E7EB'; btnE.style.background = '#fff'; }
+  if (btnF) { btnF.style.borderColor = '#E5E7EB'; btnF.style.background = '#fff'; }
+
+  authRole = null;
+  authUser = null;
+
+  var overlay = document.getElementById('auth-overlay');
+  if (overlay) overlay.style.display = 'flex';
+  hideKycBanner();
+  toast('Vous avez été déconnecté.');
+};
+
+/* ── Lancer le nettoyage et l'init au chargement ─────────────────
+   Remplace le DOMContentLoaded existant du module auth */
+document.addEventListener('DOMContentLoaded', function() {
+  authCleanCorruptedSession();
+  if (typeof drawLogo === 'function') drawLogo();
+  if (typeof drawAuthLogo === 'function') drawAuthLogo();
+  window.authInit();
+  if (typeof loadProfileForms === 'function') loadProfileForms();
+  if (typeof updateSwitchVisibility === 'function') updateSwitchVisibility();
 });
 </script>
 
