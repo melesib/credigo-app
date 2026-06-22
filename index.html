@@ -1962,396 +1962,155 @@ textarea{resize:vertical;min-height:70px}
 </div>
 
 <!-- ═══ E-PROFILE ═══ -->
+<!-- ══ SCREEN e-profile (FORMULAIRE ÉDITABLE) ══ -->
 <div id="e-profile" class="screen">
   <div class="pg-title">Mon profil</div>
-  <div class="pg-sub">Informations personnelles et préférences</div>
-  <div style="display:flex;justify-content:flex-end;margin-bottom:-4px"><button onclick="authLogout()" style="background:none;border:1.5px solid #E5E7EB;border-radius:8px;padding:6px 12px;font-size:11px;font-weight:700;color:#DC2626;cursor:pointer;display:flex;align-items:center;gap:5px;font-family:inherit"><i class="ti ti-logout" style="font-size:12px"></i> Déconnexion</button></div>
-
-  <!-- Photo + identité rapide -->
-  <div class="card" style="display:flex;align-items:center;gap:16px;flex-wrap:wrap">
-    <div style="width:72px;height:72px;border-radius:50%;background:linear-gradient(135deg,#6C3FE8,#4C1D95);display:flex;align-items:center;justify-content:center;font-size:26px;font-weight:900;color:#fff;flex-shrink:0;position:relative">
-      KA
-      <div style="position:absolute;bottom:2px;right:2px;width:18px;height:18px;background:#00C27C;border-radius:50%;border:2px solid #fff;display:flex;align-items:center;justify-content:center">
-        <i class="ti ti-check" style="font-size:9px;color:#fff"></i>
-      </div>
-    </div>
-    <div style="flex:1;min-width:0">
-      <div style="font-size:17px;font-weight:800;color:#111827">Koné Amadou</div>
-      <div style="font-size:12px;color:#6B7280;margin-top:2px">Entrepreneur · Compte vérifié KYC N2</div>
-      <div style="font-size:11px;color:#059669;margin-top:3px;display:flex;align-items:center;gap:4px"><i class="ti ti-shield-check" style="font-size:12px"></i> Identité vérifiée</div>
-    </div>
-    <button class="btn-s" style="padding:7px 13px;font-size:12px;flex-shrink:0"><i class="ti ti-pencil"></i> Modifier</button>
+  <div class="pg-sub">Complétez votre profil pour activer votre compte</div>
+  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
+    <div id="e-profile-progress" style="font-size:12px;font-weight:700;color:var(--violet)"></div>
+    <button onclick="authLogout()" style="background:none;border:1.5px solid #E5E7EB;border-radius:8px;padding:6px 12px;font-size:11px;font-weight:700;color:#DC2626;cursor:pointer;display:flex;align-items:center;gap:5px;font-family:inherit"><i class="ti ti-logout" style="font-size:12px"></i> Déconnexion</button>
   </div>
 
-  <!-- Informations personnelles -->
+  <!-- Identité rapide -->
+  <div class="card" style="display:flex;align-items:center;gap:16px;flex-wrap:wrap;margin-bottom:14px">
+    <div id="e-avatar-circle" style="width:64px;height:64px;border-radius:50%;background:linear-gradient(135deg,#6C3FE8,#4C1D95);display:flex;align-items:center;justify-content:center;font-size:22px;font-weight:900;color:#fff;flex-shrink:0">KA</div>
+    <div style="flex:1;min-width:0">
+      <div id="e-profile-name" style="font-size:16px;font-weight:800;color:#111827">—</div>
+      <div id="e-profile-status" style="font-size:12px;color:#6B7280;margin-top:2px">Entrepreneur · Profil incomplet</div>
+    </div>
+  </div>
+
+  <!-- Formulaire -->
   <div class="card">
     <div class="card-title"><div class="ci"><i class="ti ti-user" style="font-size:13px;color:#6C3FE8"></i></div>Informations personnelles</div>
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
-      <div style="background:#F9FAFB;border-radius:9px;padding:11px;border:1px solid #E5E7EB">
-        <div style="font-size:10px;font-weight:700;color:#9CA3AF;text-transform:uppercase;letter-spacing:.06em;margin-bottom:4px">Prénom</div>
-        <div style="font-size:13px;font-weight:700;color:#111827">Amadou</div>
-      </div>
-      <div style="background:#F9FAFB;border-radius:9px;padding:11px;border:1px solid #E5E7EB">
-        <div style="font-size:10px;font-weight:700;color:#9CA3AF;text-transform:uppercase;letter-spacing:.06em;margin-bottom:4px">Nom</div>
-        <div style="font-size:13px;font-weight:700;color:#111827">Koné</div>
-      </div>
-      <div style="background:#F9FAFB;border-radius:9px;padding:11px;border:1px solid #E5E7EB">
-        <div style="font-size:10px;font-weight:700;color:#9CA3AF;text-transform:uppercase;letter-spacing:.06em;margin-bottom:4px">Date de naissance</div>
-        <div style="font-size:13px;font-weight:700;color:#111827">15 mars 1985</div>
-      </div>
-      <div style="background:#F9FAFB;border-radius:9px;padding:11px;border:1px solid #E5E7EB">
-        <div style="font-size:10px;font-weight:700;color:#9CA3AF;text-transform:uppercase;letter-spacing:.06em;margin-bottom:4px">Nationalité</div>
-        <div style="font-size:13px;font-weight:700;color:#111827">Ivoirienne</div>
-      </div>
-      <div style="background:#F9FAFB;border-radius:9px;padding:11px;border:1px solid #E5E7EB;grid-column:1/-1">
-        <div style="font-size:10px;font-weight:700;color:#9CA3AF;text-transform:uppercase;letter-spacing:.06em;margin-bottom:4px">Adresse</div>
-        <div style="font-size:13px;font-weight:700;color:#111827">Cocody Riviera 3, Abidjan, Côte d'Ivoire</div>
-      </div>
+      <div class="fg"><label>Prénom *</label><input type="text" id="epf-prenom" placeholder="Prénom" autocomplete="given-name"></div>
+      <div class="fg"><label>Nom *</label><input type="text" id="epf-nom" placeholder="Nom" autocomplete="family-name"></div>
+      <div class="fg"><label>Date de naissance *</label><input type="date" id="epf-dob"></div>
+      <div class="fg"><label>Nationalité *</label><input type="text" id="epf-nationalite" placeholder="Ex: Ivoirienne"></div>
+      <div class="fg full"><label>Adresse complète *</label><input type="text" id="epf-adresse" placeholder="Quartier, Ville, Pays"></div>
+      <div class="fg"><label>Téléphone *</label><input type="tel" id="epf-tel" placeholder="+225 07 00 00 00 00"></div>
+      <div class="fg"><label>Email</label><input type="email" id="epf-email" placeholder="Email" readonly style="background:#F9FAFB;color:#6B7280"></div>
     </div>
   </div>
 
-  <!-- Contact -->
   <div class="card">
-    <div class="card-title"><div class="ci"><i class="ti ti-phone" style="font-size:13px;color:#6C3FE8"></i></div>Coordonnées</div>
-    <div style="display:flex;flex-direction:column;gap:8px">
-      <div style="display:flex;align-items:center;gap:11px;padding:11px;background:#F9FAFB;border-radius:9px;border:1px solid #E5E7EB">
-        <i class="ti ti-mail" style="font-size:17px;color:#6C3FE8;flex-shrink:0"></i>
-        <div style="flex:1;min-width:0">
-          <div style="font-size:10px;color:#9CA3AF;font-weight:600;text-transform:uppercase;letter-spacing:.05em">Email</div>
-          <div style="font-size:13px;font-weight:700;color:#111827;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">amadou.kone@email.ci</div>
-        </div>
-        <span style="background:#D1FAE5;color:#065F46;font-size:10px;font-weight:700;padding:2px 8px;border-radius:20px;flex-shrink:0">Vérifié ✓</span>
-      </div>
-      <div style="display:flex;align-items:center;gap:11px;padding:11px;background:#F9FAFB;border-radius:9px;border:1px solid #E5E7EB">
-        <i class="ti ti-phone" style="font-size:17px;color:#6C3FE8;flex-shrink:0"></i>
-        <div style="flex:1">
-          <div style="font-size:10px;color:#9CA3AF;font-weight:600;text-transform:uppercase;letter-spacing:.05em">Téléphone</div>
-          <div style="font-size:13px;font-weight:700;color:#111827">+225 07 12 34 56 78</div>
-        </div>
-        <span style="background:#D1FAE5;color:#065F46;font-size:10px;font-weight:700;padding:2px 8px;border-radius:20px;flex-shrink:0">Vérifié ✓</span>
-      </div>
-    </div>
-  </div>
-
-  <!-- Entreprise -->
-  <div class="card">
-    <div class="card-title"><div class="ci" style="background:#D1FAE5"><i class="ti ti-building" style="font-size:13px;color:#059669"></i></div>Informations de l'entreprise</div>
+    <div class="card-title"><div class="ci"><i class="ti ti-building" style="font-size:13px;color:#6C3FE8"></i></div>Informations entreprise</div>
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
-      <div style="background:#F9FAFB;border-radius:9px;padding:11px;border:1px solid #E5E7EB;grid-column:1/-1">
-        <div style="font-size:10px;font-weight:700;color:#9CA3AF;text-transform:uppercase;letter-spacing:.06em;margin-bottom:4px">Raison sociale</div>
-        <div style="font-size:13px;font-weight:700;color:#111827">KONE BTP SARL</div>
+      <div class="fg full"><label>Raison sociale *</label><input type="text" id="epf-raison" placeholder="Ex: MON ENTREPRISE SARL"></div>
+      <div class="fg"><label>Forme juridique *</label>
+        <select id="epf-forme">
+          <option value="">Choisir…</option>
+          <option>SARL</option><option>SA</option><option>SAS</option>
+          <option>SASU</option><option>EI</option><option>SNC</option>
+          <option>GIE</option><option>Coopérative</option><option>Autre</option>
+        </select>
       </div>
-      <div style="background:#F9FAFB;border-radius:9px;padding:11px;border:1px solid #E5E7EB">
-        <div style="font-size:10px;font-weight:700;color:#9CA3AF;text-transform:uppercase;letter-spacing:.06em;margin-bottom:4px">Forme juridique</div>
-        <div style="font-size:13px;font-weight:700;color:#111827">SARL</div>
+      <div class="fg"><label>N° RCCM *</label><input type="text" id="epf-rccm" placeholder="CI-ABJ-AAAA-X-XXXXX"></div>
+      <div class="fg"><label>N° Contribuable (DGI) *</label><input type="text" id="epf-tax" placeholder="AXXXXXXXXB"></div>
+      <div class="fg full"><label>Secteur principal *</label>
+        <select id="epf-secteur">
+          <option value="">Choisir…</option>
+          <option>BTP & Construction</option><option>Commerce & Distribution</option>
+          <option>Agriculture & Agro-industrie</option><option>Transport & Logistique</option>
+          <option>Services aux entreprises</option><option>Technologies & Numérique</option>
+          <option>Santé & Pharmaceutique</option><option>Éducation & Formation</option>
+          <option>Énergie & Mines</option><option>Industrie & Manufacture</option><option>Autre</option>
+        </select>
       </div>
-      <div style="background:#F9FAFB;border-radius:9px;padding:11px;border:1px solid #E5E7EB">
-        <div style="font-size:10px;font-weight:700;color:#9CA3AF;text-transform:uppercase;letter-spacing:.06em;margin-bottom:4px">N° RCCM</div>
-        <div style="font-size:13px;font-weight:700;color:#111827">CI-ABJ-2018-B-12345</div>
-      </div>
-      <div style="background:#F9FAFB;border-radius:9px;padding:11px;border:1px solid #E5E7EB">
-        <div style="font-size:10px;font-weight:700;color:#9CA3AF;text-transform:uppercase;letter-spacing:.06em;margin-bottom:4px">N° Contribuable (DGI)</div>
-        <div style="font-size:13px;font-weight:700;color:#111827">A12345678B</div>
-      </div>
-      <div style="background:#F9FAFB;border-radius:9px;padding:11px;border:1px solid #E5E7EB">
-        <div style="font-size:10px;font-weight:700;color:#9CA3AF;text-transform:uppercase;letter-spacing:.06em;margin-bottom:4px">Secteur principal</div>
-        <div style="font-size:13px;font-weight:700;color:#111827">BTP & Construction</div>
-      </div>
-      <div style="background:#F9FAFB;border-radius:9px;padding:11px;border:1px solid #E5E7EB">
-        <div style="font-size:10px;font-weight:700;color:#9CA3AF;text-transform:uppercase;letter-spacing:.06em;margin-bottom:4px">Effectif</div>
-        <div style="font-size:13px;font-weight:700;color:#111827">25 employés</div>
-      </div>
-      <div style="background:#F9FAFB;border-radius:9px;padding:11px;border:1px solid #E5E7EB;grid-column:1/-1">
-        <div style="font-size:10px;font-weight:700;color:#9CA3AF;text-transform:uppercase;letter-spacing:.06em;margin-bottom:4px">Siège social</div>
-        <div style="font-size:13px;font-weight:700;color:#111827">Zone Industrielle de Yopougon, Abidjan</div>
-      </div>
+      <div class="fg"><label>Effectif</label><input type="number" id="epf-effectif" placeholder="Ex: 12" min="0"></div>
+      <div class="fg full"><label>Siège social</label><input type="text" id="epf-siege" placeholder="Adresse du siège"></div>
     </div>
   </div>
 
-  <!-- Sécurité & Connexion -->
-  <div class="card">
-    <div class="card-title"><div class="ci" style="background:#FEF3C7"><i class="ti ti-shield" style="font-size:13px;color:#D97706"></i></div>Sécurité & Connexion</div>
-    <div style="display:flex;flex-direction:column;gap:8px">
-      <div style="display:flex;align-items:center;gap:11px;padding:11px;background:#F9FAFB;border-radius:9px;border:1px solid #E5E7EB">
-        <i class="ti ti-key" style="font-size:17px;color:#D97706;flex-shrink:0"></i>
-        <div style="flex:1"><div style="font-size:12px;font-weight:700;color:#111827">Mot de passe</div><div style="font-size:11px;color:#9CA3AF">Modifié il y a 3 mois</div></div>
-        <button class="btn-s" style="padding:5px 11px;font-size:11px;flex-shrink:0">Modifier</button>
-      </div>
-      <div style="display:flex;align-items:center;gap:11px;padding:11px;background:#F0FDF4;border-radius:9px;border:1px solid #BBF7D0">
-        <i class="ti ti-device-mobile" style="font-size:17px;color:#059669;flex-shrink:0"></i>
-        <div style="flex:1"><div style="font-size:12px;font-weight:700;color:#065F46">Authentification 2FA</div><div style="font-size:11px;color:#6B7280">Authentification via l'app · +225 07 12 34 56 78</div></div>
-        <span style="background:#D1FAE5;color:#065F46;font-size:10px;font-weight:700;padding:2px 8px;border-radius:20px;flex-shrink:0">Actif ✓</span>
-      </div>
-      <div style="display:flex;align-items:center;gap:11px;padding:11px;background:#F9FAFB;border-radius:9px;border:1px solid #E5E7EB">
-        <i class="ti ti-history" style="font-size:17px;color:#6B7280;flex-shrink:0"></i>
-        <div style="flex:1"><div style="font-size:12px;font-weight:700;color:#111827">Dernière connexion</div><div style="font-size:11px;color:#9CA3AF">Aujourd'hui à 14h32 · Abidjan, CI</div></div>
-      </div>
-    </div>
-  </div>
-
-  <!-- RGPD / Loi CI 2013-450 -->
-  <div class="card" style="border-color:#C4B5FD">
-    <div class="card-title"><div class="ci" style="background:#EEE8FF"><i class="ti ti-lock-square" style="font-size:13px;color:#6C3FE8"></i></div>Vos droits · RGPD & Loi n°2013-450 ARTCI</div>
-    <div style="background:#F5F3FF;border-radius:10px;padding:12px;margin-bottom:12px;font-size:11px;color:#4C1D95;line-height:1.7;font-weight:500">
-      Conformément au <strong>Règlement Général sur la Protection des Données (RGPD)</strong> et à la <strong>Loi ivoirienne n°2013-450 du 19 juin 2013</strong> relative à la protection des données à caractère personnel, vous disposez des droits suivants sur vos données :
-    </div>
-    <div style="display:flex;flex-direction:column;gap:7px;margin-bottom:14px">
-      <div style="display:flex;align-items:flex-start;gap:9px;padding:9px;background:#F9FAFB;border-radius:8px">
-        <i class="ti ti-eye" style="font-size:15px;color:#6C3FE8;flex-shrink:0;margin-top:1px"></i>
-        <div><div style="font-size:12px;font-weight:700;color:#111827">Droit d'accès (Art. 20 Loi 2013-450)</div><div style="font-size:11px;color:#6B7280;margin-top:1px">Consulter l'ensemble des données personnelles que Credigo détient sur vous.</div></div>
-      </div>
-      <div style="display:flex;align-items:flex-start;gap:9px;padding:9px;background:#F9FAFB;border-radius:8px">
-        <i class="ti ti-pencil" style="font-size:15px;color:#6C3FE8;flex-shrink:0;margin-top:1px"></i>
-        <div><div style="font-size:12px;font-weight:700;color:#111827">Droit de rectification (Art. 21)</div><div style="font-size:11px;color:#6B7280;margin-top:1px">Corriger toute donnée inexacte ou incomplète vous concernant.</div></div>
-      </div>
-      <div style="display:flex;align-items:flex-start;gap:9px;padding:9px;background:#F9FAFB;border-radius:8px">
-        <i class="ti ti-trash" style="font-size:15px;color:#DC2626;flex-shrink:0;margin-top:1px"></i>
-        <div><div style="font-size:12px;font-weight:700;color:#111827">Droit à l'effacement (Art. 22)</div><div style="font-size:11px;color:#6B7280;margin-top:1px">Demander la suppression de vos données, sous réserve des obligations légales de conservation.</div></div>
-      </div>
-      <div style="display:flex;align-items:flex-start;gap:9px;padding:9px;background:#F9FAFB;border-radius:8px">
-        <i class="ti ti-ban" style="font-size:15px;color:#D97706;flex-shrink:0;margin-top:1px"></i>
-        <div><div style="font-size:12px;font-weight:700;color:#111827">Droit d'opposition (Art. 23)</div><div style="font-size:11px;color:#6B7280;margin-top:1px">S'opposer au traitement de vos données à des fins commerciales ou de prospection.</div></div>
-      </div>
-      <div style="display:flex;align-items:flex-start;gap:9px;padding:9px;background:#F9FAFB;border-radius:8px">
-        <i class="ti ti-download" style="font-size:15px;color:#059669;flex-shrink:0;margin-top:1px"></i>
-        <div><div style="font-size:12px;font-weight:700;color:#111827">Droit à la portabilité</div><div style="font-size:11px;color:#6B7280;margin-top:1px">Recevoir vos données dans un format structuré et lisible par machine.</div></div>
-      </div>
-      <div style="display:flex;align-items:flex-start;gap:9px;padding:9px;background:#F9FAFB;border-radius:8px">
-        <i class="ti ti-pause" style="font-size:15px;color:#6B7280;flex-shrink:0;margin-top:1px"></i>
-        <div><div style="font-size:12px;font-weight:700;color:#111827">Droit à la limitation du traitement</div><div style="font-size:11px;color:#6B7280;margin-top:1px">Restreindre l'utilisation de vos données dans certains cas prévus par la loi.</div></div>
-      </div>
-    </div>
-    <div style="background:#EEE8FF;border-radius:9px;padding:10px 12px;margin-bottom:12px;font-size:11px;color:#4C1D95;line-height:1.6">
-      <strong>Responsable du traitement :</strong> CREDIGO SAS · Abidjan, Plateau · contact@credigo.ci<br>
-      <strong>DPO :</strong> dpo@credigo.ci<br>
-      <strong>Autorité de contrôle :</strong> ARTCI — Autorité de Régulation des Télécommunications/TIC de Côte d'Ivoire<br>
-      <strong>Enregistrement :</strong> n°CI-2024-ARTCI-DCP-0089
-    </div>
-    <div style="display:flex;flex-direction:column;gap:7px">
-      <button class="btn-s" style="width:100%;justify-content:center;gap:8px"><i class="ti ti-download"></i> Télécharger mes données (Art. portabilité)</button>
-      <button class="btn-s" style="width:100%;justify-content:center;gap:8px;color:#DC2626;border-color:#FCA5A5"><i class="ti ti-trash"></i> Demander la suppression de mon compte</button>
-      <button class="btn-s" style="width:100%;justify-content:center;gap:8px"><i class="ti ti-mail"></i> Contacter le DPO · dpo@credigo.ci</button>
-    </div>
-  </div>
-
-  <!-- Consentements -->
-  <div class="card">
-    <div class="card-title"><div class="ci" style="background:#F0FDF4"><i class="ti ti-check" style="font-size:13px;color:#059669"></i></div>Gestion des consentements</div>
-    <div style="display:flex;flex-direction:column;gap:8px">
-      <div style="display:flex;align-items:center;gap:11px;padding:10px;background:#F9FAFB;border-radius:9px;border:1px solid #E5E7EB">
-        <div style="flex:1"><div style="font-size:12px;font-weight:700;color:#111827">Données nécessaires au service</div><div style="font-size:11px;color:#6B7280;margin-top:1px">Identité, transactions, contrats · Base légale : exécution du contrat</div></div>
-        <div style="background:#D1FAE5;color:#065F46;font-size:10px;font-weight:700;padding:3px 9px;border-radius:20px;flex-shrink:0">Obligatoire</div>
-      </div>
-      <div style="display:flex;align-items:center;gap:11px;padding:10px;background:#F9FAFB;border-radius:9px;border:1px solid #E5E7EB">
-        <div style="flex:1"><div style="font-size:12px;font-weight:700;color:#111827">Notifications et alertes</div><div style="font-size:11px;color:#6B7280;margin-top:1px">email et WhatsApp pour vos transactions et échéances</div></div>
-        <input type="checkbox" checked style="width:18px;height:18px;accent-color:#6C3FE8;cursor:pointer;flex-shrink:0">
-      </div>
-      <div style="display:flex;align-items:center;gap:11px;padding:10px;background:#F9FAFB;border-radius:9px;border:1px solid #E5E7EB">
-        <div style="flex:1"><div style="font-size:12px;font-weight:700;color:#111827">Communications marketing</div><div style="font-size:11px;color:#6B7280;margin-top:1px">Nouvelles offres, opportunités d'investissement</div></div>
-        <input type="checkbox" style="width:18px;height:18px;accent-color:#6C3FE8;cursor:pointer;flex-shrink:0">
-      </div>
-      <div style="display:flex;align-items:center;gap:11px;padding:10px;background:#F9FAFB;border-radius:9px;border:1px solid #E5E7EB">
-        <div style="flex:1"><div style="font-size:12px;font-weight:700;color:#111827">Amélioration du service (analytics)</div><div style="font-size:11px;color:#6B7280;margin-top:1px">Données anonymisées pour améliorer l'expérience</div></div>
-        <input type="checkbox" checked style="width:18px;height:18px;accent-color:#6C3FE8;cursor:pointer;flex-shrink:0">
-      </div>
-    </div>
-    <div style="font-size:11px;color:#9CA3AF;margin-top:10px;text-align:center">Conformément à l'Art. 7 du RGPD et Art. 5 de la Loi n°2013-450</div>
+  <div style="display:flex;gap:10px;margin-bottom:16px">
+    <button onclick="saveEProfile()" class="btn-p" style="flex:1;justify-content:center;font-size:14px;padding:13px">
+      <i class="ti ti-device-floppy"></i> Enregistrer le profil
+    </button>
+    <button onclick="goToKycFromProfile('e')" id="epf-kyc-btn" class="btn-s" style="flex:1;justify-content:center;font-size:14px;padding:13px;display:none">
+      <i class="ti ti-shield-check"></i> Continuer vers le KYC →
+    </button>
   </div>
 </div>
 
-<!-- ═══ F-PROFILE ═══ -->
+<!-- ══ SCREEN f-profile (FORMULAIRE ÉDITABLE) ══ -->
 <div id="f-profile" class="screen">
   <div class="pg-title">Mon profil</div>
-  <div class="pg-sub">Informations personnelles et préférences investisseur</div>
-  <div style="display:flex;justify-content:flex-end;margin-bottom:-4px"><button onclick="authLogout()" style="background:none;border:1.5px solid #E5E7EB;border-radius:8px;padding:6px 12px;font-size:11px;font-weight:700;color:#DC2626;cursor:pointer;display:flex;align-items:center;gap:5px;font-family:inherit"><i class="ti ti-logout" style="font-size:12px"></i> Déconnexion</button></div>
+  <div class="pg-sub">Complétez votre profil pour activer votre compte</div>
+  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
+    <div id="f-profile-progress" style="font-size:12px;font-weight:700;color:#059669"></div>
+    <button onclick="authLogout()" style="background:none;border:1.5px solid #E5E7EB;border-radius:8px;padding:6px 12px;font-size:11px;font-weight:700;color:#DC2626;cursor:pointer;display:flex;align-items:center;gap:5px;font-family:inherit"><i class="ti ti-logout" style="font-size:12px"></i> Déconnexion</button>
+  </div>
 
-  <!-- Photo + identité -->
-  <div class="card" style="display:flex;align-items:center;gap:16px;flex-wrap:wrap">
-    <div style="width:72px;height:72px;border-radius:50%;background:linear-gradient(135deg,#059669,#065F46);display:flex;align-items:center;justify-content:center;font-size:26px;font-weight:900;color:#fff;flex-shrink:0;position:relative">
-      BO
-      <div style="position:absolute;bottom:2px;right:2px;width:18px;height:18px;background:#00C27C;border-radius:50%;border:2px solid #fff;display:flex;align-items:center;justify-content:center">
-        <i class="ti ti-check" style="font-size:9px;color:#fff"></i>
-      </div>
-    </div>
+  <!-- Identité rapide -->
+  <div class="card" style="display:flex;align-items:center;gap:16px;flex-wrap:wrap;margin-bottom:14px">
+    <div id="f-avatar-circle" style="width:64px;height:64px;border-radius:50%;background:linear-gradient(135deg,#059669,#065F46);display:flex;align-items:center;justify-content:center;font-size:22px;font-weight:900;color:#fff;flex-shrink:0">BO</div>
     <div style="flex:1;min-width:0">
-      <div style="font-size:17px;font-weight:800;color:#111827">Bamba Ousmane</div>
-      <div style="font-size:12px;color:#6B7280;margin-top:2px">Financeur · Compte vérifié KYC N2</div>
-      <div style="font-size:11px;color:#059669;margin-top:3px;display:flex;align-items:center;gap:4px"><i class="ti ti-shield-check" style="font-size:12px"></i> Identité & banque vérifiées</div>
+      <div id="f-profile-name" style="font-size:16px;font-weight:800;color:#111827">—</div>
+      <div id="f-profile-status" style="font-size:12px;color:#6B7280;margin-top:2px">Financeur · Profil incomplet</div>
     </div>
-    <button class="btn-s" style="padding:7px 13px;font-size:12px;flex-shrink:0"><i class="ti ti-pencil"></i> Modifier</button>
   </div>
 
-  <!-- Infos personnelles -->
   <div class="card">
-    <div class="card-title"><div class="ci"><i class="ti ti-user" style="font-size:13px;color:#6C3FE8"></i></div>Informations personnelles</div>
+    <div class="card-title"><div class="ci"><i class="ti ti-user" style="font-size:13px;color:#059669"></i></div>Informations personnelles</div>
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
-      <div style="background:#F9FAFB;border-radius:9px;padding:11px;border:1px solid #E5E7EB">
-        <div style="font-size:10px;font-weight:700;color:#9CA3AF;text-transform:uppercase;letter-spacing:.06em;margin-bottom:4px">Prénom</div>
-        <div style="font-size:13px;font-weight:700;color:#111827">Ousmane</div>
-      </div>
-      <div style="background:#F9FAFB;border-radius:9px;padding:11px;border:1px solid #E5E7EB">
-        <div style="font-size:10px;font-weight:700;color:#9CA3AF;text-transform:uppercase;letter-spacing:.06em;margin-bottom:4px">Nom</div>
-        <div style="font-size:13px;font-weight:700;color:#111827">Bamba</div>
-      </div>
-      <div style="background:#F9FAFB;border-radius:9px;padding:11px;border:1px solid #E5E7EB">
-        <div style="font-size:10px;font-weight:700;color:#9CA3AF;text-transform:uppercase;letter-spacing:.06em;margin-bottom:4px">Date de naissance</div>
-        <div style="font-size:13px;font-weight:700;color:#111827">22 juillet 1978</div>
-      </div>
-      <div style="background:#F9FAFB;border-radius:9px;padding:11px;border:1px solid #E5E7EB">
-        <div style="font-size:10px;font-weight:700;color:#9CA3AF;text-transform:uppercase;letter-spacing:.06em;margin-bottom:4px">Nationalité</div>
-        <div style="font-size:13px;font-weight:700;color:#111827">Ivoirienne</div>
-      </div>
-      <div style="background:#F9FAFB;border-radius:9px;padding:11px;border:1px solid #E5E7EB;grid-column:1/-1">
-        <div style="font-size:10px;font-weight:700;color:#9CA3AF;text-transform:uppercase;letter-spacing:.06em;margin-bottom:4px">Adresse</div>
-        <div style="font-size:13px;font-weight:700;color:#111827">Plateau, Avenue Noguès, Abidjan</div>
-      </div>
+      <div class="fg"><label>Prénom *</label><input type="text" id="fpf-prenom" placeholder="Prénom" autocomplete="given-name"></div>
+      <div class="fg"><label>Nom *</label><input type="text" id="fpf-nom" placeholder="Nom" autocomplete="family-name"></div>
+      <div class="fg"><label>Date de naissance *</label><input type="date" id="fpf-dob"></div>
+      <div class="fg"><label>Nationalité *</label><input type="text" id="fpf-nationalite" placeholder="Ex: Ivoirienne"></div>
+      <div class="fg full"><label>Adresse complète *</label><input type="text" id="fpf-adresse" placeholder="Quartier, Ville, Pays"></div>
+      <div class="fg"><label>Téléphone *</label><input type="tel" id="fpf-tel" placeholder="+225 07 00 00 00 00"></div>
+      <div class="fg"><label>Email</label><input type="email" id="fpf-email" placeholder="Email" readonly style="background:#F9FAFB;color:#6B7280"></div>
     </div>
   </div>
 
-  <!-- Contact -->
   <div class="card">
-    <div class="card-title"><div class="ci"><i class="ti ti-phone" style="font-size:13px;color:#6C3FE8"></i></div>Coordonnées</div>
-    <div style="display:flex;flex-direction:column;gap:8px">
-      <div style="display:flex;align-items:center;gap:11px;padding:11px;background:#F9FAFB;border-radius:9px;border:1px solid #E5E7EB">
-        <i class="ti ti-mail" style="font-size:17px;color:#6C3FE8;flex-shrink:0"></i>
-        <div style="flex:1;min-width:0">
-          <div style="font-size:10px;color:#9CA3AF;font-weight:600;text-transform:uppercase;letter-spacing:.05em">Email</div>
-          <div style="font-size:13px;font-weight:700;color:#111827;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">o.bamba@investci.ci</div>
-        </div>
-        <span style="background:#D1FAE5;color:#065F46;font-size:10px;font-weight:700;padding:2px 8px;border-radius:20px;flex-shrink:0">Vérifié ✓</span>
-      </div>
-      <div style="display:flex;align-items:center;gap:11px;padding:11px;background:#F9FAFB;border-radius:9px;border:1px solid #E5E7EB">
-        <i class="ti ti-phone" style="font-size:17px;color:#6C3FE8;flex-shrink:0"></i>
-        <div style="flex:1">
-          <div style="font-size:10px;color:#9CA3AF;font-weight:600;text-transform:uppercase;letter-spacing:.05em">Téléphone</div>
-          <div style="font-size:13px;font-weight:700;color:#111827">+225 05 98 76 54 32</div>
-        </div>
-        <span style="background:#D1FAE5;color:#065F46;font-size:10px;font-weight:700;padding:2px 8px;border-radius:20px;flex-shrink:0">Vérifié ✓</span>
-      </div>
-    </div>
-  </div>
-
-  <!-- Profil investisseur -->
-  <div class="card">
-    <div class="card-title"><div class="ci" style="background:#D1FAE5"><i class="ti ti-chart-line" style="font-size:13px;color:#059669"></i></div>Profil investisseur</div>
+    <div class="card-title"><div class="ci"><i class="ti ti-chart-line" style="font-size:13px;color:#059669"></i></div>Profil investisseur</div>
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
-      <div style="background:#F9FAFB;border-radius:9px;padding:11px;border:1px solid #E5E7EB">
-        <div style="font-size:10px;font-weight:700;color:#9CA3AF;text-transform:uppercase;letter-spacing:.06em;margin-bottom:4px">Statut</div>
-        <div style="font-size:13px;font-weight:700;color:#059669">Investisseur actif</div>
+      <div class="fg full"><label>Profession *</label><input type="text" id="fpf-profession" placeholder="Ex: Directeur commercial"></div>
+      <div class="fg"><label>Profil de risque *</label>
+        <select id="fpf-risque">
+          <option value="">Choisir…</option>
+          <option>Prudent</option><option>Modéré</option><option>Dynamique</option><option>Agressif</option>
+        </select>
       </div>
-      <div style="background:#F9FAFB;border-radius:9px;padding:11px;border:1px solid #E5E7EB">
-        <div style="font-size:10px;font-weight:700;color:#9CA3AF;text-transform:uppercase;letter-spacing:.06em;margin-bottom:4px">Profil risque</div>
-        <div style="font-size:13px;font-weight:700;color:#D97706">Modéré</div>
+      <div class="fg"><label>Capacité d\'investissement *</label>
+        <select id="fpf-capacite">
+          <option value="">Choisir…</option>
+          <option>Moins de 500 000 FCFA</option>
+          <option>500 000 – 2 000 000 FCFA</option>
+          <option>2 000 000 – 10 000 000 FCFA</option>
+          <option>Plus de 10 000 000 FCFA</option>
+        </select>
       </div>
-      <div style="background:#F9FAFB;border-radius:9px;padding:11px;border:1px solid #E5E7EB">
-        <div style="font-size:10px;font-weight:700;color:#9CA3AF;text-transform:uppercase;letter-spacing:.06em;margin-bottom:4px">Total investi</div>
-        <div style="font-size:13px;font-weight:700;color:#6C3FE8">22 000 000 FCFA</div>
-      </div>
-      <div style="background:#F9FAFB;border-radius:9px;padding:11px;border:1px solid #E5E7EB">
-        <div style="font-size:10px;font-weight:700;color:#9CA3AF;text-transform:uppercase;letter-spacing:.06em;margin-bottom:4px">Membre depuis</div>
-        <div style="font-size:13px;font-weight:700;color:#111827">Janvier 2024</div>
-      </div>
-    </div>
-  </div>
-
-  <!-- Banque vérifiée -->
-  <div class="card">
-    <div class="card-title"><div class="ci" style="background:#FEF3C7"><i class="ti ti-building-bank" style="font-size:13px;color:#D97706"></i></div>Compte Ecobank vérifié (LBC/FT)</div>
-    <div style="display:flex;align-items:center;gap:11px;padding:13px;background:#F0FDF4;border-radius:10px;border:1.5px solid #BBF7D0">
-      <div style="width:40px;height:40px;border-radius:10px;background:#1A56DB;display:flex;align-items:center;justify-content:center;font-size:15px;font-weight:900;color:#fff;flex-shrink:0">S</div>
-      <div style="flex:1">
-        <div style="font-size:13px;font-weight:800;color:#065F46"><span style="font-family:Arial,sans-serif;font-weight:900;color:#0B5E78">Ecobank</span> CI — Compte Principal</div>
-        <div style="font-size:11px;color:#6B7280;margin-top:2px">CI00 0002 0100 0042 0000 0000 042 · Vérifié</div>
-        <div style="font-size:10px;color:#0B5E78;margin-top:2px;font-weight:700">✓ Compte principal · Réception des financements Credigo</div>
-      </div>
-    </div>
-    <div style="font-size:11px;color:#6B7280;margin-top:10px;padding:9px;background:#FEF9EC;border-radius:8px;border:1px solid #FDE68A">
-      <i class="ti ti-info-circle" style="font-size:12px;color:#D97706"></i> Conformément à la réglementation BCEAO/GAFI, tout investissement est débité exclusivement depuis votre compte Ecobank CI vérifié.
-    </div>
-  </div>
-
-  <!-- Sécurité -->
-  <div class="card">
-    <div class="card-title"><div class="ci" style="background:#FEF3C7"><i class="ti ti-shield" style="font-size:13px;color:#D97706"></i></div>Sécurité & Connexion</div>
-    <div style="display:flex;flex-direction:column;gap:8px">
-      <div style="display:flex;align-items:center;gap:11px;padding:11px;background:#F9FAFB;border-radius:9px;border:1px solid #E5E7EB">
-        <i class="ti ti-key" style="font-size:17px;color:#D97706;flex-shrink:0"></i>
-        <div style="flex:1"><div style="font-size:12px;font-weight:700;color:#111827">Mot de passe</div><div style="font-size:11px;color:#9CA3AF">Modifié il y a 1 mois</div></div>
-        <button class="btn-s" style="padding:5px 11px;font-size:11px;flex-shrink:0">Modifier</button>
-      </div>
-      <div style="display:flex;align-items:center;gap:11px;padding:11px;background:#F0FDF4;border-radius:9px;border:1px solid #BBF7D0">
-        <i class="ti ti-device-mobile" style="font-size:17px;color:#059669;flex-shrink:0"></i>
-        <div style="flex:1"><div style="font-size:12px;font-weight:700;color:#065F46">Authentification 2FA</div><div style="font-size:11px;color:#6B7280">Authentification via l'app · +225 05 98 76 54 32</div></div>
-        <span style="background:#D1FAE5;color:#065F46;font-size:10px;font-weight:700;padding:2px 8px;border-radius:20px;flex-shrink:0">Actif ✓</span>
-      </div>
-      <div style="display:flex;align-items:center;gap:11px;padding:11px;background:#F9FAFB;border-radius:9px;border:1px solid #E5E7EB">
-        <i class="ti ti-history" style="font-size:17px;color:#6B7280;flex-shrink:0"></i>
-        <div style="flex:1"><div style="font-size:12px;font-weight:700;color:#111827">Dernière connexion</div><div style="font-size:11px;color:#9CA3AF">Aujourd'hui à 11h15 · Abidjan, CI</div></div>
+      <div class="fg"><label>Source des fonds *</label>
+        <select id="fpf-source">
+          <option value="">Choisir…</option>
+          <option>Salaire / Revenus professionnels</option>
+          <option>Épargne personnelle</option>
+          <option>Revenus locatifs</option>
+          <option>Bénéfices d\'entreprise</option>
+          <option>Héritage / Donation</option>
+          <option>Autre</option>
+        </select>
       </div>
     </div>
   </div>
 
-  <!-- RGPD / Loi 2013-450 -->
-  <div class="card" style="border-color:#C4B5FD">
-    <div class="card-title"><div class="ci" style="background:#EEE8FF"><i class="ti ti-lock-square" style="font-size:13px;color:#6C3FE8"></i></div>Vos droits · RGPD & Loi n°2013-450 ARTCI</div>
-    <div style="background:#F5F3FF;border-radius:10px;padding:12px;margin-bottom:12px;font-size:11px;color:#4C1D95;line-height:1.7;font-weight:500">
-      Conformément au <strong>RGPD</strong> et à la <strong>Loi ivoirienne n°2013-450 du 19 juin 2013</strong> relative à la protection des données à caractère personnel (ARTCI), vous disposez des droits suivants :
-    </div>
-    <div style="display:flex;flex-direction:column;gap:7px;margin-bottom:14px">
-      <div style="display:flex;gap:9px;padding:9px;background:#F9FAFB;border-radius:8px">
-        <i class="ti ti-eye" style="font-size:15px;color:#6C3FE8;flex-shrink:0;margin-top:1px"></i>
-        <div><div style="font-size:12px;font-weight:700;color:#111827">Droit d'accès (Art. 20)</div><div style="font-size:11px;color:#6B7280;margin-top:1px">Consulter toutes les données personnelles que Credigo détient sur vous.</div></div>
-      </div>
-      <div style="display:flex;gap:9px;padding:9px;background:#F9FAFB;border-radius:8px">
-        <i class="ti ti-pencil" style="font-size:15px;color:#6C3FE8;flex-shrink:0;margin-top:1px"></i>
-        <div><div style="font-size:12px;font-weight:700;color:#111827">Droit de rectification (Art. 21)</div><div style="font-size:11px;color:#6B7280;margin-top:1px">Corriger toute donnée inexacte ou incomplète.</div></div>
-      </div>
-      <div style="display:flex;gap:9px;padding:9px;background:#F9FAFB;border-radius:8px">
-        <i class="ti ti-trash" style="font-size:15px;color:#DC2626;flex-shrink:0;margin-top:1px"></i>
-        <div><div style="font-size:12px;font-weight:700;color:#111827">Droit à l'effacement (Art. 22)</div><div style="font-size:11px;color:#6B7280;margin-top:1px">Demander la suppression de vos données, sous réserve des obligations légales.</div></div>
-      </div>
-      <div style="display:flex;gap:9px;padding:9px;background:#F9FAFB;border-radius:8px">
-        <i class="ti ti-ban" style="font-size:15px;color:#D97706;flex-shrink:0;margin-top:1px"></i>
-        <div><div style="font-size:12px;font-weight:700;color:#111827">Droit d'opposition (Art. 23)</div><div style="font-size:11px;color:#6B7280;margin-top:1px">S'opposer au traitement à des fins commerciales ou de prospection.</div></div>
-      </div>
-      <div style="display:flex;gap:9px;padding:9px;background:#F9FAFB;border-radius:8px">
-        <i class="ti ti-download" style="font-size:15px;color:#059669;flex-shrink:0;margin-top:1px"></i>
-        <div><div style="font-size:12px;font-weight:700;color:#111827">Droit à la portabilité</div><div style="font-size:11px;color:#6B7280;margin-top:1px">Recevoir vos données dans un format structuré et interopérable.</div></div>
-      </div>
-    </div>
-    <div style="background:#EEE8FF;border-radius:9px;padding:10px 12px;margin-bottom:12px;font-size:11px;color:#4C1D95;line-height:1.6">
-      <strong>Responsable du traitement :</strong> CREDIGO SAS · Abidjan, Plateau · contact@credigo.ci<br>
-      <strong>DPO :</strong> dpo@credigo.ci<br>
-      <strong>Autorité de contrôle :</strong> ARTCI — Direction de la Protection des Données Personnelles<br>
-      <strong>Enregistrement :</strong> n°CI-2024-ARTCI-DCP-0089
-    </div>
-    <div style="display:flex;flex-direction:column;gap:7px">
-      <button class="btn-s" style="width:100%;justify-content:center;gap:8px"><i class="ti ti-download"></i> Télécharger mes données</button>
-      <button class="btn-s" style="width:100%;justify-content:center;gap:8px;color:#DC2626;border-color:#FCA5A5"><i class="ti ti-trash"></i> Demander la suppression du compte</button>
-      <button class="btn-s" style="width:100%;justify-content:center;gap:8px"><i class="ti ti-mail"></i> Contacter le DPO · dpo@credigo.ci</button>
-    </div>
-  </div>
-
-  <!-- Consentements -->
-  <div class="card">
-    <div class="card-title"><div class="ci" style="background:#F0FDF4"><i class="ti ti-check" style="font-size:13px;color:#059669"></i></div>Gestion des consentements</div>
-    <div style="display:flex;flex-direction:column;gap:8px">
-      <div style="display:flex;align-items:center;gap:11px;padding:10px;background:#F9FAFB;border-radius:9px;border:1px solid #E5E7EB">
-        <div style="flex:1"><div style="font-size:12px;font-weight:700;color:#111827">Données nécessaires au service</div><div style="font-size:11px;color:#6B7280;margin-top:1px">Identité, transactions, investissements · Base légale : exécution du contrat</div></div>
-        <div style="background:#D1FAE5;color:#065F46;font-size:10px;font-weight:700;padding:3px 9px;border-radius:20px;flex-shrink:0">Obligatoire</div>
-      </div>
-      <div style="display:flex;align-items:center;gap:11px;padding:10px;background:#F9FAFB;border-radius:9px;border:1px solid #E5E7EB">
-        <div style="flex:1"><div style="font-size:12px;font-weight:700;color:#111827">Alertes de nouvelles opportunités</div><div style="font-size:11px;color:#6B7280;margin-top:1px">email et WhatsApp pour les nouveaux contrats disponibles</div></div>
-        <input type="checkbox" checked style="width:18px;height:18px;accent-color:#6C3FE8;cursor:pointer;flex-shrink:0">
-      </div>
-      <div style="display:flex;align-items:center;gap:11px;padding:10px;background:#F9FAFB;border-radius:9px;border:1px solid #E5E7EB">
-        <div style="flex:1"><div style="font-size:12px;font-weight:700;color:#111827">Partage avec partenaires bancaires</div><div style="font-size:11px;color:#6B7280;margin-top:1px">Données de profil partagées avec nos banques partenaires (SGBCI, BNI)</div></div>
-        <input type="checkbox" style="width:18px;height:18px;accent-color:#6C3FE8;cursor:pointer;flex-shrink:0">
-      </div>
-    </div>
-    <div style="font-size:11px;color:#9CA3AF;margin-top:10px;text-align:center">Conformément à l'Art. 7 du RGPD et Art. 5 de la Loi n°2013-450</div>
+  <div style="display:flex;gap:10px;margin-bottom:16px">
+    <button onclick="saveFProfile()" class="btn-p" style="flex:1;justify-content:center;background:linear-gradient(135deg,#059669,#065F46);font-size:14px;padding:13px">
+      <i class="ti ti-device-floppy"></i> Enregistrer le profil
+    </button>
+    <button onclick="goToKycFromProfile('f')" id="fpf-kyc-btn" class="btn-s" style="flex:1;justify-content:center;font-size:14px;padding:13px;display:none">
+      <i class="ti ti-shield-check"></i> Continuer vers le KYC →
+    </button>
   </div>
 </div>
+
+
+<!-- ═══ F-PROFILE ═══ -->
+
+
 
 <!-- ═══ F-KYC ═══ -->
 <div id="f-kyc" class="screen">
@@ -6204,6 +5963,308 @@ function drawAuthLogo() {
   ctx.beginPath(); ctx.arc(iCx, dotY, dotR, 0, Math.PI * 2);
   ctx.fillStyle = G; ctx.fill();
 }
+
+/* ══════════════════════════════════════════════
+   PROFIL — Formulaires éditables
+   ══════════════════════════════════════════════ */
+
+/* ── Remplir les champs depuis la session ── */
+function loadProfileForms() {
+  if (!authUser) return;
+  var u = authUser;
+  var initials = u.initials || (u.name || 'U').substring(0,2).toUpperCase();
+
+  if (u.role === 'e') {
+    // Avatar
+    var avE = document.getElementById('e-avatar-circle');
+    if (avE) avE.textContent = initials;
+    var nameEl = document.getElementById('e-profile-name');
+    if (nameEl) nameEl.textContent = u.name || '—';
+
+    // Pré-remplir les champs depuis la session ou localStorage
+    var saved = getSavedProfile('e');
+    var nameParts = (u.name || '').split(' ');
+    setVal('epf-prenom', saved.prenom || nameParts[0] || '');
+    setVal('epf-nom', saved.nom || nameParts.slice(1).join(' ') || '');
+    setVal('epf-dob', saved.dob || '');
+    setVal('epf-nationalite', saved.nationalite || '');
+    setVal('epf-adresse', saved.adresse || '');
+    setVal('epf-tel', saved.tel || u.phone || '');
+    setVal('epf-email', u.email || '');
+    setVal('epf-raison', saved.raison || '');
+    setVal('epf-forme', saved.forme || '');
+    setVal('epf-rccm', saved.rccm || '');
+    setVal('epf-tax', saved.tax || '');
+    setVal('epf-secteur', saved.secteur || '');
+    setVal('epf-effectif', saved.effectif || '');
+    setVal('epf-siege', saved.siege || '');
+    updateEProfileProgress();
+  } else {
+    var avF = document.getElementById('f-avatar-circle');
+    if (avF) avF.textContent = initials;
+    var nameElF = document.getElementById('f-profile-name');
+    if (nameElF) nameElF.textContent = u.name || '—';
+
+    var savedF = getSavedProfile('f');
+    var namePartsF = (u.name || '').split(' ');
+    setVal('fpf-prenom', savedF.prenom || namePartsF[0] || '');
+    setVal('fpf-nom', savedF.nom || namePartsF.slice(1).join(' ') || '');
+    setVal('fpf-dob', savedF.dob || '');
+    setVal('fpf-nationalite', savedF.nationalite || '');
+    setVal('fpf-adresse', savedF.adresse || '');
+    setVal('fpf-tel', savedF.tel || u.phone || '');
+    setVal('fpf-email', u.email || '');
+    setVal('fpf-profession', savedF.profession || '');
+    setVal('fpf-risque', savedF.risque || '');
+    setVal('fpf-capacite', savedF.capacite || '');
+    setVal('fpf-source', savedF.source || '');
+    updateFProfileProgress();
+  }
+}
+
+function setVal(id, val) {
+  var el = document.getElementById(id);
+  if (el && val) el.value = val;
+}
+
+function getSavedProfile(role) {
+  try {
+    var key = 'credigo_profile_' + role;
+    return JSON.parse(localStorage.getItem(key) || '{}');
+  } catch(e) { return {}; }
+}
+
+function saveProfileLocal(role, data) {
+  try {
+    localStorage.setItem('credigo_profile_' + role, JSON.stringify(data));
+  } catch(e) {}
+}
+
+/* ── Calcul de progression du profil ── */
+function updateEProfileProgress() {
+  var required = ['epf-prenom','epf-nom','epf-dob','epf-nationalite','epf-adresse','epf-tel','epf-raison','epf-forme','epf-rccm','epf-tax','epf-secteur'];
+  var filled = required.filter(function(id){ var el = document.getElementById(id); return el && el.value.trim(); }).length;
+  var pct = Math.round(filled / required.length * 100);
+  var prog = document.getElementById('e-profile-progress');
+  if (prog) prog.textContent = pct + '% complété';
+  var statusEl = document.getElementById('e-profile-status');
+  if (statusEl) statusEl.textContent = 'Entrepreneur · ' + (pct === 100 ? 'Profil complet' : pct + '% complété');
+  var kycBtn = document.getElementById('epf-kyc-btn');
+  if (kycBtn) kycBtn.style.display = pct === 100 ? 'flex' : 'none';
+  return pct === 100;
+}
+
+function updateFProfileProgress() {
+  var required = ['fpf-prenom','fpf-nom','fpf-dob','fpf-nationalite','fpf-adresse','fpf-tel','fpf-profession','fpf-risque','fpf-capacite','fpf-source'];
+  var filled = required.filter(function(id){ var el = document.getElementById(id); return el && el.value.trim(); }).length;
+  var pct = Math.round(filled / required.length * 100);
+  var prog = document.getElementById('f-profile-progress');
+  if (prog) prog.textContent = pct + '% complété';
+  var statusEl = document.getElementById('f-profile-status');
+  if (statusEl) statusEl.textContent = 'Financeur · ' + (pct === 100 ? 'Profil complet' : pct + '% complété');
+  var kycBtn = document.getElementById('fpf-kyc-btn');
+  if (kycBtn) kycBtn.style.display = pct === 100 ? 'flex' : 'none';
+  return pct === 100;
+}
+
+/* ── Écouter les changements de champs ── */
+document.addEventListener('input', function(e) {
+  var id = e.target && e.target.id;
+  if (!id) return;
+  if (id.startsWith('epf-')) updateEProfileProgress();
+  if (id.startsWith('fpf-')) updateFProfileProgress();
+});
+
+/* ── Sauvegarder le profil entrepreneur ── */
+function saveEProfile() {
+  var fields = {
+    prenom: (document.getElementById('epf-prenom')||{}).value||'',
+    nom: (document.getElementById('epf-nom')||{}).value||'',
+    dob: (document.getElementById('epf-dob')||{}).value||'',
+    nationalite: (document.getElementById('epf-nationalite')||{}).value||'',
+    adresse: (document.getElementById('epf-adresse')||{}).value||'',
+    tel: (document.getElementById('epf-tel')||{}).value||'',
+    raison: (document.getElementById('epf-raison')||{}).value||'',
+    forme: (document.getElementById('epf-forme')||{}).value||'',
+    rccm: (document.getElementById('epf-rccm')||{}).value||'',
+    tax: (document.getElementById('epf-tax')||{}).value||'',
+    secteur: (document.getElementById('epf-secteur')||{}).value||'',
+    effectif: (document.getElementById('epf-effectif')||{}).value||'',
+    siege: (document.getElementById('epf-siege')||{}).value||''
+  };
+
+  // Vérifier champs obligatoires
+  var required = ['prenom','nom','dob','nationalite','adresse','tel','raison','forme','rccm','tax','secteur'];
+  var missing = required.filter(function(k){ return !fields[k].trim(); });
+  if (missing.length > 0) {
+    toast('Veuillez remplir tous les champs obligatoires (*).');
+    return;
+  }
+
+  saveProfileLocal('e', fields);
+
+  // Mettre à jour la session
+  if (authUser) {
+    authUser.name = fields.prenom + ' ' + fields.nom;
+    authUser.initials = (fields.prenom[0] + fields.nom[0]).toUpperCase();
+    authUser.profileComplete = true;
+    authSaveSession(authUser);
+    var nameEl = document.getElementById('e-profile-name');
+    if (nameEl) nameEl.textContent = authUser.name;
+    var avE = document.getElementById('e-avatar-circle');
+    if (avE) avE.textContent = authUser.initials;
+    var avNav = document.getElementById('av-e');
+    if (avNav) avNav.textContent = authUser.initials;
+  }
+
+  // Sauvegarder dans Supabase si disponible
+  if (window.CredigoDB && window.CredigoDB.ready && typeof window.credigoSaveProfile === 'function') {
+    window.credigoSaveProfile({
+      first_name: fields.prenom, last_name: fields.nom, phone: fields.tel,
+      date_of_birth: fields.dob, nationality: fields.nationalite, address: fields.adresse,
+      company_name: fields.raison, legal_form: fields.forme, rccm_number: fields.rccm,
+      tax_number: fields.tax, sector: fields.secteur,
+      employee_count: parseInt(fields.effectif)||null, hq_address: fields.siege,
+      portal: 'entrepreneur'
+    }).then(function(res) {
+      if (res.error) console.warn('Supabase profile save:', res.error);
+    });
+  }
+
+  var isComplete = updateEProfileProgress();
+  toast('Profil enregistré avec succès !');
+
+  if (isComplete) {
+    // Masquer la bannière KYC si le profil est maintenant complet
+    if (authUser) showKycBanner(authUser);
+  }
+}
+
+/* ── Sauvegarder le profil financeur ── */
+function saveFProfile() {
+  var fields = {
+    prenom: (document.getElementById('fpf-prenom')||{}).value||'',
+    nom: (document.getElementById('fpf-nom')||{}).value||'',
+    dob: (document.getElementById('fpf-dob')||{}).value||'',
+    nationalite: (document.getElementById('fpf-nationalite')||{}).value||'',
+    adresse: (document.getElementById('fpf-adresse')||{}).value||'',
+    tel: (document.getElementById('fpf-tel')||{}).value||'',
+    profession: (document.getElementById('fpf-profession')||{}).value||'',
+    risque: (document.getElementById('fpf-risque')||{}).value||'',
+    capacite: (document.getElementById('fpf-capacite')||{}).value||'',
+    source: (document.getElementById('fpf-source')||{}).value||''
+  };
+
+  var required = ['prenom','nom','dob','nationalite','adresse','tel','profession','risque','capacite','source'];
+  var missing = required.filter(function(k){ return !fields[k].trim(); });
+  if (missing.length > 0) {
+    toast('Veuillez remplir tous les champs obligatoires (*).');
+    return;
+  }
+
+  saveProfileLocal('f', fields);
+
+  if (authUser) {
+    authUser.name = fields.prenom + ' ' + fields.nom;
+    authUser.initials = (fields.prenom[0] + fields.nom[0]).toUpperCase();
+    authUser.profileComplete = true;
+    authSaveSession(authUser);
+    var nameElF = document.getElementById('f-profile-name');
+    if (nameElF) nameElF.textContent = authUser.name;
+    var avF = document.getElementById('f-avatar-circle');
+    if (avF) avF.textContent = authUser.initials;
+    var avNavF = document.getElementById('av-f');
+    if (avNavF) avNavF.textContent = authUser.initials;
+  }
+
+  if (window.CredigoDB && window.CredigoDB.ready && typeof window.credigoSaveProfile === 'function') {
+    window.credigoSaveProfile({
+      first_name: fields.prenom, last_name: fields.nom, phone: fields.tel,
+      date_of_birth: fields.dob, nationality: fields.nationalite, address: fields.adresse,
+      portal: 'financeur'
+    });
+  }
+
+  updateFProfileProgress();
+  toast('Profil enregistré avec succès !');
+  if (authUser) showKycBanner(authUser);
+}
+
+/* ── Aller au KYC depuis le profil ── */
+function goToKycFromProfile(role) {
+  if (role === 'e') {
+    showScreen('e-kyc');
+    if (typeof switchTo === 'function') switchTo('e');
+  } else {
+    showScreen('f-kyc-upload');
+    if (typeof switchTo === 'function') switchTo('f');
+  }
+}
+
+/* ══ SWITCH E/F — Visible uniquement si l'utilisateur a les deux portails ══ */
+function updateSwitchVisibility() {
+  var swWrap = document.querySelector('.switch-wrap');
+  if (!swWrap) return;
+
+  // Vérifier si l'utilisateur a un compte dans les deux portails
+  var hasE = false, hasF = false;
+  try {
+    hasE = !!localStorage.getItem('credigo_profile_e') || (authUser && authUser.role === 'e');
+    hasF = !!localStorage.getItem('credigo_profile_f') || (authUser && authUser.role === 'f');
+    // Vérifier aussi les sessions sauvegardées pour l'autre portail
+    var allSessions = JSON.parse(localStorage.getItem('credigo_all_sessions') || '[]');
+    allSessions.forEach(function(s) {
+      if (s.role === 'e') hasE = true;
+      if (s.role === 'f') hasF = true;
+    });
+  } catch(e) {}
+
+  // Afficher le switch seulement si l'utilisateur a LES DEUX portails
+  swWrap.style.display = (hasE && hasF) ? 'flex' : 'none';
+}
+
+/* ══ MISE À JOUR AUTH POUR GÉRER L'ONBOARDING ══
+   Après connexion, rediriger vers profil si incomplet */
+var _origAuthEnterApp = null;
+document.addEventListener('DOMContentLoaded', function() {
+  // S'exécute après le chargement complet du script principal
+  setTimeout(function() {
+    // Surcharger authEnterApp pour ajouter le flow profil
+    var realAuthEnterApp = window.authEnterApp;
+    if (realAuthEnterApp) {
+      window.authEnterApp = function(user) {
+        realAuthEnterApp(user);
+
+        // Sauvegarder cette session dans la liste de toutes les sessions (multi-portail)
+        try {
+          var allSessions = JSON.parse(localStorage.getItem('credigo_all_sessions') || '[]');
+          var exists = allSessions.some(function(s){ return s.email === user.email && s.role === user.role; });
+          if (!exists) {
+            allSessions.push({ email: user.email, role: user.role, name: user.name });
+            localStorage.setItem('credigo_all_sessions', JSON.stringify(allSessions));
+          }
+        } catch(e) {}
+
+        updateSwitchVisibility();
+        loadProfileForms();
+
+        // Si le profil est incomplet, aller directement au profil
+        if (!user.profileComplete || user.kycStatus === 'not_started') {
+          setTimeout(function() {
+            showScreen(user.role === 'e' ? 'e-profile' : 'f-profile');
+          }, 300);
+        }
+      };
+    }
+    updateSwitchVisibility();
+  }, 100);
+
+  // Charger les profils si déjà connecté
+  if (typeof authUser !== 'undefined' && authUser) {
+    loadProfileForms();
+    updateSwitchVisibility();
+  }
+});
 </script>
 
 <!-- ══ MODAL ECOBANK ══ -->
