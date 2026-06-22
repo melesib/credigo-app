@@ -2764,6 +2764,18 @@ function showScreen(id) {
   const el = document.getElementById(id);
   if (el) { el.style.display = 'block'; el.classList.add('on'); }
   renderScreen(id);
+  // Masquer le banner KYC sur les écrans de profil et KYC
+  var profileScreens = ['e-profile', 'f-profile', 'e-kyc', 'f-kyc-upload'];
+  var banner = document.getElementById('kyc-required-banner');
+  var contentEl = document.querySelector('.content');
+  if (profileScreens.indexOf(id) !== -1) {
+    if (banner) banner.style.display = 'none';
+    if (contentEl) contentEl.style.paddingBottom = '';
+  } else if (banner && banner.style.display === 'none' && authUser && (!authUser.profileComplete || authUser.kycStatus !== 'approved')) {
+    // Ré-afficher le banner si on quitte un écran de profil
+    if (banner) banner.style.display = 'flex';
+    if (contentEl) contentEl.style.paddingBottom = '80px';
+  }
 }
 function renderScreen(id) {
   if (id === 'e-list') renderContrats();
@@ -5805,7 +5817,14 @@ function authEnterApp(user) {
 function showKycBanner(user) {
   var banner = document.getElementById('kyc-required-banner');
   if (!banner) return;
+  // Ne pas afficher sur les écrans de profil (l'utilisateur est en train de le remplir)
+  var profileScreens = ['e-profile', 'f-profile', 'e-kyc', 'f-kyc-upload'];
+  var currentScreen = document.querySelector('.screen.on');
+  if (currentScreen && profileScreens.indexOf(currentScreen.id) !== -1) return;
   banner.style.display = 'flex';
+  // Ajouter padding-bottom au contenu pour éviter que le banner cache les boutons
+  var contentEl = document.querySelector('.content');
+  if (contentEl) contentEl.style.paddingBottom = '80px';
   // Ajuster couleur selon rôle
   if (user && user.role === 'f') {
     banner.style.background = 'linear-gradient(135deg,#059669,#065F46)';
@@ -5817,6 +5836,8 @@ function showKycBanner(user) {
 function hideKycBanner() {
   var banner = document.getElementById('kyc-required-banner');
   if (banner) banner.style.display = 'none';
+  var contentEl = document.querySelector('.content');
+  if (contentEl) contentEl.style.paddingBottom = '';
 }
 
 function goToKyc() {
