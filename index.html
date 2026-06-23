@@ -5767,19 +5767,32 @@ function authEnterApp(user) {
   var overlay = document.getElementById('auth-overlay');
   if (overlay) overlay.style.display = 'none';
 
-  // Mettre à jour les avatars dans la nav
+  // Sauvegarder cette session dans la liste multi-portail
+  try {
+    var allSessions = JSON.parse(localStorage.getItem('credigo_all_sessions') || '[]');
+    var exists = allSessions.some(function(s){ return s.email === user.email && s.role === user.role; });
+    if (!exists) {
+      allSessions.push({ email: user.email, role: user.role, name: user.name });
+      localStorage.setItem('credigo_all_sessions', JSON.stringify(allSessions));
+    }
+  } catch(e) {}
+
+  // Mettre à jour les avatars dans la nav avec les vraies initiales
+  var initials = user.initials || (user.name || '').split(' ').map(function(p){ return p[0]; }).join('').slice(0,2).toUpperCase() || '?';
+  user.initials = initials;
   var avE = document.getElementById('av-e');
   var avF = document.getElementById('av-f');
-  if (user.initials) {
-    if (avE) avE.textContent = user.initials;
-    if (avF) avF.textContent = user.initials;
-  }
+  if (avE) avE.textContent = initials;
+  if (avF) avF.textContent = initials;
 
   // Switcher vers le bon portail
   if (typeof switchTo === 'function') switchTo(user.role);
 
-  // Rafraîchir le statut KYC depuis la source de vérité (le back-office a
-  // pu changer la décision depuis la dernière connexion).
+  // Pré-remplir le formulaire de profil avec les données Google/email disponibles
+  if (typeof loadProfileForms === 'function') loadProfileForms();
+  if (typeof updateSwitchVisibility === 'function') updateSwitchVisibility();
+
+  // Rafraîchir le statut KYC depuis Supabase
   if (window.CredigoDB && window.CredigoDB.ready && user.dbUserId) {
     window.credigoRefreshKycStatus().then(function(fresh) {
       if (!fresh) return;
@@ -5790,12 +5803,20 @@ function authEnterApp(user) {
         hideKycBanner();
       } else {
         showKycBanner(user);
+        if (!user.profileComplete) {
+          showScreen(user.role === 'e' ? 'e-profile' : 'f-profile');
+        }
       }
     });
   }
 
-  // Vérifier statut KYC et profil (état connu immédiatement, avant le refresh async)
-  if (!user.profileComplete || user.kycStatus !== 'approved') {
+  // Redirection immédiate vers profil si incomplet (avant le retour Supabase async)
+  if (!user.profileComplete || user.kycStatus === 'not_started') {
+    showKycBanner(user);
+    setTimeout(function() {
+      showScreen(user.role === 'e' ? 'e-profile' : 'f-profile');
+    }, 200);
+  } else if (user.kycStatus !== 'approved') {
     showKycBanner(user);
   }
 
@@ -5804,14 +5825,8 @@ function authEnterApp(user) {
     if (typeof toast === 'function') {
       var msg = user.kycStatus === 'approved'
         ? 'Bienvenue ' + (user.name || '') + ' !'
-        : 'Bienvenue ! Completez votre profil et KYC pour accéder à toutes les fonctionnalités.';
+        : 'Bienvenue ! Complétez votre profil et KYC pour accéder à toutes les fonctionnalités.';
       toast(msg);
-    }
-    if (typeof pushNotif === 'function') {
-      pushNotif('kyc', 'ti-shield-exclamation', '#EEE8FF', '#6C3FE8',
-        'Compte créé avec succès',
-        'Complétez votre profil et soumettez votre KYC pour activer votre compte.',
-        user.role);
     }
   }, 600);
 }
@@ -5991,55 +6006,54 @@ function drawAuthLogo() {
 function loadProfileForms() {
   if (!authUser) return;
   var u = authUser;
-  var initials = u.initials || (u.name || 'U').substring(0,2).toUpperCase();
+
+  // Décomposer le nom complet en prénom/nom
+  var nameParts = (u.name || '').trim().split(' ');
+  var defaultPrenom = nameParts[0] || '';
+  var defaultNom = nameParts.slice(1).join(' ') || '';
+  var initials = (defaultPrenom[0] || '') + (defaultNom[0] || defaultPrenom[1] || '');
+  initials = initials.toUpperCase() || '?';
+
+  // Mettre à jour l\'avatar
+  var avCircle = document.getElementById(u.role === 'e' ? 'e-avatar-circle' : 'f-avatar-circle');
+  if (avCircle) avCircle.textContent = initials;
+  var nameEl = document.getElementById(u.role === 'e' ? 'e-profile-name' : 'f-profile-name');
+  if (nameEl) nameEl.textContent = u.name || '—';
+  var statusEl = document.getElementById(u.role === 'e' ? 'e-profile-status' : 'f-profile-status');
 
   if (u.role === 'e') {
-    // Avatar
-    var avE = document.getElementById('e-avatar-circle');
-    if (avE) avE.textContent = initials;
-    var nameEl = document.getElementById('e-profile-name');
-    if (nameEl) nameEl.textContent = u.name || '—';
-
-    // Pré-remplir les champs depuis la session ou localStorage
     var saved = getSavedProfile('e');
-    var nameParts = (u.name || '').split(' ');
-    setVal('epf-prenom', saved.prenom || nameParts[0] || '');
-    setVal('epf-nom', saved.nom || nameParts.slice(1).join(' ') || '');
-    setVal('epf-dob', saved.dob || '');
+    setVal('epf-prenom', saved.prenom || defaultPrenom);
+    setVal('epf-nom',    saved.nom    || defaultNom);
+    setVal('epf-dob',    saved.dob    || '');
     setVal('epf-nationalite', saved.nationalite || '');
-    setVal('epf-adresse', saved.adresse || '');
-    setVal('epf-tel', saved.tel || u.phone || '');
-    setVal('epf-email', u.email || '');
-    setVal('epf-raison', saved.raison || '');
-    setVal('epf-forme', saved.forme || '');
-    setVal('epf-rccm', saved.rccm || '');
-    setVal('epf-tax', saved.tax || '');
+    setVal('epf-adresse',     saved.adresse     || '');
+    setVal('epf-tel',         saved.tel         || u.phone || '');
+    setVal('epf-email',       u.email           || '');
+    setVal('epf-raison',  saved.raison  || '');
+    setVal('epf-forme',   saved.forme   || '');
+    setVal('epf-rccm',    saved.rccm    || '');
+    setVal('epf-tax',     saved.tax     || '');
     setVal('epf-secteur', saved.secteur || '');
-    setVal('epf-effectif', saved.effectif || '');
-    setVal('epf-siege', saved.siege || '');
+    setVal('epf-effectif',saved.effectif|| '');
+    setVal('epf-siege',   saved.siege   || '');
     updateEProfileProgress();
   } else {
-    var avF = document.getElementById('f-avatar-circle');
-    if (avF) avF.textContent = initials;
-    var nameElF = document.getElementById('f-profile-name');
-    if (nameElF) nameElF.textContent = u.name || '—';
-
     var savedF = getSavedProfile('f');
-    var namePartsF = (u.name || '').split(' ');
-    setVal('fpf-prenom', savedF.prenom || namePartsF[0] || '');
-    setVal('fpf-nom', savedF.nom || namePartsF.slice(1).join(' ') || '');
-    setVal('fpf-dob', savedF.dob || '');
+    setVal('fpf-prenom', savedF.prenom || defaultPrenom);
+    setVal('fpf-nom',    savedF.nom    || defaultNom);
+    setVal('fpf-dob',    savedF.dob    || '');
     setVal('fpf-nationalite', savedF.nationalite || '');
-    setVal('fpf-adresse', savedF.adresse || '');
-    setVal('fpf-tel', savedF.tel || u.phone || '');
-    setVal('fpf-email', u.email || '');
-    setVal('fpf-profession', savedF.profession || '');
-    setVal('fpf-risque', savedF.risque || '');
-    setVal('fpf-capacite', savedF.capacite || '');
-    setVal('fpf-source', savedF.source || '');
+    setVal('fpf-adresse',     savedF.adresse     || '');
+    setVal('fpf-tel',         savedF.tel         || u.phone || '');
+    setVal('fpf-email',       u.email            || '');
+    setVal('fpf-profession',  savedF.profession  || '');
+    setVal('fpf-risque',      savedF.risque      || '');
+    setVal('fpf-capacite',    savedF.capacite    || '');
+    setVal('fpf-source',      savedF.source      || '');
     updateFProfileProgress();
   }
-}
+};
 
 function setVal(id, val) {
   var el = document.getElementById(id);
