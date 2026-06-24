@@ -167,7 +167,7 @@ body{font-family:'Plus Jakarta Sans',Arial,sans-serif;background:#F3F4F6;color:#
   display:-ms-flexbox;
   display:flex;
   -webkit-box-align:center;-webkit-align-items:center;-ms-flex-align:center;align-items:center;
-  -webkit-box-pack:center;-webkit-justify-content:center;-ms-flex-pack:center;justify-content:center;
+  -webkit-box-pack:start;-webkit-justify-content:flex-start;-ms-flex-pack:start;justify-content:flex-start;
   background:none;border:none;cursor:pointer;
   width:36px;height:36px;min-width:36px;
   border-radius:10px;color:#6B7280;
@@ -572,7 +572,7 @@ textarea{resize:vertical;min-height:70px}
 }
 @media(max-width:480px){
   #auth-overlay{padding:12px}
-  #auth-overlay > div:nth-child(2){border-radius:16px}
+  #auth-overlay > div:nth-child(2){border-radius:16px;margin:auto 0}
 }
 </style>
 <!-- ══ Intégration Supabase ══
@@ -598,7 +598,7 @@ textarea{resize:vertical;min-height:70px}
   </div>
 
   <!-- CARD AUTH -->
-  <div style="background:#fff;border-radius:20px;box-shadow:0 4px 24px rgba(0,0,0,.10);width:100%;max-width:420px;overflow:hidden">
+  <div style="background:#fff;border-radius:20px;box-shadow:0 4px 24px rgba(0,0,0,.10);width:100%;max-width:420px;overflow:visible">
 
     <!-- STEP 1 : Choix du rôle -->
     <div id="auth-step-role">
