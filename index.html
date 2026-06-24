@@ -581,6 +581,7 @@ textarea{resize:vertical;min-height:70px}
 <script>
   window.CREDIGO_SUPABASE_URL = "__CREDIGO_SUPABASE_URL__";
   window.CREDIGO_SUPABASE_ANON_KEY = "__CREDIGO_SUPABASE_ANON_KEY__";
+  window.CREDIGO_BACKOFFICE_URL = "https://credigo-backoffice.netlify.app";
 </script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
 <script src="/credigo-supabase.js"></script>
@@ -6524,6 +6525,269 @@ document.addEventListener('DOMContentLoaded', function() {
   if (typeof loadProfileForms === 'function') loadProfileForms();
   if (typeof updateSwitchVisibility === 'function') updateSwitchVisibility();
 });
+
+/* ── CGU & Partenaires ── */
+/* ══════════════════════════════════════════════════════════════
+   CREDIGO — CGU, Politique de confidentialité & Partenaires
+   ══════════════════════════════════════════════════════════════ */
+
+var LEGAL_DOCS_CACHE = {};
+var PARTENAIRES_CACHE = null;
+var legalModalCallback = null;
+var legalModalMode = 'view'; // 'view' | 'accept'
+var legalModalType = 'cgu';
+
+/* ── Chargement des docs légaux ── */
+function fetchLegalDoc(type, callback) {
+  if (LEGAL_DOCS_CACHE[type]) { callback(LEGAL_DOCS_CACHE[type]); return; }
+  var backofficeUrl = window.CREDIGO_BACKOFFICE_URL || 'https://credigo-backoffice.netlify.app';
+  fetch(backofficeUrl + '/.netlify/functions/legal-docs?type=' + type)
+    .then(function(r){ return r.json(); })
+    .then(function(data){
+      var doc = data.docs && data.docs[0];
+      if (doc) { LEGAL_DOCS_CACHE[type] = doc; callback(doc); }
+      else { callback(null); }
+    })
+    .catch(function(){ callback(null); });
+}
+
+/* ── Afficher la modal CGU en mode lecture ── */
+function showCGU() {
+  legalModalType = 'cgu';
+  legalModalMode = 'view';
+  openLegalModal('cgu');
+}
+
+function showPrivacy() {
+  legalModalType = 'privacy';
+  legalModalMode = 'view';
+  openLegalModal('privacy');
+}
+
+/* ── Ouvrir la modal en mode validation obligatoire ── */
+function requireLegalAcceptance(type, onAccepted) {
+  // Vérifier si déjà accepté dans cette session
+  var key = 'credigo_accepted_' + type;
+  try {
+    if (localStorage.getItem(key) === 'true') { onAccepted(); return; }
+  } catch(e) {}
+  legalModalType = type;
+  legalModalMode = 'accept';
+  legalModalCallback = onAccepted;
+  openLegalModal(type);
+}
+
+function openLegalModal(type) {
+  var modal = document.getElementById('legal-modal');
+  var title = document.getElementById('legal-modal-title');
+  var version = document.getElementById('legal-modal-version');
+  var contentEl = document.getElementById('legal-modal-content');
+  var footer = document.getElementById('legal-modal-footer');
+  var acceptLabel = document.getElementById('legal-accept-label');
+  var acceptCheck = document.getElementById('legal-accept-check');
+  var acceptBtn = document.getElementById('legal-accept-btn');
+
+  if (!modal) return;
+
+  // Titres
+  if (type === 'cgu') {
+    if (title) title.textContent = 'Conditions Générales d\'Utilisation';
+    if (acceptLabel) acceptLabel.textContent = 'les Conditions Générales d\'Utilisation';
+  } else {
+    if (title) title.textContent = 'Politique de Confidentialité';
+    if (acceptLabel) acceptLabel.textContent = 'la Politique de Confidentialité';
+  }
+
+  // Contenu loading
+  if (contentEl) contentEl.innerHTML = '<div style="text-align:center;color:#9CA3AF;padding:40px 0"><i class="ti ti-loader-2" style="font-size:24px"></i><br>Chargement…</div>';
+
+  // Footer selon mode
+  if (footer) footer.style.display = legalModalMode === 'accept' ? 'block' : 'none';
+  if (acceptCheck) { acceptCheck.checked = false; }
+  if (acceptBtn) { acceptBtn.style.opacity = '.5'; acceptBtn.style.cursor = 'not-allowed'; }
+
+  modal.style.display = 'block';
+  document.body.style.overflow = 'hidden';
+
+  // Charger le contenu
+  fetchLegalDoc(type, function(doc) {
+    if (!doc) {
+      if (contentEl) contentEl.innerHTML = '<p style="color:#6B7280;text-align:center;padding:40px">Document non disponible. Contactez support@credigo.ci</p>';
+      if (version) version.textContent = '';
+      return;
+    }
+    if (contentEl) contentEl.innerHTML = doc.contenu;
+    if (version) version.textContent = 'Version ' + doc.version + ' · ' + new Date(doc.published_at).toLocaleDateString('fr-FR');
+  });
+}
+
+// Activer le bouton de confirmation quand la case est cochée
+document.addEventListener('change', function(e) {
+  if (e.target && e.target.id === 'legal-accept-check') {
+    var btn = document.getElementById('legal-accept-btn');
+    if (btn) {
+      btn.style.opacity = e.target.checked ? '1' : '.5';
+      btn.style.cursor = e.target.checked ? 'pointer' : 'not-allowed';
+    }
+  }
+});
+
+function closeLegalModal() {
+  var modal = document.getElementById('legal-modal');
+  if (modal) modal.style.display = 'none';
+  document.body.style.overflow = '';
+  if (legalModalMode === 'accept') {
+    // L'utilisateur a fermé sans accepter — on annule
+    legalModalCallback = null;
+  }
+}
+
+function confirmLegalAcceptance() {
+  var check = document.getElementById('legal-accept-check');
+  if (!check || !check.checked) {
+    toast('Veuillez cocher la case pour confirmer votre acceptation.');
+    return;
+  }
+  // Sauvegarder l'acceptation localement
+  try {
+    localStorage.setItem('credigo_accepted_' + legalModalType, 'true');
+  } catch(e) {}
+
+  // Fermer la modal
+  closeLegalModal();
+
+  // Appeler le callback
+  if (legalModalCallback) {
+    var cb = legalModalCallback;
+    legalModalCallback = null;
+    cb();
+  }
+}
+
+/* ══ VALIDATION CGU OBLIGATOIRE AUX 2 ÉTAPES ══════════════════ */
+
+/* Étape 1 : Création de compte — surcharger authSignupEmail */
+var _origAuthSignupEmail = window.authSignupEmail;
+window.authSignupEmail = function() {
+  var cguCheck = document.getElementById('signup-cgu');
+  if (cguCheck && !cguCheck.checked) {
+    toast('Vous devez accepter les CGU et la Politique de Confidentialité pour créer votre compte.');
+    return;
+  }
+  // Vérifier que les deux docs ont été lus (ou forcer la lecture si pas encore faite)
+  var cguAccepted = false;
+  try { cguAccepted = localStorage.getItem('credigo_accepted_cgu') === 'true'; } catch(e) {}
+  if (!cguAccepted) {
+    // Forcer la lecture des CGU avant de continuer
+    requireLegalAcceptance('cgu', function() {
+      requireLegalAcceptance('privacy', function() {
+        if (_origAuthSignupEmail) _origAuthSignupEmail();
+      });
+    });
+    return;
+  }
+  if (_origAuthSignupEmail) _origAuthSignupEmail();
+};
+
+/* Étape 2 : Soumission KYC — surcharger kycESubmit et kycFSubmit */
+var _origKycESubmit = window.kycESubmit;
+window.kycESubmit = function() {
+  var privacyAccepted = false;
+  try { privacyAccepted = localStorage.getItem('credigo_accepted_privacy') === 'true'; } catch(e) {}
+  if (!privacyAccepted) {
+    requireLegalAcceptance('privacy', function() {
+      if (_origKycESubmit) _origKycESubmit();
+    });
+    return;
+  }
+  if (_origKycESubmit) _origKycESubmit();
+};
+
+var _origKycFSubmit = window.kycFSubmit;
+window.kycFSubmit = function() {
+  var privacyAccepted = false;
+  try { privacyAccepted = localStorage.getItem('credigo_accepted_privacy') === 'true'; } catch(e) {}
+  if (!privacyAccepted) {
+    requireLegalAcceptance('privacy', function() {
+      if (_origKycFSubmit) _origKycFSubmit();
+    });
+    return;
+  }
+  if (_origKycFSubmit) _origKycFSubmit();
+};
+
+/* ══ PARTENAIRES ══════════════════════════════════════════════ */
+function fetchPartenaires(callback) {
+  if (PARTENAIRES_CACHE) { callback(PARTENAIRES_CACHE); return; }
+  var backofficeUrl = window.CREDIGO_BACKOFFICE_URL || 'https://credigo-backoffice.netlify.app';
+  fetch(backofficeUrl + '/.netlify/functions/partenaires-list')
+    .then(function(r){ return r.json(); })
+    .then(function(data){
+      PARTENAIRES_CACHE = data.items || [];
+      callback(PARTENAIRES_CACHE);
+    })
+    .catch(function(){ callback([]); });
+}
+
+function openPartenairesModal() {
+  var modal = document.getElementById('partenaires-modal');
+  if (!modal) return;
+  modal.style.display = 'block';
+  document.body.style.overflow = 'hidden';
+  var grid = document.getElementById('partenaires-grid');
+  if (grid) grid.innerHTML = '<div style="text-align:center;color:#9CA3AF;padding:20px;grid-column:1/-1"><i class="ti ti-loader-2"></i> Chargement…</div>';
+
+  fetchPartenaires(function(items) {
+    if (!grid) return;
+    if (!items || items.length === 0) {
+      grid.innerHTML = '<p style="color:#9CA3AF;text-align:center;padding:20px;grid-column:1/-1">Aucun partenaire disponible.</p>';
+      return;
+    }
+    grid.innerHTML = items.map(function(p) {
+      return '<div style="border:1.5px solid #E5E7EB;border-radius:12px;padding:14px;text-align:center;background:#fff">' +
+        (p.logo_url ? '<img src="' + p.logo_url + '" alt="' + p.nom + '" style="height:40px;object-fit:contain;margin-bottom:10px;max-width:100%">' :
+          '<div style="height:40px;display:flex;align-items:center;justify-content:center;margin-bottom:10px"><i class="ti ti-building" style="font-size:24px;color:#D1D5DB"></i></div>') +
+        '<div style="font-size:12px;font-weight:800;color:#111827">' + p.nom + '</div>' +
+        '<div style="font-size:10px;color:#9CA3AF;margin-top:3px">' + p.categorie + '</div>' +
+        (p.site_web ? '<a href="' + p.site_web + '" target="_blank" rel="noopener noreferrer" style="font-size:10px;color:#6C3FE8;display:block;margin-top:6px">Visiter →</a>' : '') +
+        '</div>';
+    }).join('');
+  });
+}
+
+function closePartenairesModal() {
+  var modal = document.getElementById('partenaires-modal');
+  if (modal) modal.style.display = 'none';
+  document.body.style.overflow = '';
+}
+
+/* Afficher les partenaires dans un widget dans le bas des pages support */
+function renderPartenairesWidget(containerId) {
+  var container = document.getElementById(containerId);
+  if (!container) return;
+  fetchPartenaires(function(items) {
+    if (!items || items.length === 0) return;
+    container.innerHTML =
+      '<div style="margin-top:20px">' +
+      '<div style="font-size:13px;font-weight:800;color:#111827;margin-bottom:12px">Nos Partenaires</div>' +
+      '<div style="display:flex;flex-wrap:wrap;gap:10px;align-items:center">' +
+      items.slice(0,6).map(function(p) {
+        return p.logo_url
+          ? '<img src="' + p.logo_url + '" alt="' + p.nom + '" title="' + p.nom + '" style="height:32px;object-fit:contain;filter:grayscale(.3)">'
+          : '<span style="font-size:11px;font-weight:700;color:#6B7280;background:#F3F4F6;padding:4px 10px;border-radius:20px">' + p.nom + '</span>';
+      }).join('') +
+      '<button onclick="openPartenairesModal()" style="font-size:11px;color:#6C3FE8;background:none;border:none;cursor:pointer;font-weight:700;padding:0;font-family:inherit">Voir tous →</button>' +
+      '</div></div>';
+  });
+}
+
+/* Exposer les fonctions globalement */
+window.showCGU = showCGU;
+window.showPrivacy = showPrivacy;
+window.openPartenairesModal = openPartenairesModal;
+window.closePartenairesModal = closePartenairesModal;
+window.closeLegalModal = closeLegalModal;
+window.confirmLegalAcceptance = confirmLegalAcceptance;
 </script>
 
 <!-- ══ MODAL ECOBANK ══ -->
@@ -6826,6 +7090,66 @@ document.addEventListener('DOMContentLoaded', function() {
     </div>
   </div>
 </div>
+
+
+<!-- ══ MODAL CGU / POLITIQUE DE CONFIDENTIALITÉ ══ -->
+<div id="legal-modal" style="display:none;position:fixed;inset:0;z-index:10000;background:rgba(17,24,39,.6);padding:16px;overflow-y:auto">
+  <div style="background:#fff;border-radius:20px;width:100%;max-width:640px;margin:20px auto;box-shadow:0 8px 40px rgba(0,0,0,.2);overflow:hidden">
+    <!-- Header -->
+    <div style="background:linear-gradient(135deg,#6C3FE8,#4C1D95);padding:20px 24px;display:flex;align-items:center;justify-content:space-between">
+      <div>
+        <div id="legal-modal-title" style="font-size:16px;font-weight:800;color:#fff">Conditions Générales d'Utilisation</div>
+        <div id="legal-modal-version" style="font-size:11px;color:#C4B5FD;margin-top:3px">Version 1.0</div>
+      </div>
+      <button onclick="closeLegalModal()" style="background:rgba(255,255,255,.15);border:none;border-radius:8px;padding:8px;cursor:pointer;color:#fff;display:flex">
+        <i class="ti ti-x" style="font-size:16px"></i>
+      </button>
+    </div>
+    <!-- Contenu -->
+    <div id="legal-modal-content" style="padding:24px;max-height:60vh;overflow-y:auto;font-size:13px;line-height:1.7;color:#374151">
+      <div style="text-align:center;color:#9CA3AF;padding:40px 0">
+        <i class="ti ti-loader-2" style="font-size:24px"></i><br>Chargement…
+      </div>
+    </div>
+    <!-- Footer si mode validation -->
+    <div id="legal-modal-footer" style="display:none;padding:16px 24px;border-top:1px solid #E5E7EB;background:#F9FAFB">
+      <div style="display:flex;align-items:center;gap:10px;margin-bottom:12px">
+        <input type="checkbox" id="legal-accept-check" style="width:16px;height:16px;accent-color:#6C3FE8;flex-shrink:0">
+        <label for="legal-accept-check" style="font-size:12px;font-weight:600;color:#374151;cursor:pointer">
+          J'ai lu et j'accepte les <span id="legal-accept-label">présentes conditions</span>
+        </label>
+      </div>
+      <button id="legal-accept-btn" onclick="confirmLegalAcceptance()" class="btn-p" style="width:100%;justify-content:center;font-size:14px;padding:12px;opacity:.5;cursor:not-allowed">
+        <i class="ti ti-check"></i> Confirmer et continuer
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- ══ MODAL PARTENAIRES ══ -->
+<div id="partenaires-modal" style="display:none;position:fixed;inset:0;z-index:9998;background:rgba(17,24,39,.5);padding:16px;overflow-y:auto">
+  <div style="background:#fff;border-radius:20px;width:100%;max-width:600px;margin:20px auto;box-shadow:0 8px 40px rgba(0,0,0,.2)">
+    <div style="padding:20px 24px;border-bottom:1px solid #E5E7EB;display:flex;align-items:center;justify-content:space-between">
+      <div style="font-size:16px;font-weight:800;color:#111827">Nos Partenaires</div>
+      <button onclick="closePartenairesModal()" style="background:#F3F4F6;border:none;border-radius:8px;padding:8px;cursor:pointer;display:flex">
+        <i class="ti ti-x" style="font-size:16px;color:#6B7280"></i>
+      </button>
+    </div>
+    <div style="padding:20px 24px">
+      <p style="font-size:13px;color:#6B7280;margin-bottom:20px;line-height:1.6">
+        Credigo travaille avec des partenaires sélectionnés pour accélérer vos démarches et garantir la sécurité de vos transactions.
+      </p>
+      <div id="partenaires-grid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:12px">
+        <div style="text-align:center;color:#9CA3AF;padding:20px;grid-column:1/-1">
+          <i class="ti ti-loader-2" style="font-size:20px"></i> Chargement…
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ══ BANNIÈRE PARTENAIRES dans l'app (section visible) ══ -->
+<div id="partenaires-section" style="display:none"></div>
 
 </body>
 </html>
