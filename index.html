@@ -722,7 +722,7 @@ textarea{resize:vertical;min-height:70px}
             </div>
           </div>
         </div>
-        <button onclick="_credigoSignupWithCgu()" class="btn-p" style="width:100%;justify-content:center;margin-top:16px;font-size:14px;padding:13px">
+        <button onclick="_credigoSignupWithCgu()" id="signup-create-btn" disabled class="btn-p" style="width:100%;justify-content:center;opacity:0.4;cursor:not-allowed;margin-top:16px;font-size:14px;padding:13px">
           <i class="ti ti-user-plus"></i> Créer mon compte
         </button>
         <div style="text-align:center;margin-top:12px;font-size:11px;color:#9CA3AF">
@@ -6692,7 +6692,17 @@ function confirmLegalAcceptance() {
 
 /* Étape 1 : Création de compte — vérification CGU intégrée dans authSignupEmail */
 function onCguChange(checkbox) {
-  // Rien de spécial à faire ici, la vérification se fait à la soumission
+  var btn = document.getElementById('signup-create-btn');
+  if (!btn) return;
+  if (checkbox.checked) {
+    btn.disabled = false;
+    btn.style.opacity = '1';
+    btn.style.cursor = 'pointer';
+  } else {
+    btn.disabled = true;
+    btn.style.opacity = '0.4';
+    btn.style.cursor = 'not-allowed';
+  }
 }
 
 /* Fonction d'inscription avec vérification CGU intégrée */
