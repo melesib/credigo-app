@@ -537,6 +537,30 @@ textarea{resize:vertical;min-height:70px}
 #av-f{background:#D1FAE5;color:#065F46;border-color:#6EE7B7;display:none}
 
 /* ══ AUTH ══ */
+.auth-google-btn{
+  width:100%;display:-webkit-box;display:-webkit-flex;display:-ms-flexbox;display:flex;
+  -webkit-box-align:center;-webkit-align-items:center;-ms-flex-align:center;align-items:center;
+  -webkit-box-pack:center;-webkit-justify-content:center;-ms-flex-pack:center;justify-content:center;
+  gap:10px;background:#fff;border:1.5px solid #E5E7EB;border-radius:10px;
+  padding:11px 16px;font-size:13px;font-weight:700;color:#374151;
+  cursor:pointer;font-family:inherit;
+  transition:background .15s,border-color .15s;
+  -webkit-tap-highlight-color:transparent;
+}
+.auth-google-btn:hover{background:#F9FAFB;border-color:#D1D5DB}
+#kyc-required-banner{
+  display:none;
+  position:fixed;bottom:0;left:0;right:0;z-index:300;
+  background:linear-gradient(135deg,#6C3FE8,#4C1D95);
+  padding:12px 16px;
+  -webkit-box-align:center;-webkit-align-items:center;-ms-flex-align:center;align-items:center;
+  gap:10px;box-shadow:0 -4px 16px rgba(0,0,0,.15);
+}
+#kyc-required-banner.show{
+  display:-webkit-box;display:-webkit-flex;display:-ms-flexbox;display:flex;
+}
+@media(max-width:480px){
+  }
 </style>
 <!-- ══ Intégration Supabase ══
      Ces clés sont publiques par design (clé "anon", limitée par les
@@ -551,7 +575,7 @@ textarea{resize:vertical;min-height:70px}
 </head>
 <body>
 <!-- ══ AUTH OVERLAY ══ -->
-<div id="auth-overlay" style="position:fixed;inset:0;z-index:9999;background:#F3F4F6;overflow-y:auto;padding:20px 16px;">
+<div id="auth-overlay" style="position:fixed;inset:0;z-index:9999;background:#F3F4F6;overflow-y:auto;-webkit-overflow-scrolling:touch;padding:24px 16px;">
 
   <!-- LOGO -->
   <div style="text-align:center;margin-bottom:20px;max-width:420px;margin-left:auto;margin-right:auto;">
@@ -657,50 +681,14 @@ textarea{resize:vertical;min-height:70px}
       </div>
 
       <!-- Formulaire Inscription -->
-      <div id="auth-form-signup" style="display:none;padding:0 16px 20px">
+      <div id="auth-form-signup" style="display:none;padding:0 24px 24px">
+        <!-- Google -->
         <button onclick="authGoogleSignup()" class="auth-google-btn">
           <svg width="18" height="18" viewBox="0 0 18 18"><path fill="#4285F4" d="M17.64 9.2c0-.637-.057-1.251-.164-1.84H9v3.481h4.844c-.209 1.125-.843 2.078-1.796 2.716v2.258h2.908c1.703-1.567 2.684-3.875 2.684-6.615z"/><path fill="#34A853" d="M9 18c2.43 0 4.467-.806 5.956-2.185l-2.908-2.258c-.806.54-1.837.86-3.048.86-2.344 0-4.328-1.584-5.036-3.711H.957v2.332A8.997 8.997 0 0 0 9 18z"/><path fill="#FBBC05" d="M3.964 10.706A5.41 5.41 0 0 1 3.682 9c0-.593.102-1.17.282-1.706V4.962H.957A8.996 8.996 0 0 0 0 9c0 1.452.348 2.827.957 4.038l3.007-2.332z"/><path fill="#EA4335" d="M9 3.58c1.321 0 2.508.454 3.44 1.345l2.582-2.58C13.463.891 11.426 0 9 0A8.997 8.997 0 0 0 .957 4.962L3.964 7.294C4.672 5.163 6.656 3.58 9 3.58z"/></svg>
           S'inscrire avec Google
         </button>
-        <div style="display:flex;align-items:center;gap:8px;margin:12px 0">
+        <div style="display:flex;align-items:center;gap:10px;margin:16px 0">
           <div style="flex:1;height:1px;background:#E5E7EB"></div>
-          <span style="font-size:11px;color:#9CA3AF;font-weight:600">ou</span>
-          <div style="flex:1;height:1px;background:#E5E7EB"></div>
-        </div>
-        <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px">
-          <div class="fg"><label style="font-size:11px">Prénom *</label><input type="text" id="signup-prenom" placeholder="Prénom" autocomplete="given-name" style="font-size:14px;padding:8px 10px"></div>
-          <div class="fg"><label style="font-size:11px">Nom *</label><input type="text" id="signup-nom" placeholder="Nom" autocomplete="family-name" style="font-size:14px;padding:8px 10px"></div>
-        </div>
-        <div class="fg" style="margin-bottom:8px"><label style="font-size:11px">Email *</label><input type="email" id="signup-email" placeholder="votre@email.ci" autocomplete="email" style="font-size:14px;padding:8px 10px"></div>
-        <div class="fg" style="margin-bottom:8px"><label style="font-size:11px">Téléphone *</label><input type="tel" id="signup-tel" placeholder="+225 07 00 00 00 00" autocomplete="tel" style="font-size:14px;padding:8px 10px"></div>
-        <div class="fg" style="margin-bottom:4px">
-          <label style="font-size:11px">Mot de passe *</label>
-          <div style="position:relative">
-            <input type="password" id="signup-pwd" placeholder="Min. 8 caractères" style="padding-right:40px;font-size:14px;padding:8px 40px 8px 10px" autocomplete="new-password">
-            <button type="button" onclick="togglePwd('signup-pwd',this)" style="position:absolute;right:8px;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;color:#9CA3AF;padding:0;display:flex">
-              <i class="ti ti-eye" style="font-size:14px"></i>
-            </button>
-          </div>
-          <div id="pwd-strength" style="margin-top:3px;height:3px;border-radius:3px;background:#E5E7EB;overflow:hidden"><div id="pwd-strength-bar" style="height:100%;width:0;border-radius:3px;transition:.3s"></div></div>
-        </div>
-        <!-- CGU - zone cliquable large et bien visible -->
-        <div style="background:#F9FAFB;border:1.5px solid #E5E7EB;border-radius:10px;padding:12px;margin:10px 0">
-          <div style="display:flex;align-items:center;gap:10px;cursor:pointer" onclick="document.getElementById('signup-cgu').click()">
-            <input type="checkbox" id="signup-cgu" style="width:18px;height:18px;accent-color:#6C3FE8;flex-shrink:0;cursor:pointer" onclick="event.stopPropagation()">
-            <span style="font-size:11px;color:#374151;font-weight:600;line-height:1.4">J'ai lu et j'accepte les conditions *</span>
-          </div>
-          <div style="display:flex;gap:12px;margin-top:8px;padding-left:28px">
-            <button type="button" onclick="showCGU()" style="background:none;border:none;cursor:pointer;color:#6C3FE8;font-weight:700;font-size:11px;padding:0;font-family:inherit;text-decoration:underline">📄 CGU</button>
-            <button type="button" onclick="showPrivacy()" style="background:none;border:none;cursor:pointer;color:#6C3FE8;font-weight:700;font-size:11px;padding:0;font-family:inherit;text-decoration:underline">🔒 Confidentialité</button>
-          </div>
-        </div>
-        <button onclick="_credigoSignupWithCgu()" class="btn-p" style="width:100%;justify-content:center;margin-top:4px;font-size:14px;padding:12px">
-          <i class="ti ti-user-plus"></i> Créer mon compte
-        </button>
-        <div style="text-align:center;margin-top:10px;font-size:11px;color:#9CA3AF">
-          Déjà un compte ? <button onclick="authTabSwitch('login')" style="background:none;border:none;cursor:pointer;color:#6C3FE8;font-weight:700;font-size:11px;padding:0;font-family:inherit">Se connecter</button>
-        </div>
-      </div>
           <span style="font-size:11px;color:#9CA3AF;font-weight:600">ou</span>
           <div style="flex:1;height:1px;background:#E5E7EB"></div>
         </div>
@@ -739,7 +727,9 @@ textarea{resize:vertical;min-height:70px}
         </button>
         <div style="text-align:center;margin-top:12px;font-size:11px;color:#9CA3AF">
           Déjà un compte ? <button onclick="authTabSwitch('login')" style="background:none;border:none;cursor:pointer;color:#6C3FE8;font-weight:700;font-size:11px;padding:0;font-family:inherit">Se connecter</button>
+        </div>
       </div>
+    </div>
 
     <!-- STEP 3 : Vérification email -->
     <div id="auth-step-verify" style="display:none;padding:24px;text-align:center">
