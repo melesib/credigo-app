@@ -167,7 +167,7 @@ body{font-family:'Plus Jakarta Sans',Arial,sans-serif;background:#F3F4F6;color:#
   display:-ms-flexbox;
   display:flex;
   -webkit-box-align:center;-webkit-align-items:center;-ms-flex-align:center;align-items:center;
-  -webkit-box-pack:start;-webkit-justify-content:flex-start;-ms-flex-pack:start;justify-content:flex-start;
+  -webkit-box-pack:center;-webkit-justify-content:center;-ms-flex-pack:center;justify-content:center;
   background:none;border:none;cursor:pointer;
   width:36px;height:36px;min-width:36px;
   border-radius:10px;color:#6B7280;
@@ -572,7 +572,7 @@ textarea{resize:vertical;min-height:70px}
 }
 @media(max-width:480px){
   #auth-overlay{padding:12px}
-  #auth-overlay > div:nth-child(2){border-radius:16px;margin:auto 0}
+  #auth-overlay > div:nth-child(2){border-radius:16px}
 }
 </style>
 <!-- ══ Intégration Supabase ══
@@ -598,7 +598,7 @@ textarea{resize:vertical;min-height:70px}
   </div>
 
   <!-- CARD AUTH -->
-  <div style="background:#fff;border-radius:20px;box-shadow:0 4px 24px rgba(0,0,0,.10);width:100%;max-width:420px;overflow:visible">
+  <div style="background:#fff;border-radius:20px;box-shadow:0 4px 24px rgba(0,0,0,.10);width:100%;max-width:420px;max-height:90vh;overflow-y:auto;-webkit-overflow-scrolling:touch">
 
     <!-- STEP 1 : Choix du rôle -->
     <div id="auth-step-role">
@@ -735,7 +735,7 @@ textarea{resize:vertical;min-height:70px}
             </div>
           </div>
         </div>
-        <button onclick="authSignupEmail()" class="btn-p" style="width:100%;justify-content:center;margin-top:16px;font-size:14px;padding:13px">
+        <button onclick="_credigoSignupWithCgu()" class="btn-p" style="width:100%;justify-content:center;margin-top:16px;font-size:14px;padding:13px">
           <i class="ti ti-user-plus"></i> Créer mon compte
         </button>
         <div style="text-align:center;margin-top:12px;font-size:11px;color:#9CA3AF">
@@ -5698,7 +5698,7 @@ function authLoginEmail() {
 }
 
 /* ── Email Signup ── */
-function authSignupEmail() {
+function _realAuthSignupEmail() {
   var prenom = (document.getElementById('signup-prenom') || {}).value;
   var nom    = (document.getElementById('signup-nom') || {}).value;
   var email  = (document.getElementById('signup-email') || {}).value;
@@ -5917,30 +5917,7 @@ function togglePwd(inputId, btn) {
   if (icon) icon.className = isHidden ? 'ti ti-eye-off' : 'ti ti-eye';
 }
 
-function authForgotPwd() {
-  var email = (document.getElementById('login-email') || {}).value || '';
-  if (!email || !email.includes('@')) {
-    toast('Entrez votre email dans le champ ci-dessus, puis cliquez "Mot de passe oublié".');
-    var emailEl = document.getElementById('login-email');
-    if (emailEl) emailEl.focus();
-    return;
-  }
-  if (window.CredigoDB && window.CredigoDB.ready && window.CredigoDB.sb) {
-    toast('Envoi de l\'email de r\u00e9initialisation...');
-    window.CredigoDB.sb.auth.resetPasswordForEmail(email, {
-      redirectTo: window.location.origin + window.location.pathname + '?reset=1'
-    }).then(function(res) {
-      if (res.error) {
-        toast('Erreur : ' + res.error.message);
-      } else {
-        toast('\u2705 Email envoy\u00e9 \u00e0 ' + email + '. V\u00e9rifiez votre bo\u00eete de r\u00e9ception.');
-      }
-    });
-  } else {
-    // Mode démo
-    toast('Un email de réinitialisation sera envoyé à ' + email + ' (mode démo).');
-  }
-}
+
 
 function authResendEmail() {
   toast('Email de vérification renvoyé !');
@@ -6731,25 +6708,21 @@ function onCguChange(checkbox) {
   // Rien de spécial à faire ici, la vérification se fait à la soumission
 }
 
-/* Surcharge authSignupEmail pour vérifier CGU avant d'inscrire */
-setTimeout(function() {
-  var realSignup = window.authSignupEmail;
-  window.authSignupEmail = function() {
-    var cguCheck = document.getElementById('signup-cgu');
-    if (!cguCheck || !cguCheck.checked) {
-      toast('Vous devez cocher la case pour accepter les CGU et la Politique de Confidentialité.');
-      if (cguCheck) cguCheck.focus();
-      return;
-    }
-    // Marquer comme accepté
-    try {
-      localStorage.setItem('credigo_accepted_cgu', 'true');
-      localStorage.setItem('credigo_accepted_privacy', 'true');
-    } catch(e) {}
-    // Appeler la vraie fonction d'inscription
-    if (realSignup) realSignup();
-  };
-}, 500); // setTimeout pour s'exécuter après le chargement complet de authSignupEmail
+/* Fonction d'inscription avec vérification CGU intégrée */
+function _credigoSignupWithCgu() {
+  var cguCheck = document.getElementById('signup-cgu');
+  if (!cguCheck || !cguCheck.checked) {
+    toast('Cochez la case pour accepter les CGU et la Politique de Confidentialit\u00e9.');
+    if (cguCheck) { cguCheck.focus(); cguCheck.scrollIntoView({behavior:'smooth', block:'center'}); }
+    return;
+  }
+  try {
+    localStorage.setItem('credigo_accepted_cgu', 'true');
+    localStorage.setItem('credigo_accepted_privacy', 'true');
+  } catch(e) {}
+  _realAuthSignupEmail();
+}
+window.authSignupEmail = _credigoSignupWithCgu;
 
 /* Étape 2 : Soumission KYC — surcharger kycESubmit et kycFSubmit */
 var _origKycESubmit = window.kycESubmit;
@@ -6850,6 +6823,245 @@ window.openPartenairesModal = openPartenairesModal;
 window.closePartenairesModal = closePartenairesModal;
 window.closeLegalModal = closeLegalModal;
 window.confirmLegalAcceptance = confirmLegalAcceptance;
+
+/* ── Reset Password Flow ── */
+/* ══════════════════════════════════════════════════════════════
+   CREDIGO — Flow complet de réinitialisation de mot de passe
+   ══════════════════════════════════════════════════════════════ */
+
+var _resetLastSent = 0;
+
+/* ── Ouvrir la modal mot de passe oublié ── */
+function authForgotPwd() {
+  var emailInput = document.getElementById('forgot-email-input');
+  var loginEmail = document.getElementById('login-email');
+  // Pré-remplir avec l'email du formulaire de connexion si disponible
+  if (emailInput && loginEmail && loginEmail.value) {
+    emailInput.value = loginEmail.value;
+  }
+  // Réinitialiser l'état
+  showForgotStep('email');
+  hideForgotError();
+  var modal = document.getElementById('forgot-pwd-modal');
+  if (modal) {
+    modal.style.display = 'flex';
+    document.body.style.overflow = 'hidden';
+  }
+  setTimeout(function() {
+    if (emailInput) emailInput.focus();
+  }, 100);
+}
+
+function closeForgotPwdModal() {
+  var modal = document.getElementById('forgot-pwd-modal');
+  if (modal) modal.style.display = 'none';
+  document.body.style.overflow = '';
+}
+
+function showForgotStep(step) {
+  var stepEmail   = document.getElementById('forgot-step-email');
+  var stepConfirm = document.getElementById('forgot-step-confirm');
+  if (stepEmail)   stepEmail.style.display   = step === 'email'   ? 'block' : 'none';
+  if (stepConfirm) stepConfirm.style.display = step === 'confirm' ? 'block' : 'none';
+}
+
+function showForgotError(msg) {
+  var el = document.getElementById('forgot-error');
+  if (el) { el.textContent = msg; el.style.display = 'block'; }
+}
+
+function hideForgotError() {
+  var el = document.getElementById('forgot-error');
+  if (el) el.style.display = 'none';
+}
+
+function backToForgotEmail() {
+  showForgotStep('email');
+  hideForgotError();
+  _resetLastSent = 0;
+}
+
+function sendResetEmail() {
+  var emailInput = document.getElementById('forgot-email-input');
+  var email = emailInput ? emailInput.value.trim() : '';
+
+  if (!email || !email.includes('@')) {
+    showForgotError('Veuillez entrer une adresse email valide.');
+    if (emailInput) emailInput.focus();
+    return;
+  }
+
+  // Anti-spam : 60s entre deux envois
+  var now = Date.now();
+  if (_resetLastSent > 0 && now - _resetLastSent < 60000) {
+    var wait = Math.ceil((60000 - (now - _resetLastSent)) / 1000);
+    showForgotError('Veuillez attendre ' + wait + ' seconde(s) avant de renvoyer.');
+    return;
+  }
+
+  var btn = document.getElementById('forgot-send-btn');
+  if (btn) { btn.disabled = true; btn.textContent = 'Envoi en cours\u2026'; }
+
+  if (window.CredigoDB && window.CredigoDB.ready && window.CredigoDB.sb) {
+    _resetLastSent = now;
+    window.CredigoDB.sb.auth.resetPasswordForEmail(email, {
+      redirectTo: window.location.origin + window.location.pathname + '?reset=1'
+    }).then(function(res) {
+      if (btn) { btn.disabled = false; btn.innerHTML = '<i class="ti ti-send"></i> Envoyer le lien'; }
+      if (res.error) {
+        _resetLastSent = 0;
+        showForgotError('Erreur : ' + res.error.message);
+      } else {
+        // Afficher l'écran de confirmation
+        var emailDisplay = document.getElementById('forgot-email-display');
+        if (emailDisplay) emailDisplay.textContent = email;
+        showForgotStep('confirm');
+        hideForgotError();
+      }
+    });
+  } else {
+    // Mode démo
+    if (btn) { btn.disabled = false; btn.innerHTML = '<i class="ti ti-send"></i> Envoyer le lien'; }
+    var emailDisplay = document.getElementById('forgot-email-display');
+    if (emailDisplay) emailDisplay.textContent = email;
+    showForgotStep('confirm');
+  }
+}
+
+/* ── Détection du lien de réinitialisation (retour depuis l'email) ── */
+function checkResetPasswordLink() {
+  var params = new URLSearchParams(window.location.search);
+  var isReset = params.get('reset') === '1';
+  var hashParams = new URLSearchParams(window.location.hash.replace('#', '?'));
+  var accessToken = hashParams.get('access_token');
+  var type = hashParams.get('type');
+
+  if (!isReset && type !== 'recovery') return false;
+
+  // Masquer l'overlay d'auth normal et afficher l'overlay de reset
+  var authOverlay = document.getElementById('auth-overlay');
+  var resetOverlay = document.getElementById('reset-password-overlay');
+  if (authOverlay) authOverlay.style.display = 'none';
+  if (resetOverlay) resetOverlay.style.display = 'flex';
+  document.body.style.overflow = 'hidden';
+
+  // Si Supabase a envoyé un access_token dans le hash (cas PKCE)
+  if (accessToken && window.CredigoDB && window.CredigoDB.sb) {
+    window.CredigoDB.sb.auth.setSession({ access_token: accessToken, refresh_token: hashParams.get('refresh_token') || '' });
+  }
+
+  // Écouter les événements Supabase pour la session recovery
+  if (window.CredigoDB && window.CredigoDB.sb) {
+    window.CredigoDB.sb.auth.onAuthStateChange(function(event, session) {
+      if (event === 'PASSWORD_RECOVERY') {
+        // Session de recovery active - l'utilisateur peut changer son mot de passe
+        console.log('[Credigo] Session PASSWORD_RECOVERY active');
+      }
+    });
+  }
+
+  return true;
+}
+
+/* ── Soumettre le nouveau mot de passe ── */
+function submitNewPassword() {
+  var newPwd = (document.getElementById('reset-pwd-new') || {}).value || '';
+  var confirmPwd = (document.getElementById('reset-pwd-confirm') || {}).value || '';
+  var errorEl = document.getElementById('reset-error');
+  var btn = document.getElementById('reset-submit-btn');
+
+  function showResetError(msg) {
+    if (errorEl) { errorEl.textContent = msg; errorEl.style.display = 'block'; }
+  }
+  function hideResetError() {
+    if (errorEl) errorEl.style.display = 'none';
+  }
+
+  hideResetError();
+
+  if (newPwd.length < 8) {
+    showResetError('Le mot de passe doit contenir au moins 8 caractères.');
+    return;
+  }
+  if (newPwd !== confirmPwd) {
+    showResetError('Les deux mots de passe ne correspondent pas.');
+    return;
+  }
+
+  if (btn) { btn.disabled = true; btn.innerHTML = 'Enregistrement\u2026'; }
+
+  if (window.CredigoDB && window.CredigoDB.ready && window.CredigoDB.sb) {
+    window.CredigoDB.sb.auth.updateUser({ password: newPwd }).then(function(res) {
+      if (btn) { btn.disabled = false; btn.innerHTML = '<i class="ti ti-lock-check"></i> Enregistrer le nouveau mot de passe'; }
+      if (res.error) {
+        showResetError('Erreur : ' + res.error.message);
+      } else {
+        // Succès ! Déconnecter et rediriger vers la connexion
+        window.CredigoDB.sb.auth.signOut().then(function() {
+          // Nettoyer l'URL
+          window.history.replaceState({}, document.title, window.location.pathname);
+          // Masquer l'overlay de reset et afficher la connexion avec message
+          var resetOverlay = document.getElementById('reset-password-overlay');
+          var authOverlay = document.getElementById('auth-overlay');
+          if (resetOverlay) resetOverlay.style.display = 'none';
+          if (authOverlay) authOverlay.style.display = 'flex';
+          document.body.style.overflow = '';
+          // Aller sur l'onglet connexion et afficher un message de succès
+          if (typeof authTabSwitch === 'function') authTabSwitch('login');
+          if (typeof authBack === 'function') authBack();
+          toast('\u2705 Mot de passe mis \u00e0 jour ! Connectez-vous avec votre nouveau mot de passe.');
+        });
+      }
+    });
+  } else {
+    // Mode démo
+    if (btn) { btn.disabled = false; btn.innerHTML = '<i class="ti ti-lock-check"></i> Enregistrer le nouveau mot de passe'; }
+    var resetOverlay = document.getElementById('reset-password-overlay');
+    var authOverlay = document.getElementById('auth-overlay');
+    if (resetOverlay) resetOverlay.style.display = 'none';
+    if (authOverlay) authOverlay.style.display = 'flex';
+    document.body.style.overflow = '';
+    toast('\u2705 Mot de passe mis \u00e0 jour ! (mode d\u00e9mo)');
+  }
+}
+
+/* ── Utilitaires reset ── */
+function toggleResetPwd(inputId, btn) {
+  var input = document.getElementById(inputId);
+  if (!input) return;
+  var hidden = input.type === 'password';
+  input.type = hidden ? 'text' : 'password';
+  var icon = btn.querySelector('i');
+  if (icon) icon.className = hidden ? 'ti ti-eye-off' : 'ti ti-eye';
+}
+
+function updateResetStrength(pwd) {
+  var strength = 0;
+  if (pwd.length >= 8) strength++;
+  if (/[A-Z]/.test(pwd)) strength++;
+  if (/[0-9]/.test(pwd)) strength++;
+  if (/[^A-Za-z0-9]/.test(pwd)) strength++;
+  var bar = document.getElementById('reset-strength-bar');
+  if (bar) {
+    var colors = ['#EF4444','#F97316','#EAB308','#22C55E'];
+    var widths = ['25%','50%','75%','100%'];
+    bar.style.width = strength > 0 ? widths[strength-1] : '0';
+    bar.style.background = strength > 0 ? colors[strength-1] : 'transparent';
+  }
+}
+
+/* ── Lancer la détection au chargement ── */
+document.addEventListener('DOMContentLoaded', function() {
+  checkResetPasswordLink();
+});
+// Aussi vérifier si Supabase détecte un event PASSWORD_RECOVERY au chargement
+if (window.CredigoDB && window.CredigoDB.sb) {
+  window.CredigoDB.sb.auth.onAuthStateChange(function(event, session) {
+    if (event === 'PASSWORD_RECOVERY') {
+      checkResetPasswordLink();
+    }
+  });
+}
 </script>
 
 <!-- ══ MODAL ECOBANK ══ -->
@@ -7212,6 +7424,108 @@ window.confirmLegalAcceptance = confirmLegalAcceptance;
 
 <!-- ══ BANNIÈRE PARTENAIRES dans l'app (section visible) ══ -->
 <div id="partenaires-section" style="display:none"></div>
+
+
+<!-- ══ MODAL MOT DE PASSE OUBLIÉ ══ -->
+<div id="forgot-pwd-modal" style="display:none;position:fixed;inset:0;z-index:10001;background:rgba(17,24,39,.6);display:none;align-items:center;justify-content:center;padding:16px">
+  <div style="background:#fff;border-radius:20px;width:100%;max-width:400px;box-shadow:0 8px 40px rgba(0,0,0,.2);overflow:hidden">
+    <!-- Header -->
+    <div style="background:linear-gradient(135deg,#6C3FE8,#4C1D95);padding:18px 24px;display:flex;align-items:center;justify-content:space-between">
+      <div>
+        <div style="font-size:15px;font-weight:800;color:#fff">Mot de passe oublié</div>
+        <div style="font-size:11px;color:#C4B5FD;margin-top:2px">Réinitialisation par email</div>
+      </div>
+      <button onclick="closeForgotPwdModal()" style="background:rgba(255,255,255,.15);border:none;border-radius:8px;padding:8px;cursor:pointer;color:#fff;display:flex">
+        <i class="ti ti-x" style="font-size:16px"></i>
+      </button>
+    </div>
+    <!-- Étape 1 : Saisie email -->
+    <div id="forgot-step-email" style="padding:24px">
+      <p style="font-size:13px;color:#6B7280;margin-bottom:20px;line-height:1.6">
+        Entrez votre adresse email. Vous recevrez un lien pour créer un nouveau mot de passe.
+      </p>
+      <div class="fg" style="margin-bottom:16px">
+        <label style="font-size:12px;font-weight:700;color:#374151">Email *</label>
+        <input type="email" id="forgot-email-input" placeholder="votre@email.ci"
+          style="padding:10px 12px;border:1.5px solid #D1D5DB;border-radius:9px;font-size:14px;width:100%;box-sizing:border-box;font-family:inherit"
+          onkeydown="if(event.key==='Enter') sendResetEmail()">
+      </div>
+      <div id="forgot-error" style="display:none;background:#FEE2E2;color:#DC2626;font-size:12px;font-weight:600;padding:10px 12px;border-radius:9px;margin-bottom:12px"></div>
+      <button onclick="sendResetEmail()" id="forgot-send-btn"
+        class="btn-p" style="width:100%;justify-content:center;font-size:14px;padding:13px">
+        <i class="ti ti-send"></i> Envoyer le lien
+      </button>
+      <button onclick="closeForgotPwdModal()" style="width:100%;background:none;border:none;cursor:pointer;color:#6B7280;font-size:12px;font-weight:600;margin-top:10px;font-family:inherit;padding:6px">
+        ← Retour à la connexion
+      </button>
+    </div>
+    <!-- Étape 2 : Confirmation envoi -->
+    <div id="forgot-step-confirm" style="display:none;padding:24px;text-align:center">
+      <div style="width:64px;height:64px;background:#D1FAE5;border-radius:50%;display:flex;align-items:center;justify-content:center;margin:0 auto 16px">
+        <i class="ti ti-mail-check" style="font-size:28px;color:#059669"></i>
+      </div>
+      <div style="font-size:16px;font-weight:800;color:#111827;margin-bottom:8px">Email envoyé !</div>
+      <div style="font-size:13px;color:#6B7280;line-height:1.6;margin-bottom:20px">
+        Un lien de réinitialisation a été envoyé à<br>
+        <strong id="forgot-email-display" style="color:#111827"></strong><br><br>
+        Cliquez sur ce lien dans votre email pour créer votre nouveau mot de passe.<br>
+        <span style="font-size:11px;color:#9CA3AF">Le lien expire dans 60 minutes.</span>
+      </div>
+      <button onclick="closeForgotPwdModal()"
+        class="btn-p" style="width:100%;justify-content:center">
+        <i class="ti ti-check"></i> Compris
+      </button>
+      <div style="margin-top:12px;font-size:11px;color:#9CA3AF">
+        Pas reçu ? Vérifiez vos spams ou
+        <button onclick="backToForgotEmail()" style="background:none;border:none;cursor:pointer;color:#6C3FE8;font-size:11px;font-weight:700;padding:0;font-family:inherit">réessayer</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ══ ÉCRAN DE RÉINITIALISATION DU MOT DE PASSE ══ -->
+<div id="reset-password-overlay" style="display:none;position:fixed;inset:0;z-index:9999;background:#F3F4F6;align-items:center;justify-content:center;padding:16px">
+  <div style="background:#fff;border-radius:20px;width:100%;max-width:400px;box-shadow:0 8px 40px rgba(0,0,0,.15);overflow:hidden">
+    <div style="background:linear-gradient(135deg,#6C3FE8,#4C1D95);padding:18px 24px">
+      <div style="font-size:15px;font-weight:800;color:#fff">Nouveau mot de passe</div>
+      <div style="font-size:11px;color:#C4B5FD;margin-top:2px">Créez votre nouveau mot de passe</div>
+    </div>
+    <div style="padding:24px">
+      <div id="reset-error" style="display:none;background:#FEE2E2;color:#DC2626;font-size:12px;font-weight:600;padding:10px 12px;border-radius:9px;margin-bottom:14px"></div>
+      <div class="fg" style="margin-bottom:12px">
+        <label style="font-size:12px;font-weight:700;color:#374151">Nouveau mot de passe *</label>
+        <div style="position:relative">
+          <input type="password" id="reset-pwd-new" placeholder="Min. 8 caractères"
+            style="padding:10px 40px 10px 12px;border:1.5px solid #D1D5DB;border-radius:9px;font-size:14px;width:100%;box-sizing:border-box;font-family:inherit"
+            oninput="updateResetStrength(this.value)">
+          <button type="button" onclick="toggleResetPwd('reset-pwd-new',this)"
+            style="position:absolute;right:10px;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;color:#9CA3AF;padding:0;display:flex">
+            <i class="ti ti-eye" style="font-size:15px"></i>
+          </button>
+        </div>
+        <div style="margin-top:4px;height:3px;border-radius:3px;background:#E5E7EB;overflow:hidden">
+          <div id="reset-strength-bar" style="height:100%;width:0;border-radius:3px;transition:.3s"></div>
+        </div>
+      </div>
+      <div class="fg" style="margin-bottom:20px">
+        <label style="font-size:12px;font-weight:700;color:#374151">Confirmer le mot de passe *</label>
+        <div style="position:relative">
+          <input type="password" id="reset-pwd-confirm" placeholder="Répétez le mot de passe"
+            style="padding:10px 40px 10px 12px;border:1.5px solid #D1D5DB;border-radius:9px;font-size:14px;width:100%;box-sizing:border-box;font-family:inherit"
+            onkeydown="if(event.key==='Enter') submitNewPassword()">
+          <button type="button" onclick="toggleResetPwd('reset-pwd-confirm',this)"
+            style="position:absolute;right:10px;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;color:#9CA3AF;padding:0;display:flex">
+            <i class="ti ti-eye" style="font-size:15px"></i>
+          </button>
+        </div>
+      </div>
+      <button onclick="submitNewPassword()" id="reset-submit-btn"
+        class="btn-p" style="width:100%;justify-content:center;font-size:14px;padding:13px">
+        <i class="ti ti-lock-check"></i> Enregistrer le nouveau mot de passe
+      </button>
+    </div>
+  </div>
+</div>
 
 </body>
 </html>
