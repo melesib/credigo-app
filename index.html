@@ -722,10 +722,18 @@ textarea{resize:vertical;min-height:70px}
             </div>
             <div id="pwd-strength" style="margin-top:4px;height:3px;border-radius:3px;background:#E5E7EB;overflow:hidden"><div id="pwd-strength-bar" style="height:100%;width:0;border-radius:3px;transition:.3s"></div></div>
           </div>
-          <label style="display:flex;align-items:flex-start;gap:8px;cursor:pointer;font-size:11px;color:#374151;line-height:1.5">
-            <input type="checkbox" id="signup-cgu" style="margin-top:2px;accent-color:#6C3FE8;width:14px;height:14px;flex-shrink:0">
-            J'accepte les <button onclick="showCGU()" style="background:none;border:none;cursor:pointer;color:#6C3FE8;font-weight:700;font-size:11px;padding:0;font-family:inherit">Conditions Générales d'Utilisation</button> et la <button onclick="showPrivacy()" style="background:none;border:none;cursor:pointer;color:#6C3FE8;font-weight:700;font-size:11px;padding:0;font-family:inherit">Politique de confidentialité</button>
-          </label>
+          <div style="display:flex;flex-direction:column;gap:6px">
+            <div style="display:flex;align-items:flex-start;gap:8px">
+              <input type="checkbox" id="signup-cgu" style="margin-top:2px;accent-color:#6C3FE8;width:16px;height:16px;flex-shrink:0;cursor:pointer" onchange="onCguChange(this)">
+              <label for="signup-cgu" style="font-size:11px;color:#374151;line-height:1.5;cursor:pointer">
+                J'ai lu et j'accepte les conditions ci-dessous *
+              </label>
+            </div>
+            <div style="display:flex;gap:10px;padding-left:24px">
+              <button type="button" onclick="showCGU()" style="background:none;border:none;cursor:pointer;color:#6C3FE8;font-weight:700;font-size:11px;padding:0;font-family:inherit;text-decoration:underline">📄 CGU</button>
+              <button type="button" onclick="showPrivacy()" style="background:none;border:none;cursor:pointer;color:#6C3FE8;font-weight:700;font-size:11px;padding:0;font-family:inherit;text-decoration:underline">🔒 Politique de confidentialité</button>
+            </div>
+          </div>
         </div>
         <button onclick="authSignupEmail()" class="btn-p" style="width:100%;justify-content:center;margin-top:16px;font-size:14px;padding:13px">
           <i class="ti ti-user-plus"></i> Créer mon compte
@@ -5910,7 +5918,28 @@ function togglePwd(inputId, btn) {
 }
 
 function authForgotPwd() {
-  toast('Un email de réinitialisation sera envoyé. (Fonctionnalité en démo)');
+  var email = (document.getElementById('login-email') || {}).value || '';
+  if (!email || !email.includes('@')) {
+    toast('Entrez votre email dans le champ ci-dessus, puis cliquez "Mot de passe oublié".');
+    var emailEl = document.getElementById('login-email');
+    if (emailEl) emailEl.focus();
+    return;
+  }
+  if (window.CredigoDB && window.CredigoDB.ready && window.CredigoDB.sb) {
+    toast('Envoi de l\'email de r\u00e9initialisation...');
+    window.CredigoDB.sb.auth.resetPasswordForEmail(email, {
+      redirectTo: window.location.origin + window.location.pathname + '?reset=1'
+    }).then(function(res) {
+      if (res.error) {
+        toast('Erreur : ' + res.error.message);
+      } else {
+        toast('\u2705 Email envoy\u00e9 \u00e0 ' + email + '. V\u00e9rifiez votre bo\u00eete de r\u00e9ception.');
+      }
+    });
+  } else {
+    // Mode démo
+    toast('Un email de réinitialisation sera envoyé à ' + email + ' (mode démo).');
+  }
 }
 
 function authResendEmail() {
@@ -6697,28 +6726,30 @@ function confirmLegalAcceptance() {
 
 /* ══ VALIDATION CGU OBLIGATOIRE AUX 2 ÉTAPES ══════════════════ */
 
-/* Étape 1 : Création de compte — surcharger authSignupEmail */
-var _origAuthSignupEmail = window.authSignupEmail;
-window.authSignupEmail = function() {
-  var cguCheck = document.getElementById('signup-cgu');
-  if (cguCheck && !cguCheck.checked) {
-    toast('Vous devez accepter les CGU et la Politique de Confidentialité pour créer votre compte.');
-    return;
-  }
-  // Vérifier que les deux docs ont été lus (ou forcer la lecture si pas encore faite)
-  var cguAccepted = false;
-  try { cguAccepted = localStorage.getItem('credigo_accepted_cgu') === 'true'; } catch(e) {}
-  if (!cguAccepted) {
-    // Forcer la lecture des CGU avant de continuer
-    requireLegalAcceptance('cgu', function() {
-      requireLegalAcceptance('privacy', function() {
-        if (_origAuthSignupEmail) _origAuthSignupEmail();
-      });
-    });
-    return;
-  }
-  if (_origAuthSignupEmail) _origAuthSignupEmail();
-};
+/* Étape 1 : Création de compte — vérification CGU intégrée dans authSignupEmail */
+function onCguChange(checkbox) {
+  // Rien de spécial à faire ici, la vérification se fait à la soumission
+}
+
+/* Surcharge authSignupEmail pour vérifier CGU avant d'inscrire */
+setTimeout(function() {
+  var realSignup = window.authSignupEmail;
+  window.authSignupEmail = function() {
+    var cguCheck = document.getElementById('signup-cgu');
+    if (!cguCheck || !cguCheck.checked) {
+      toast('Vous devez cocher la case pour accepter les CGU et la Politique de Confidentialité.');
+      if (cguCheck) cguCheck.focus();
+      return;
+    }
+    // Marquer comme accepté
+    try {
+      localStorage.setItem('credigo_accepted_cgu', 'true');
+      localStorage.setItem('credigo_accepted_privacy', 'true');
+    } catch(e) {}
+    // Appeler la vraie fonction d'inscription
+    if (realSignup) realSignup();
+  };
+}, 500); // setTimeout pour s'exécuter après le chargement complet de authSignupEmail
 
 /* Étape 2 : Soumission KYC — surcharger kycESubmit et kycFSubmit */
 var _origKycESubmit = window.kycESubmit;
