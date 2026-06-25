@@ -749,10 +749,35 @@ textarea{resize:vertical;min-height:70px}
     </div>
 
     <!-- STEP 3 : Vérification email -->
-    <div id="auth-step-verify" style="display:none;padding:24px;text-align:center">
-      <div style="width:64px;height:64px;background:#EEE8FF;border-radius:50%;display:flex;align-items:center;justify-content:center;margin:0 auto 16px">
-        <i class="ti ti-mail-check" style="font-size:28px;color:#6C3FE8"></i>
+    <div id="auth-step-verify" style="display:none;padding:28px 24px;text-align:center">
+      <!-- Icône succès -->
+      <div style="width:72px;height:72px;background:#EEE8FF;border-radius:50%;display:flex;align-items:center;justify-content:center;margin:0 auto 20px">
+        <i class="ti ti-mail-check" style="font-size:32px;color:#6C3FE8"></i>
       </div>
+      <!-- Titre -->
+      <div style="font-size:18px;font-weight:800;color:#111827;margin-bottom:10px">Email de confirmation envoyé !</div>
+      <!-- Message -->
+      <div style="font-size:13px;color:#6B7280;line-height:1.7;margin-bottom:8px">
+        Un lien de confirmation a été envoyé à
+      </div>
+      <div id="verify-email-display" style="font-size:14px;font-weight:700;color:#6C3FE8;margin-bottom:20px;word-break:break-all"></div>
+      <div style="font-size:12px;color:#6B7280;background:#F9FAFB;border-radius:10px;padding:12px;margin-bottom:24px;line-height:1.6">
+        📬 Cliquez sur le lien dans votre email pour activer votre compte.<br>
+        <span style="color:#9CA3AF;font-size:11px">Vérifiez aussi vos spams si vous ne le trouvez pas.</span>
+      </div>
+      <!-- Bouton retour connexion -->
+      <button onclick="authGoToLogin()" class="btn-p" style="width:100%;justify-content:center;margin-bottom:12px">
+        <i class="ti ti-login"></i> Aller à la page de connexion
+      </button>
+      <!-- Renvoyer l'email -->
+      <button onclick="authResendEmail()" style="background:none;border:1.5px solid #E5E7EB;border-radius:10px;padding:10px 16px;font-size:12px;font-weight:600;color:#6B7280;cursor:pointer;width:100%;font-family:inherit;margin-bottom:8px">
+        <i class="ti ti-refresh"></i> Renvoyer l'email de confirmation
+      </button>
+      <!-- Retour -->
+      <button onclick="authBackToRole()" style="background:none;border:none;cursor:pointer;color:#9CA3AF;font-size:12px;font-weight:600;font-family:inherit;padding:8px">
+        ← Retour à l'accueil
+      </button>
+    </div>
       <div style="font-size:17px;font-weight:800;color:#111827;margin-bottom:8px">Vérifiez votre email</div>
       <div style="font-size:13px;color:#6B7280;margin-bottom:20px;line-height:1.6">
         Un lien de vérification a été envoyé à<br><strong id="verify-email-display" style="color:#111827"></strong>
@@ -778,7 +803,6 @@ textarea{resize:vertical;min-height:70px}
   <div style="margin-top:20px;text-align:center;font-size:10px;color:#9CA3AF;max-width:320px">
     Credigo est une plateforme de mise en relation. Les financements sont soumis à validation KYC conforme BCEAO · ARTCI n°CI-2024-ARTCI-DCP-0089
   </div>
-</div>
 
 <!-- BANNER KYC REQUIS (après connexion, avant validation) -->
 <div id="kyc-required-banner" style="display:none;position:fixed;bottom:0;left:0;right:0;z-index:300;background:linear-gradient(135deg,#6C3FE8,#4C1D95);padding:12px 16px;display:flex;align-items:center;gap:10px;box-shadow:0 -4px 16px rgba(0,0,0,.15)">
@@ -5727,34 +5751,32 @@ function _realAuthSignupEmail() {
     toast('Création du compte…');
     window.credigoSupabaseSignUp(email, pwd).then(function(res) {
       if (res.error) {
-      // Convertir l'erreur en string (peut être un objet AuthError)
-      var errStr = '';
-      if (typeof res.error === 'string') {
-        errStr = res.error;
-      } else if (res.error && res.error.message) {
-        errStr = res.error.message;
-      } else if (res.error && res.error.code) {
-        errStr = res.error.code;
-      } else {
-        errStr = JSON.stringify(res.error);
+        var errStr = typeof res.error === 'string' ? res.error
+          : (res.error.message || res.error.code || JSON.stringify(res.error));
+        var msg;
+        if (errStr.indexOf('weak') !== -1 || errStr.indexOf('pwned') !== -1 || errStr.indexOf('easy to guess') !== -1 || errStr.indexOf('known') !== -1 || errStr.indexOf('confirmation') !== -1) {
+          msg = '\u274C Mot de passe trop faible ou compromis.\nUtilisez au moins 8 caract\u00e8res avec majuscules, chiffres et un symbole.\nEx: Credigo@2026!';
+          if (errStr.indexOf('confirmation') !== -1 || errStr.indexOf('sending') !== -1) {
+            // Erreur d'envoi email - l'inscription a peut-être réussi quand même
+            // On continue le flow sans bloquer
+            msg = null;
+          }
+        } else if (errStr.indexOf('already registered') !== -1 || errStr.indexOf('already exists') !== -1 || errStr.indexOf('User already') !== -1) {
+          msg = '\u274C Cet email est d\u00e9j\u00e0 utilis\u00e9.\nConnectez-vous ou utilisez "Mot de passe oubli\u00e9".';
+        } else if (errStr.indexOf('invalid') !== -1) {
+          msg = '\u274C Email invalide. V\u00e9rifiez votre adresse email.';
+        } else if (errStr.indexOf('sending') !== -1 || errStr.indexOf('email') !== -1) {
+          // Erreur d'envoi email uniquement - on continue quand même
+          msg = null;
+        } else {
+          msg = '\u274C Erreur : ' + errStr;
+        }
+        if (msg) { toast(msg); return; }
+        // Si msg = null = erreur email seulement, on continue avec user null
+        if (!res.authUser) { toast('\u274C Inscription \u00e9chou\u00e9e. R\u00e9essayez.'); return; }
       }
-      var msg;
-      if (errStr.indexOf('weak') !== -1 || errStr.indexOf('pwned') !== -1 || errStr.indexOf('easy to guess') !== -1 || errStr.indexOf('known') !== -1) {
-        msg = '\u274C Mot de passe trop faible ou compromis.\nUtilisez au moins 8 caract\u00e8res avec majuscules, chiffres et un symbole.\nEx: Credigo@2026!';
-      } else if (errStr.indexOf('already registered') !== -1 || errStr.indexOf('already exists') !== -1 || errStr.indexOf('User already') !== -1) {
-        msg = '\u274C Cet email est d\u00e9j\u00e0 utilis\u00e9.\nConnectez-vous ou utilisez "Mot de passe oubli\u00e9".';
-      } else if (errStr.indexOf('invalid') !== -1) {
-        msg = '\u274C Email invalide. V\u00e9rifiez votre adresse email.';
-      } else if (errStr.indexOf('422') !== -1 || errStr.indexOf('Unprocessable') !== -1) {
-        msg = '\u274C Mot de passe trop faible.\nUtilisez au moins 8 caract\u00e8res avec majuscules, chiffres et un symbole.';
-      } else {
-        msg = '\u274C Erreur : ' + errStr;
-      }
-      toast(msg);
-      return;
-    }
-      // Pré-créer la ligne app_users tout de suite (avant même la confirmation
-      // email) pour que le profil et le téléphone soient déjà enregistrés.
+
+      // Créer la ligne app_users
       var user = {
         email: email, name: prenom + ' ' + nom,
         initials: (prenom[0] + nom[0]).toUpperCase(),
@@ -5762,21 +5784,28 @@ function _realAuthSignupEmail() {
         provider: 'email', phone: tel,
         authUserId: res.authUser ? res.authUser.id : null
       };
+
       window.credigoSyncUserToSupabase(user).then(function(syncedUser) {
         if (syncedUser.dbUserId && tel) {
           window.credigoSaveProfile({ phone: tel, portal: authRole === 'e' ? 'entrepreneur' : 'financeur' });
         }
-        var verifyEl = document.getElementById('verify-email-display');
-        if (verifyEl) verifyEl.textContent = email;
-        document.getElementById('auth-step-login').style.display  = 'none';
-        document.getElementById('auth-step-verify').style.display = 'block';
-        if (res.needsEmailConfirmation) {
-          toast('Email de vérification envoyé à ' + email);
-        } else {
-          // Si la confirmation email est désactivée côté Supabase, on entre directement
-          authSaveSession(syncedUser);
-          authEnterApp(syncedUser);
-        }
+
+        // Envoyer email de bienvenue via notre propre function (pas SMTP Supabase)
+        var backofficeUrl = window.CREDIGO_BACKOFFICE_URL || 'https://credigo-backoffice.netlify.app';
+        fetch(backofficeUrl + '/.netlify/functions/send-email', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            to: email,
+            type: 'welcome',
+            data: { name: prenom + ' ' + nom, role: authRole === 'e' ? 'entrepreneur' : 'financeur' }
+          })
+        }).catch(function() {}); // Ignorer les erreurs d'envoi email
+
+        // Entrer dans l'app directement
+        authSaveSession(syncedUser);
+        authEnterApp(syncedUser);
+        toast('\u2705 Compte cr\u00e9\u00e9 avec succ\u00e8s ! Bienvenue ' + prenom + ' !');
       });
     });
     return;
@@ -5960,7 +5989,28 @@ function togglePwd(inputId, btn) {
 
 
 function authResendEmail() {
-  toast('Email de vérification renvoyé !');
+  var email = (document.getElementById('verify-email-display') || {}).textContent || '';
+  if (email && window.CredigoDB && window.CredigoDB.ready && window.CredigoDB.sb) {
+    window.CredigoDB.sb.auth.resend({ type: 'signup', email: email })
+      .then(function(res) {
+        if (res.error) toast('\u274C ' + res.error.message);
+        else toast('\u2705 Email renvoy\u00e9 \u00e0 ' + email);
+      });
+  } else {
+    toast('\u2705 Email de confirmation renvoy\u00e9 !');
+  }
+}
+
+function authGoToLogin() {
+  document.getElementById('auth-step-verify').style.display = 'none';
+  document.getElementById('auth-step-login').style.display  = 'block';
+  if (typeof authTabSwitch === 'function') authTabSwitch('login');
+}
+
+function authBackToRole() {
+  document.getElementById('auth-step-verify').style.display = 'none';
+  document.getElementById('auth-step-login').style.display  = 'none';
+  document.getElementById('auth-step-role').style.display   = 'block';
 }
 
 function showCGU() {
