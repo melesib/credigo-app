@@ -5710,24 +5710,46 @@ function _realAuthSignupEmail() {
   var pwd    = (document.getElementById('signup-pwd') || {}).value;
   var cgu    = document.getElementById('signup-cgu');
   if (!prenom || !nom || !email || !pwd) { toast('Veuillez remplir tous les champs obligatoires.'); return; }
-  if (pwd.length < 8) { toast('Le mot de passe doit contenir au moins 8 caractères.'); return; }
+  if (pwd.length < 8) {
+    toast('\u274C Le mot de passe doit contenir au moins 8 caract\u00e8res.');
+    document.getElementById('signup-pwd') && document.getElementById('signup-pwd').focus();
+    return;
+  }
+  if (!/[A-Z]/.test(pwd) || !/[0-9]/.test(pwd)) {
+    toast('\u274C Le mot de passe doit contenir au moins une majuscule et un chiffre.\nEx: Credigo@2026!');
+    document.getElementById('signup-pwd') && document.getElementById('signup-pwd').focus();
+    return;
+  }
   if (cgu && !cgu.checked) { toast('Veuillez accepter les CGU pour continuer.'); return; }
 
   if (window.CredigoDB && window.CredigoDB.ready) {
     toast('Création du compte…');
     window.credigoSupabaseSignUp(email, pwd).then(function(res) {
       if (res.error) {
-      var msg = res.error;
-      if (msg.indexOf('weak_password') !== -1 || msg.indexOf('pwned') !== -1) {
-        msg = 'Mot de passe trop commun ou compromis. Utilisez un mot de passe unique avec majuscules, chiffres et symboles.';
-      } else if (msg.indexOf('already registered') !== -1 || msg.indexOf('already exists') !== -1 || msg.indexOf('User already') !== -1) {
-        msg = 'Cet email est d\u00e9j\u00e0 utilis\u00e9. Connectez-vous ou utilisez "Mot de passe oubli\u00e9".';
-      } else if (msg.indexOf('invalid') !== -1 || msg.indexOf('valid') !== -1) {
-        msg = 'Email invalide. V\u00e9rifiez votre adresse email.';
-      } else if (msg.indexOf('422') !== -1 || msg.indexOf('Unprocessable') !== -1) {
-        msg = 'Mot de passe trop faible. Utilisez au moins 8 caract\u00e8res avec majuscules, chiffres et symboles.';
+      // Convertir l'erreur en string (peut être un objet AuthError)
+      var errStr = '';
+      if (typeof res.error === 'string') {
+        errStr = res.error;
+      } else if (res.error && res.error.message) {
+        errStr = res.error.message;
+      } else if (res.error && res.error.code) {
+        errStr = res.error.code;
+      } else {
+        errStr = JSON.stringify(res.error);
       }
-      toast('\u274C ' + msg);
+      var msg;
+      if (errStr.indexOf('weak_password') !== -1 || errStr.indexOf('pwned') !== -1 || errStr.indexOf('password') !== -1) {
+        msg = '\u274C Mot de passe trop faible ou compromis.\nUtilisez au moins 8 caract\u00e8res avec majuscules, chiffres et un symbole.\nEx: Credigo@2026!';
+      } else if (errStr.indexOf('already registered') !== -1 || errStr.indexOf('already exists') !== -1 || errStr.indexOf('User already') !== -1) {
+        msg = '\u274C Cet email est d\u00e9j\u00e0 utilis\u00e9.\nConnectez-vous ou utilisez "Mot de passe oubli\u00e9".';
+      } else if (errStr.indexOf('invalid') !== -1) {
+        msg = '\u274C Email invalide. V\u00e9rifiez votre adresse email.';
+      } else if (errStr.indexOf('422') !== -1 || errStr.indexOf('Unprocessable') !== -1) {
+        msg = '\u274C Mot de passe trop faible.\nUtilisez au moins 8 caract\u00e8res avec majuscules, chiffres et un symbole.';
+      } else {
+        msg = '\u274C Erreur : ' + errStr;
+      }
+      toast(msg);
       return;
     }
       // Pré-créer la ligne app_users tout de suite (avant même la confirmation
