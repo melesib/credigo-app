@@ -3301,11 +3301,12 @@ function resetPayModal() {
 
 /* == TOAST == */
 function toast(msg) {
-  const t = document.getElementById('g-toast');
+  var t = document.getElementById('g-toast');
+  if (!t) { console.warn('[Credigo] Toast element missing:', msg); return; }
   t.textContent = msg;
-  t.style.display = 'flex';
+  t.style.cssText = 'display:block;position:fixed;bottom:24px;left:50%;transform:translateX(-50%);z-index:99999;background:#1F2937;color:#fff;padding:12px 20px;border-radius:12px;font-size:13px;font-weight:600;font-family:inherit;max-width:90vw;text-align:center;box-shadow:0 4px 20px rgba(0,0,0,.3);white-space:pre-line;line-height:1.5';
   clearTimeout(t._t);
-  t._t = setTimeout(() => { t.style.display = 'none'; }, 4000);
+  t._t = setTimeout(function() { t.style.display = 'none'; }, 4500);
 }
 
 /* == TÉLÉCHARGEMENT DOCUMENTS CREDIGO == */
