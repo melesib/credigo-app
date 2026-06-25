@@ -5679,19 +5679,20 @@ function authLoginEmail() {
       };
       window.credigoSyncUserToSupabase(user).then(function(syncedUser) {
         // Vérifier si le compte est bloqué
-        if (syncedUser && syncedUser.error === 'ACCOUNT_BLOCKED') {
-          toast('\u274C Compte bloqué. ' + (syncedUser.message || 'Contactez support@credigo.ci'));
-          // Déconnecter de Supabase Auth aussi
+        if (syncedUser && (syncedUser.error === 'ACCOUNT_BLOCKED' || syncedUser.error === 'ACCOUNT_DELETED')) {
+          toast('\u274C ' + (syncedUser.message || 'Accès refusé. Contactez support@credigo.ci'));
           if (window.CredigoDB && window.CredigoDB.sb) {
             window.CredigoDB.sb.auth.signOut();
           }
+          authClearSession();
           return;
         }
         if (syncedUser && syncedUser.isActive === false) {
-          toast('\u274C Compte bloqué. Contactez support@credigo.ci');
+          toast('\u274C Compte suspendu. Contactez support@credigo.ci');
           if (window.CredigoDB && window.CredigoDB.sb) {
             window.CredigoDB.sb.auth.signOut();
           }
+          authClearSession();
           return;
         }
         authSaveSession(syncedUser);
@@ -6511,9 +6512,10 @@ window._completeOAuthLogin = function(supaUser, role) {
 
   if (window.CredigoDB && window.CredigoDB.ready) {
     window.credigoSyncUserToSupabase(user).then(function(syncedUser) {
-      if (syncedUser && (syncedUser.error === 'ACCOUNT_BLOCKED' || syncedUser.isActive === false)) {
-        toast('\u274C Compte bloqué. Contactez support@credigo.ci');
+      if (syncedUser && (syncedUser.error === 'ACCOUNT_BLOCKED' || syncedUser.error === 'ACCOUNT_DELETED' || syncedUser.isActive === false)) {
+        toast('\u274C ' + (syncedUser.message || 'Accès refus\u00e9. Contactez support@credigo.ci'));
         if (window.CredigoDB && window.CredigoDB.sb) window.CredigoDB.sb.auth.signOut();
+        authClearSession();
         return;
       }
       authSaveSession(syncedUser);

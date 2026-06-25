@@ -65,9 +65,10 @@
 
       // Upsert sur (email, portal) — un même email peut avoir un compte
       // entrepreneur ET un compte financeur séparés.
+      // Chercher le compte existant (inclut les supprimés pour détecter les tentatives)
       var existing = await sb
         .from('app_users')
-        .select('id, kyc_status, profile_complete, is_active, blocked_reason')
+        .select('id, kyc_status, profile_complete, is_active, blocked_reason, deleted_at')
         .eq('email', user.email)
         .eq('portal', portal)
         .maybeSingle();
@@ -75,12 +76,17 @@
       var dbUser;
       if (existing.data) {
         dbUser = existing.data;
-        // Vérifier si le compte est bloqué
+        // Compte supprimé définitivement - bloquer la connexion
+        if (dbUser.deleted_at) {
+          return { error: 'ACCOUNT_DELETED', message: 'Ce compte a été supprimé définitivement. Contactez support@credigo.ci si vous pensez qu'il s'agit d'une erreur.' };
+        }
+        // Compte bloqué
         if (dbUser.is_active === false) {
-          var reason = dbUser.blocked_reason || 'Votre compte a été bloqué. Contactez support@credigo.ci.';
+          var reason = dbUser.blocked_reason || 'Votre compte a été suspendu. Contactez support@credigo.ci.';
           return { error: 'ACCOUNT_BLOCKED', message: reason };
         }
       } else {
+        // Nouveau compte - créer normalement
         var inserted = await sb
           .from('app_users')
           .insert({
