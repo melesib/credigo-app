@@ -766,28 +766,10 @@ textarea{resize:vertical;min-height:70px}
         <span style="color:#9CA3AF;font-size:11px">Vérifiez aussi vos spams si vous ne le trouvez pas.</span>
       </div>
       <button onclick="authGoToLogin()" class="btn-p" style="width:100%;justify-content:center;margin-bottom:12px">
-        <i class="ti ti-login"></i> Aller à la page de connexion
+        <i class="ti ti-login"></i> Se connecter
       </button>
       <button onclick="authResendEmail()" style="background:none;border:1.5px solid #E5E7EB;border-radius:10px;padding:10px 16px;font-size:12px;font-weight:600;color:#6B7280;cursor:pointer;width:100%;font-family:inherit">
-        <i class="ti ti-refresh"></i> Renvoyer l'email de confirmation
-      </button>
-    </div>
-      <div style="font-size:17px;font-weight:800;color:#111827;margin-bottom:8px">Vérifiez votre email</div>
-      <div style="font-size:13px;color:#6B7280;margin-bottom:20px;line-height:1.6">
-        Un lien de vérification a été envoyé à<br><strong id="verify-email-display" style="color:#111827"></strong>
-      </div>
-      <div style="background:#F9FAFB;border:1.5px solid #E5E7EB;border-radius:12px;padding:14px;margin-bottom:20px;font-size:12px;color:#374151;line-height:1.7;text-align:left">
-        <strong>Prochaines étapes :</strong><br>
-        1. Cliquez sur le lien dans l'email<br>
-        2. Complétez votre profil<br>
-        3. Soumettez votre KYC<br>
-        4. Attendez la validation (24-48h)
-      </div>
-      <button onclick="authDemoLogin()" class="btn-p" style="width:100%;justify-content:center;margin-bottom:10px">
-        <i class="ti ti-player-play"></i> Accéder en mode démo
-      </button>
-      <button onclick="authResendEmail()" style="background:none;border:none;cursor:pointer;color:#6C3FE8;font-size:12px;font-weight:600;font-family:inherit">
-        Renvoyer l'email
+        <i class="ti ti-refresh"></i> Renvoyer l'email
       </button>
     </div>
 
@@ -797,6 +779,7 @@ textarea{resize:vertical;min-height:70px}
   <div style="margin-top:20px;text-align:center;font-size:10px;color:#9CA3AF;max-width:320px">
     Credigo est une plateforme de mise en relation. Les financements sont soumis à validation KYC conforme BCEAO · ARTCI n°CI-2024-ARTCI-DCP-0089
   </div>
+</div>
 
 <!-- BANNER KYC REQUIS (après connexion, avant validation) -->
 <div id="kyc-required-banner" style="display:none;position:fixed;bottom:0;left:0;right:0;z-index:300;background:linear-gradient(135deg,#6C3FE8,#4C1D95);padding:12px 16px;display:flex;align-items:center;gap:10px;box-shadow:0 -4px 16px rgba(0,0,0,.15)">
@@ -5978,7 +5961,16 @@ function togglePwd(inputId, btn) {
 
 
 function authResendEmail() {
-  toast('Email de vérification renvoyé !');
+  var email = (document.getElementById('verify-email-display') || {}).textContent || '';
+  if (email && window.CredigoDB && window.CredigoDB.ready && window.CredigoDB.sb) {
+    window.CredigoDB.sb.auth.resend({ type: 'signup', email: email })
+      .then(function(res) {
+        if (res.error) toast('\u274C ' + res.error.message);
+        else toast('\u2705 Email renvoy\u00e9 !');
+      });
+  } else {
+    toast('\u2705 Email renvoy\u00e9 !');
+  }
 }
 
 function authGoToLogin() {
