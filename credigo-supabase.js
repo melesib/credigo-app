@@ -78,7 +78,7 @@
         dbUser = existing.data;
         // Compte supprimé définitivement - bloquer la connexion
         if (dbUser.deleted_at) {
-          return { error: 'ACCOUNT_DELETED', message: 'Ce compte a été supprimé définitivement. Contactez support@credigo.ci si vous pensez qu'il s'agit d'une erreur.' };
+          return { error: 'ACCOUNT_DELETED', message: 'Ce compte a \u00e9t\u00e9 supprim\u00e9 d\u00e9finitivement. Contactez support@credigo.ci.' };
         }
         // Compte bloqué
         if (dbUser.is_active === false) {
