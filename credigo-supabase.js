@@ -67,7 +67,7 @@
       // entrepreneur ET un compte financeur séparés.
       var existing = await sb
         .from('app_users')
-        .select('id, kyc_status, profile_complete')
+        .select('id, kyc_status, profile_complete, is_active, blocked_reason')
         .eq('email', user.email)
         .eq('portal', portal)
         .maybeSingle();
@@ -75,6 +75,11 @@
       var dbUser;
       if (existing.data) {
         dbUser = existing.data;
+        // Vérifier si le compte est bloqué
+        if (dbUser.is_active === false) {
+          var reason = dbUser.blocked_reason || 'Votre compte a été bloqué. Contactez support@credigo.ci.';
+          return { error: 'ACCOUNT_BLOCKED', message: reason };
+        }
       } else {
         var inserted = await sb
           .from('app_users')
@@ -95,10 +100,11 @@
       user.dbUserId = dbUser.id;
       user.kycStatus = dbUser.kyc_status;
       user.profileComplete = dbUser.profile_complete;
+      user.isActive = dbUser.is_active !== false;
       return user;
     } catch (err) {
       console.error('[Credigo] Échec sync utilisateur Supabase :', err.message);
-      return user; // dégradation gracieuse — l'app continue en mode local
+      return user;
     }
   };
 

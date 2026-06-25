@@ -5678,6 +5678,22 @@ function authLoginEmail() {
         provider: 'email', authUserId: supaUser.id
       };
       window.credigoSyncUserToSupabase(user).then(function(syncedUser) {
+        // Vérifier si le compte est bloqué
+        if (syncedUser && syncedUser.error === 'ACCOUNT_BLOCKED') {
+          toast('\u274C Compte bloqué. ' + (syncedUser.message || 'Contactez support@credigo.ci'));
+          // Déconnecter de Supabase Auth aussi
+          if (window.CredigoDB && window.CredigoDB.sb) {
+            window.CredigoDB.sb.auth.signOut();
+          }
+          return;
+        }
+        if (syncedUser && syncedUser.isActive === false) {
+          toast('\u274C Compte bloqué. Contactez support@credigo.ci');
+          if (window.CredigoDB && window.CredigoDB.sb) {
+            window.CredigoDB.sb.auth.signOut();
+          }
+          return;
+        }
         authSaveSession(syncedUser);
         authEnterApp(syncedUser);
       });
@@ -6373,13 +6389,42 @@ var _origAuthInit = window.authInit;
 window.authInit = function() {
   authCleanCorruptedSession();
   if (authLoadSession() && authUser) {
-    // Vérifier que la session a bien un rôle valide
     if (!authUser.role || (authUser.role !== 'e' && authUser.role !== 'f')) {
       authClearSession();
       document.getElementById('auth-overlay').style.display = 'flex';
       return;
     }
-    authEnterApp(authUser);
+    // Vérifier le statut du compte côté serveur (is_active)
+    // avant d'entrer dans l'app - bloque les sessions persistantes des comptes bloqués
+    if (window.CredigoDB && window.CredigoDB.ready && authUser.dbUserId) {
+      window.CredigoDB.sb
+        .from('app_users')
+        .select('is_active, blocked_reason')
+        .eq('id', authUser.dbUserId)
+        .single()
+        .then(function(res) {
+          if (res.data && res.data.is_active === false) {
+            // Compte bloqué - déconnecter
+            authClearSession();
+            if (window.CredigoDB && window.CredigoDB.sb) {
+              window.CredigoDB.sb.auth.signOut();
+            }
+            document.getElementById('auth-overlay').style.display = 'flex';
+            document.getElementById('kyc-required-banner').style.display = 'none';
+            setTimeout(function() {
+              toast('\u274C Votre compte a été suspendu. ' + (res.data.blocked_reason || 'Contactez support@credigo.ci'));
+            }, 500);
+          } else {
+            authEnterApp(authUser);
+          }
+        })
+        .catch(function() {
+          // En cas d'erreur réseau, on laisse entrer (fail open) mais on revérifie
+          authEnterApp(authUser);
+        });
+    } else {
+      authEnterApp(authUser);
+    }
   } else {
     document.getElementById('auth-overlay').style.display = 'flex';
     document.getElementById('kyc-required-banner').style.display = 'none';
@@ -6466,6 +6511,11 @@ window._completeOAuthLogin = function(supaUser, role) {
 
   if (window.CredigoDB && window.CredigoDB.ready) {
     window.credigoSyncUserToSupabase(user).then(function(syncedUser) {
+      if (syncedUser && (syncedUser.error === 'ACCOUNT_BLOCKED' || syncedUser.isActive === false)) {
+        toast('\u274C Compte bloqué. Contactez support@credigo.ci');
+        if (window.CredigoDB && window.CredigoDB.sb) window.CredigoDB.sb.auth.signOut();
+        return;
+      }
       authSaveSession(syncedUser);
       authEnterApp(syncedUser);
     });
