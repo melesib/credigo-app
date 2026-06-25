@@ -5482,7 +5482,18 @@ function kycESubmit() {
   if (window.CredigoDB && window.CredigoDB.ready) {
     toast('Envoi du dossier en cours…');
     window.credigoSubmitKycDossier().then(function(res) {
-      if (res.error) { toast('Erreur : ' + res.error); return; }
+      if (res.error) {
+      var msg = res.error;
+      if (msg.indexOf('weak_password') !== -1 || msg.indexOf('pwned') !== -1) {
+        msg = 'Mot de passe trop courant ou compromis. Choisissez un mot de passe unique (ex: Cr3d!g0-2026#).';
+      } else if (msg.indexOf('already registered') !== -1 || msg.indexOf('already exists') !== -1) {
+        msg = 'Cet email est déjà utilisé. Connectez-vous ou utilisez "Mot de passe oublié".';
+      } else if (msg.indexOf('invalid') !== -1) {
+        msg = 'Email invalide. Vérifiez votre adresse email.';
+      }
+      toast('\u274C ' + msg);
+      return;
+    }
       if (authUser) { authUser.kycStatus = 'pending_review'; authSaveSession(authUser); }
       toast('Dossier KYC soumis ! Notre équipe vous contactera sous 48h.');
       pushNotif('kyc','ti-shield-check','#EEE8FF','#6C3FE8','Dossier KYC soumis','Votre dossier est en cours de vérification. Délai : 24-48h.','e');
