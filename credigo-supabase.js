@@ -86,6 +86,19 @@
           return { error: 'ACCOUNT_BLOCKED', message: reason };
         }
       } else {
+        // Vérifier que cet email n'est pas un email staff back-office
+        var staffCheck = await sb
+          .from('staff_members')
+          .select('id, is_active')
+          .eq('email', user.email)
+          .eq('is_active', true)
+          .limit(1)
+          .maybeSingle();
+
+        if (staffCheck.data) {
+          return { error: 'STAFF_EMAIL_BLOCKED', message: 'Cet email est r\u00e9serv\u00e9 au personnel Credigo. Utilisez un autre email pour cr\u00e9er un compte client.' };
+        }
+
         // Nouveau compte - créer normalement
         var inserted = await sb
           .from('app_users')

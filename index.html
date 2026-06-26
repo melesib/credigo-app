@@ -5679,8 +5679,8 @@ function authLoginEmail() {
       };
       window.credigoSyncUserToSupabase(user).then(function(syncedUser) {
         // Vérifier si le compte est bloqué
-        if (syncedUser && (syncedUser.error === 'ACCOUNT_BLOCKED' || syncedUser.error === 'ACCOUNT_DELETED')) {
-          toast('\u274C ' + (syncedUser.message || 'Accès refusé. Contactez support@credigo.ci'));
+        if (syncedUser && (syncedUser.error === 'ACCOUNT_BLOCKED' || syncedUser.error === 'ACCOUNT_DELETED' || syncedUser.error === 'STAFF_EMAIL_BLOCKED')) {
+          toast('\u274C ' + (syncedUser.message || 'Acc\u00e8s refus\u00e9. Contactez support@credigo.ci'));
           if (window.CredigoDB && window.CredigoDB.sb) {
             window.CredigoDB.sb.auth.signOut();
           }
