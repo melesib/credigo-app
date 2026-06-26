@@ -6397,32 +6397,60 @@ window.authInit = function() {
     }
     // Vérifier le statut du compte côté serveur (is_active)
     // avant d'entrer dans l'app - bloque les sessions persistantes des comptes bloqués
-    if (window.CredigoDB && window.CredigoDB.ready && authUser.dbUserId) {
+    if (window.CredigoDB && window.CredigoDB.ready) {
+      // Vérifier d'abord que l'email n'est pas réservé au staff
       window.CredigoDB.sb
-        .from('app_users')
-        .select('is_active, blocked_reason')
-        .eq('id', authUser.dbUserId)
-        .single()
-        .then(function(res) {
-          if (res.data && res.data.is_active === false) {
-            // Compte bloqué - déconnecter
+        .from('staff_members')
+        .select('id')
+        .eq('email', authUser.email || '')
+        .eq('is_active', true)
+        .limit(1)
+        .maybeSingle()
+        .then(function(staffRes) {
+          if (staffRes.data) {
+            // Email staff détecté - bloquer immédiatement
             authClearSession();
-            if (window.CredigoDB && window.CredigoDB.sb) {
-              window.CredigoDB.sb.auth.signOut();
-            }
+            window.CredigoDB.sb.auth.signOut();
             document.getElementById('auth-overlay').style.display = 'flex';
             document.getElementById('kyc-required-banner').style.display = 'none';
             setTimeout(function() {
-              toast('\u274C Votre compte a été suspendu. ' + (res.data.blocked_reason || 'Contactez support@credigo.ci'));
-            }, 500);
+              toast('\u274C Cet email est r\u00e9serv\u00e9 au personnel Credigo. Utilisez un autre email.');
+            }, 300);
+            return;
+          }
+          // Vérifier ensuite is_active dans app_users
+          if (authUser.dbUserId) {
+            window.CredigoDB.sb
+              .from('app_users')
+              .select('is_active, blocked_reason, deleted_at')
+              .eq('id', authUser.dbUserId)
+              .maybeSingle()
+              .then(function(res) {
+                if (!res.data || res.data.deleted_at) {
+                  // Compte supprimé ou introuvable
+                  authClearSession();
+                  window.CredigoDB.sb.auth.signOut();
+                  document.getElementById('auth-overlay').style.display = 'flex';
+                  return;
+                }
+                if (res.data.is_active === false) {
+                  authClearSession();
+                  window.CredigoDB.sb.auth.signOut();
+                  document.getElementById('auth-overlay').style.display = 'flex';
+                  document.getElementById('kyc-required-banner').style.display = 'none';
+                  setTimeout(function() {
+                    toast('\u274C Votre compte a \u00e9t\u00e9 suspendu. ' + (res.data.blocked_reason || 'Contactez support@credigo.ci'));
+                  }, 300);
+                } else {
+                  authEnterApp(authUser);
+                }
+              })
+              .catch(function() { authEnterApp(authUser); });
           } else {
             authEnterApp(authUser);
           }
         })
-        .catch(function() {
-          // En cas d'erreur réseau, on laisse entrer (fail open) mais on revérifie
-          authEnterApp(authUser);
-        });
+        .catch(function() { authEnterApp(authUser); });
     } else {
       authEnterApp(authUser);
     }
