@@ -7032,25 +7032,37 @@ var _origAuthInit = window.authInit;
   // Déconnexion quand l'app passe en arrière-plan (onglet caché)
   document.addEventListener('visibilitychange', function() {
     if (document.hidden) {
-      // App masquée → déconnecter immédiatement
+      // App masquée → déconnecter
       clearActiveSession();
-      if (typeof authUser !== 'undefined' && authUser) {
-        // Déconnecter Supabase Auth
-        if (window.CredigoDB && window.CredigoDB.sb) {
-          window.CredigoDB.sb.auth.signOut().catch(function(){});
-        }
-        // Réinitialiser l'état local
-        authUser = null;
-        // Afficher l'overlay d'auth
+      // Déconnecter Supabase Auth
+      if (window.CredigoDB && window.CredigoDB.sb) {
+        window.CredigoDB.sb.auth.signOut().catch(function(){});
+      }
+      // Réinitialiser état local
+      if (typeof authUser !== 'undefined') authUser = null;
+    } else {
+      // App revenue au premier plan → toujours forcer la reconnexion
+      if (typeof authUser === 'undefined' || !authUser) {
+        // Masquer tous les écrans et bandeaux
+        if (typeof hideAll === 'function') hideAll();
+        var banners = ['kyc-required-banner','kyc-pending-banner','kyc-rejected-banner'];
+        banners.forEach(function(id) {
+          var el = document.getElementById(id);
+          if (el) el.style.display = 'none';
+        });
+        var contentEl = document.querySelector('.content');
+        if (contentEl) contentEl.style.paddingBottom = '';
+        // Afficher l'overlay d'auth avec le choix de rôle
         var overlay = document.getElementById('auth-overlay');
         if (overlay) overlay.style.display = 'flex';
-        // Masquer les bandeaux
-        var kyc_banner = document.getElementById('kyc-required-banner');
-        if (kyc_banner) kyc_banner.style.display = 'none';
-        var pending = document.getElementById('kyc-pending-banner');
-        if (pending) pending.style.display = 'none';
-        var rejected = document.getElementById('kyc-rejected-banner');
-        if (rejected) rejected.style.display = 'none';
+        // Revenir à l'écran de sélection rôle
+        // Réinitialiser l'état de l'auth (retour au début)
+        if (typeof authResetToRoleSelect === 'function') {
+          authResetToRoleSelect();
+        } else {
+          // Fallback : recharger la page
+          window.location.reload();
+        }
       }
     }
   });
@@ -7070,6 +7082,29 @@ var _origAuthInit = window.authInit;
   window._isSessionActive = isSessionActive;
   window._clearActiveSession = clearActiveSession;
 })();
+
+function authResetToRoleSelect() {
+  // Revenir à l'étape de sélection du rôle
+  authUser = null;
+  var overlay = document.getElementById('auth-overlay');
+  if (overlay) overlay.style.display = 'flex';
+  // Trouver l'étape role et l'afficher
+  var roleStep = document.getElementById('auth-step-role');
+  if (roleStep) {
+    // Masquer tous les auth-steps
+    document.querySelectorAll('[id^="auth-step-"]').forEach(function(el) {
+      el.style.display = 'none';
+    });
+    roleStep.style.display = 'block';
+  }
+  // Masquer les bandeaux
+  ['kyc-required-banner','kyc-pending-banner','kyc-rejected-banner'].forEach(function(id) {
+    var el = document.getElementById(id);
+    if (el) el.style.display = 'none';
+  });
+  var c = document.querySelector('.content');
+  if (c) c.style.paddingBottom = '';
+}
 
 window.authInit = function() {
   authCleanCorruptedSession();
