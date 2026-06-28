@@ -334,7 +334,7 @@ textarea{resize:vertical;min-height:70px}
 /* ── MODAL PAIEMENT ── */
 .modal-ov{display:none;position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:300;align-items:flex-end;justify-content:center}
 .modal-ov.open{display:flex}
-.modal-sheet{background:#fff;border-radius:22px 22px 0 0;padding:22px 20px 32px;width:100%;max-width:500px;max-height:92vh;overflow-y:auto;animation:slideUp .22s ease}
+.modal-sheet{background:#fff;border-radius:22px 22px 0 0;padding:22px 16px 48px;width:100%;max-width:500px;max-height:92vh;overflow-y:auto;-webkit-overflow-scrolling:touch;animation:slideUp .22s ease;box-sizing:border-box}
 @keyframes slideUp{from{transform:translateY(100%)}to{transform:translateY(0)}}
 .modal-handle{width:38px;height:4px;background:#E5E7EB;border-radius:4px;margin:0 auto 18px}
 .modal-title{font-size:17px;font-weight:800;color:#111827;margin-bottom:3px}
@@ -2438,7 +2438,7 @@ textarea{resize:vertical;min-height:70px}
 </div></div>
 <!-- ══ MODAL FORMULAIRE EN LIGNE ══ -->
 <div class="modal-ov" id="form-modal" onclick="closeFormModalOut(event)">
-  <div class="modal-sheet" id="form-modal-sheet" onclick="event.stopPropagation()" style="max-width:600px;max-height:95vh;overflow-y:auto;-webkit-overflow-scrolling:touch;padding-bottom:32px">
+  <div class="modal-sheet" id="form-modal-sheet" onclick="event.stopPropagation()" style="max-width:600px;max-height:90vh;width:calc(100% - 0px);overflow-y:auto;-webkit-overflow-scrolling:touch;padding:22px 16px 48px;box-sizing:border-box">
     <div class="modal-handle"></div>
     <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">
       <div>
@@ -4775,18 +4775,48 @@ function openFormModal(docId, targetRowId) {
         lbl.style.cssText = 'font-size:12px;font-weight:600;color:#374151;margin-bottom:6px;display:block';
         lbl.textContent = field.label;
         wrap.appendChild(lbl);
-        (field.opts||[]).forEach(function(opt, idx) {
-          const lab = document.createElement('label');
-          lab.style.cssText = 'display:flex;align-items:flex-start;gap:8px;padding:7px 10px;background:#F9FAFB;border-radius:8px;border:1px solid #E5E7EB;cursor:pointer;margin-bottom:5px';
+        (field.opts||[]).forEach(function(opt, optIdx) {
+          const cbId = 'ff_' + field.id + '_' + optIdx;
+          const row = document.createElement('div');
+          row.style.cssText = 'display:flex;align-items:flex-start;gap:10px;padding:10px 12px;background:#F9FAFB;border-radius:8px;border:1.5px solid #E5E7EB;cursor:pointer;margin-bottom:6px;-webkit-tap-highlight-color:rgba(108,63,232,.1)';
+          row.setAttribute('role','checkbox');
+          row.setAttribute('tabindex','0');
+          
+          // Custom checkbox SVG
+          const boxEl = document.createElement('div');
+          boxEl.id = cbId + '_box';
+          boxEl.style.cssText = 'width:20px;height:20px;flex-shrink:0;border:2px solid #D1D5DB;border-radius:5px;background:#fff;display:flex;align-items:center;justify-content:center;transition:.15s;margin-top:1px';
+          boxEl.innerHTML = '<svg id="' + cbId + '_chk" width="12" height="12" viewBox="0 0 12 12" style="display:none"><polyline points="1.5,6 4.5,9 10.5,3" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+          
+          // Hidden checkbox
           const cb = document.createElement('input');
-          cb.type = 'checkbox'; cb.value = opt; cb.id = 'ff_' + field.id + '_' + idx;
-          cb.style.cssText = 'width:16px;height:16px;margin-top:1px;accent-color:#6C3FE8;flex-shrink:0';
-          cb.addEventListener('change', function() { updateCheckgroup(field.id); });
+          cb.type = 'checkbox'; cb.value = opt; cb.id = cbId;
+          cb.style.display = 'none';
+          
           const sp = document.createElement('span');
-          sp.style.cssText = 'font-size:12px;font-weight:500;color:#374151';
+          sp.style.cssText = 'font-size:13px;font-weight:500;color:#374151;line-height:1.5;padding-top:1px';
           sp.textContent = opt;
-          lab.appendChild(cb); lab.appendChild(sp);
-          wrap.appendChild(lab);
+          
+          function toggleCb() {
+            cb.checked = !cb.checked;
+            var box = document.getElementById(cbId + '_box');
+            var chk = document.getElementById(cbId + '_chk');
+            if (cb.checked) {
+              box.style.background = '#6C3FE8'; box.style.borderColor = '#6C3FE8';
+              if (chk) chk.style.display = 'block';
+              row.style.borderColor = '#6C3FE8'; row.style.background = '#F5F3FF';
+            } else {
+              box.style.background = '#fff'; box.style.borderColor = '#D1D5DB';
+              if (chk) chk.style.display = 'none';
+              row.style.borderColor = '#E5E7EB'; row.style.background = '#F9FAFB';
+            }
+            updateCheckgroup(field.id);
+          }
+          row.addEventListener('click', toggleCb);
+          row.addEventListener('keydown', function(e) { if(e.key===' '||e.key==='Enter') { e.preventDefault(); toggleCb(); } });
+          
+          row.appendChild(boxEl); row.appendChild(cb); row.appendChild(sp);
+          wrap.appendChild(row);
         });
       } else if (field.type === 'radio') {
         const lbl = document.createElement('label');
@@ -4926,31 +4956,52 @@ function toggleFormConsent(num) {
   }
 }
 
+function normalizeStr(s) {
+  return (s || '').toLowerCase()
+    .normalize('NFD').replace(/[\u0300-\u036f]/g, '') // enlever accents
+    .replace(/[^a-z0-9 ]/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
+function strSimilar(a, b) {
+  if (!a || !b) return false;
+  a = normalizeStr(a); b = normalizeStr(b);
+  if (a === b) return true;
+  if (a.includes(b) || b.includes(a)) return true;
+  // Vérifier si les 5 premiers caractères correspondent
+  if (a.length >= 4 && b.length >= 4 && a.substring(0,5) === b.substring(0,5)) return true;
+  return false;
+}
+
 function validateKycVsProfile() {
-  // Comparer les données KYC avec le profil pour détecter les incohérences
   if (!authUser || !formData) return { valid: true };
   var warnings = [];
+  var profileName = normalizeStr(authUser.name || '');
+  var profileFirst = normalizeStr(authUser.first_name || (authUser.name || '').split(' ')[0] || '');
+  var profileLast = normalizeStr(authUser.last_name || (authUser.name || '').split(' ').slice(1).join(' ') || '');
+  var profileCompany = normalizeStr(authUser.company_name || '');
 
-  // Comparer nom/prénom
-  var profileName = (authUser.name || '').toLowerCase().trim();
-  var kycNom = (formData.nom || formData.representant_nom || '').toLowerCase().trim();
-  var kycPrenom = (formData.prenom || formData.representant_prenom || '').toLowerCase().trim();
+  // Champs à comparer (tous les IDs possibles dans les formulaires)
+  var kycNomPrenom = normalizeStr(formData.nom_prenom || formData.representant || '');
+  var kycRaison = normalizeStr(formData.raison_sociale || formData.denomination_sociale || '');
 
-  if (kycNom && kycPrenom && profileName) {
-    var kycFullName = (kycPrenom + ' ' + kycNom).toLowerCase();
-    var kycFullName2 = (kycNom + ' ' + kycPrenom).toLowerCase();
-    if (!profileName.includes(kycNom) && !profileName.includes(kycPrenom)) {
-      warnings.push('Le nom "' + kycNom + ' ' + kycPrenom + '" ne correspond pas au profil ("' + authUser.name + '").');
+  // Vérifier nom/prénom du représentant
+  if (kycNomPrenom && kycNomPrenom.length > 2 && profileName.length > 2) {
+    var nameOk = strSimilar(kycNomPrenom, profileName) ||
+                 strSimilar(kycNomPrenom, profileFirst) ||
+                 strSimilar(kycNomPrenom, profileLast) ||
+                 profileName.includes(normalizeStr(kycNomPrenom.split(' ')[0])) ||
+                 kycNomPrenom.includes(profileFirst);
+    if (!nameOk) {
+      warnings.push('⚠️ Nom du représentant "' + (formData.nom_prenom || formData.representant || '') + '" différent du profil ("' + (authUser.name || '') + '"). Vérifiez vos informations.');
     }
   }
 
-  // Comparer raison sociale
-  var profileCompany = (authUser.company_name || '').toLowerCase().trim();
-  var kycRaison = (formData.raison_sociale || formData.denomination || '').toLowerCase().trim();
-  if (profileCompany && kycRaison && profileCompany.length > 2 && kycRaison.length > 2) {
-    var similarity = profileCompany.includes(kycRaison.substring(0,6)) || kycRaison.includes(profileCompany.substring(0,6));
-    if (!similarity) {
-      warnings.push('La raison sociale "' + kycRaison + '" ne correspond pas au profil ("' + (authUser.company_name || 'non renseigné') + '").');
+  // Vérifier raison sociale
+  if (kycRaison && kycRaison.length > 2 && profileCompany.length > 2) {
+    if (!strSimilar(kycRaison, profileCompany)) {
+      warnings.push('⚠️ Raison sociale "' + (formData.raison_sociale || '') + '" différente du profil ("' + (authUser.company_name || '') + '"). Vérifiez vos informations.');
     }
   }
 
