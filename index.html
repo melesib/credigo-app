@@ -4983,6 +4983,114 @@ function buildFormLines(schema, data, lieu, date) {
   return lines;
 }
 
+
+/* ══ UPLOAD KYC DOCUMENTS ══ */
+// Mapping rowId → { docType, docLabel, step }
+var KYC_DOC_MAP = {
+  'kdoc-cni':          { type: 'cni',           label: "Pièce d'identité (CNI/Passeport)",    step: 1 },
+  'kdoc-selfie':       { type: 'selfie',         label: 'Selfie avec pièce d\'identité',       step: 1 },
+  'kdoc-domicile':     { type: 'domicile',       label: 'Justificatif de domicile',             step: 1 },
+  'kdoc-rccm':         { type: 'rccm',           label: 'Registre de commerce (RCCM)',          step: 2 },
+  'kdoc-statuts':      { type: 'statuts',        label: 'Statuts de la société',               step: 2 },
+  'kdoc-fiscal':       { type: 'attestation_fiscal', label: 'Attestation fiscale',             step: 2 },
+  'kdoc-bilans':       { type: 'bilans',         label: 'Bilans financiers',                   step: 2 },
+  'kdoc-beneficiaire': { type: 'beneficiaires',  label: 'Déclaration bénéficiaires effectifs', step: 3 },
+  'kdoc-fonds':        { type: 'origine_fonds',  label: 'Déclaration origine des fonds',       step: 3 },
+  'kdoc-ppe':          { type: 'ppe',            label: 'Déclaration PPE',                     step: 3 },
+  'kdoc-casier':       { type: 'casier',         label: 'Extrait de casier judiciaire',        step: 3 },
+  'kdoc-engagement':   { type: 'engagement_lbcft', label: 'Engagement LBC/FT',                step: 3 },
+  'kdoc-cgu':          { type: 'cgu_entrepreneur', label: 'CGU Entrepreneur signées',          step: 4 },
+  'fkdoc-cni':         { type: 'cni_financeur',  label: "Pièce d'identité (CNI/Passeport)",   step: 1 },
+  'fkdoc-selfie':      { type: 'selfie_financeur', label: 'Selfie avec pièce d\'identité',    step: 1 },
+  'fkdoc-domicile':    { type: 'domicile_financeur', label: 'Justificatif de domicile',       step: 1 },
+  'fkdoc-releve':      { type: 'releve_bancaire', label: 'Relevé bancaire (3 mois)',           step: 2 },
+  'fkdoc-origine':     { type: 'origine_fonds_f', label: 'Déclaration origine des fonds',     step: 2 },
+  'fkdoc-ppe':         { type: 'ppe_financeur',  label: 'Déclaration PPE',                    step: 2 },
+  'fkdoc-casier':      { type: 'casier_financeur', label: 'Extrait de casier judiciaire',     step: 2 },
+  'fkdoc-engagement':  { type: 'engagement_lbcft_f', label: 'Engagement LBC/FT',              step: 3 },
+  'fkdoc-contrat':     { type: 'contrat_investisseur', label: 'Contrat investisseur signé',   step: 3 },
+  'fkdoc-cgu':         { type: 'cgu_financeur',  label: 'CGU Financeur signées',              step: 3 },
+};
+
+function handleKycUpload(input, rowId) {
+  var file = input.files && input.files[0];
+  if (!file) return;
+
+  var docInfo = KYC_DOC_MAP[rowId];
+  if (!docInfo) { console.warn('Doc non mappé:', rowId); return; }
+
+  // Vérifier la taille (max 10MB)
+  if (file.size > 10 * 1024 * 1024) {
+    toast('\u274C Fichier trop volumineux. Maximum 10 MB.');
+    input.value = '';
+    return;
+  }
+
+  // Afficher l'état "upload en cours"
+  var row = document.getElementById(rowId);
+  if (row) {
+    row.className = 'kyc-doc-row uploading';
+    var badge = row.querySelector('.kyc-status-badge');
+    if (badge) { badge.textContent = 'Upload...'; badge.className = 'kyc-status-badge uploading'; }
+    var prev = document.getElementById('preview-' + rowId);
+    if (prev) { prev.style.display='flex'; prev.innerHTML='<i class="ti ti-loader-2" style="animation:spin 1s linear infinite;font-size:14px"></i> Upload en cours...'; }
+  }
+
+  // Upload vers Supabase Storage
+  if (window.credigoUploadKycDocument && window.CredigoDB && window.CredigoDB.ready) {
+    window.credigoUploadKycDocument(docInfo.type, docInfo.label, docInfo.step, file)
+      .then(function(res) {
+        if (res.error) {
+          toast('\u274C Erreur upload: ' + res.error);
+          if (row) { row.className = 'kyc-doc-row error'; }
+          var prev2 = document.getElementById('preview-' + rowId);
+          if (prev2) { prev2.style.display='flex'; prev2.innerHTML='\u274C Erreur: ' + res.error; }
+          return;
+        }
+        // Succès
+        kycUploaded[rowId] = { name: file.name, size: file.size, type: file.type, url: res.fileUrl };
+        if (row) {
+          row.className = 'kyc-doc-row uploaded';
+          var badge2 = row.querySelector('.kyc-status-badge');
+          if (badge2) { badge2.textContent = '\u2713 Chargé'; badge2.className = 'kyc-status-badge uploaded'; }
+          var prev3 = document.getElementById('preview-' + rowId);
+          if (prev3) {
+            var icon = file.type.includes('image') ? 'ti-photo' : 'ti-file-check';
+            prev3.style.display='flex';
+            prev3.innerHTML='<i class="ti ' + icon + '" style="font-size:14px"></i> ' + file.name;
+          }
+        }
+        // Mettre à jour la progression
+        if (rowId.startsWith('fkdoc-')) updateFKycProgress();
+        else updateEKycProgress();
+        toast('\u2705 ' + file.name + ' chargé avec succès !');
+      })
+      .catch(function(err) {
+        toast('\u274C Erreur upload: ' + err.message);
+        if (row) row.className = 'kyc-doc-row error';
+      });
+  } else {
+    // Mode sans Supabase - simulation locale
+    kycUploaded[rowId] = { name: file.name, size: file.size, type: file.type };
+    if (row) {
+      row.className = 'kyc-doc-row uploaded';
+      var badge3 = row.querySelector('.kyc-status-badge');
+      if (badge3) { badge3.textContent = '\u2713 Chargé'; badge3.className = 'kyc-status-badge uploaded'; }
+      var prev4 = document.getElementById('preview-' + rowId);
+      if (prev4) {
+        prev4.style.display='flex';
+        prev4.innerHTML='<i class="ti ti-file-check" style="font-size:14px"></i> ' + file.name;
+      }
+    }
+    if (rowId.startsWith('fkdoc-')) updateFKycProgress();
+    else updateEKycProgress();
+    toast('\u2705 ' + file.name + ' sélectionné.');
+  }
+
+  // Réinitialiser l'input pour permettre re-sélection
+  input.value = '';
+}
+
 function handleKycUploadFromForm(docId, filename) {
   // Utiliser le row cible direct si défini (bouton inline)
   const directRowId = currentFormTargetRow;
