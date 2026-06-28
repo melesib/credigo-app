@@ -6895,39 +6895,94 @@ function showKycStatusScreen(role) {
   var sbF = document.getElementById('sb-f');
   if (sbE) sbE.style.display = role === 'e' ? 'block' : 'none';
   if (sbF) sbF.style.display = role === 'e' ? 'none' : 'block';
-  
-  // Remplacer le contenu de l'écran KYC par un écran de statut
   var screen = document.getElementById(screenId);
   if (!screen) { showScreen(screenId); return; }
-  
   var status = authUser ? authUser.kycStatus : 'pending_review';
-  var isApproved = status === 'approved';
-  var statusConfig = {
-    'pending_review': { icon:'ti-clock', color:'#D97706', bg:'#FEF3C7', label:'En cours de v\u00e9rification', msg:'Notre \u00e9quipe examine votre dossier. R\u00e9ponse sous 24-48h ouvrables.' },
-    'approved':       { icon:'ti-shield-check', color:'#059669', bg:'#D1FAE5', label:'KYC Valid\u00e9 ✓', msg:'Votre identit\u00e9 a \u00e9t\u00e9 v\u00e9rifi\u00e9e avec succ\u00e8s. Vous avez acc\u00e8s \u00e0 toutes les fonctionnalit\u00e9s.' },
-    'rejected':       { icon:'ti-shield-x', color:'#DC2626', bg:'#FEE2E2', label:'Dossier rejet\u00e9', msg:'Votre dossier a \u00e9t\u00e9 rejet\u00e9. Contactez support@credigo.ci pour plus d\'informations.' }
+  var rejReason = (authUser && authUser.rejection_reason) || null;
+
+  var statusCfg = {
+    'pending_review': {
+      mainColor:'#D97706', bg:'#FEF3C7', badgeColor:'#92400E',
+      badge:'⏳ En attente de vérification',
+      msg:'Notre équipe examine votre dossier sous 24 à 48h ouvrables. Vérifiez régulièrement votre statut ou vos emails.',
+      steps:[true,true,false]
+    },
+    'approved': {
+      mainColor:'#059669', bg:'#D1FAE5', badgeColor:'#065F46',
+      badge:'✓ KYC Validée',
+      msg:'Félicitations ! Votre identité a été vérifiée avec succès. Vous avez accès à toutes les fonctionnalités.',
+      steps:[true,true,true]
+    },
+    'rejected': {
+      mainColor:'#DC2626', bg:'#FEE2E2', badgeColor:'#991B1B',
+      badge:'❌ KYC Rejetée',
+      msg: rejReason ? 'Motif : ' + rejReason : 'Votre dossier a été rejeté. Contactez notre support pour connaître les raisons.',
+      steps:[true,true,true]
+    }
   };
-  var cfg = statusConfig[status] || statusConfig['pending_review'];
-  
-  // Sauvegarder le contenu original et remplacer
-  if (!screen.getAttribute('data-original-saved')) {
-    screen.setAttribute('data-original', screen.innerHTML);
-    screen.setAttribute('data-original-saved', '1');
+  var cfg = statusCfg[status] || statusCfg['pending_review'];
+
+  // SVG icones
+  var icons = {
+    submit: '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>',
+    review: '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>',
+    check:  '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><polyline points="20 6 9 17 4 12"/></svg>',
+    cross:  '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>',
+    clock:  '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>'
+  };
+
+  var stepDefs = [
+    { label:'Soumis', icon:'submit' },
+    { label:'Vérification', icon:'review' },
+    { label: status === 'approved' ? 'Validé' : status === 'rejected' ? 'Rejeté' : 'Décision',
+      icon: status === 'approved' ? 'check' : status === 'rejected' ? 'cross' : 'clock' }
+  ];
+
+  var timelineHtml = '<div style="display:flex;align-items:flex-start;justify-content:center;gap:0;margin:24px 0 8px">';
+  stepDefs.forEach(function(step, i) {
+    var active = cfg.steps[i];
+    var sc = active ? cfg.mainColor : '#D1D5DB';
+    var bc = active ? cfg.bg : '#F3F4F6';
+    timelineHtml += '<div style="display:flex;flex-direction:column;align-items:center;gap:6px;min-width:72px">'
+      + '<div style="width:44px;height:44px;border-radius:50%;background:' + bc + ';border:2.5px solid ' + sc + ';display:flex;align-items:center;justify-content:center;color:' + sc + '">'
+      + icons[step.icon] + '</div>'
+      + '<div style="font-size:10px;font-weight:700;color:' + sc + ';text-align:center;line-height:1.3">' + step.label + '</div>'
+      + '</div>';
+    if (i < stepDefs.length - 1) {
+      var lc = cfg.steps[i+1] ? cfg.mainColor : '#E5E7EB';
+      timelineHtml += '<div style="height:2.5px;width:28px;background:' + lc + ';margin-top:21px;flex-shrink:0"></div>';
+    }
+  });
+  timelineHtml += '</div>';
+
+  var mainSvg;
+  if (status === 'approved') {
+    mainSvg = '<svg width="52" height="52" viewBox="0 0 24 24" fill="none" stroke="#059669" stroke-width="2.5" stroke-linecap="round"><polyline points="20 6 9 17 4 12"/><circle cx="12" cy="12" r="10"/></svg>';
+  } else if (status === 'rejected') {
+    mainSvg = '<svg width="52" height="52" viewBox="0 0 24 24" fill="none" stroke="#DC2626" stroke-width="2.5" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg>';
+  } else {
+    mainSvg = '<svg width="52" height="52" viewBox="0 0 24 24" fill="none" stroke="#D97706" stroke-width="2.5" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>';
   }
-  
-  screen.innerHTML = '<div style="padding:20px">' +
-    '<div style="text-align:center;padding:32px 20px">' +
-    '<div style="width:80px;height:80px;background:' + cfg.bg + ';border-radius:50%;display:flex;align-items:center;justify-content:center;margin:0 auto 20px">' +
-    '<i class="ti ' + cfg.icon + '" style="font-size:38px;color:' + cfg.color + '"></i></div>' +
-    '<div style="font-size:18px;font-weight:800;color:#111827;margin-bottom:8px">' + cfg.label + '</div>' +
-    '<div style="font-size:13px;color:#6B7280;line-height:1.7;margin-bottom:24px">' + cfg.msg + '</div>' +
-    (isApproved ? '' : '<div style="background:' + cfg.bg + ';border-radius:12px;padding:16px;margin-bottom:20px;font-size:12px;color:' + cfg.color + ';line-height:1.8;text-align:left">' +
-    '<strong>Documents soumis :</strong><br>' +
-    Object.keys(kycUploaded).map(function(k) { return '\u2713 ' + (kycUploaded[k].name || k); }).join('<br>') +
-    (Object.keys(kycUploaded).length === 0 ? 'Documents en cours de traitement...' : '') +
-    '</div>') +
-    '</div></div>';
-  
+
+  var rejBtn = '';
+
+  screen.innerHTML =
+    '<div style="padding:16px 16px 40px">'
+    + '<div style="text-align:center;padding:24px 16px 8px">'
+    + '<div style="width:80px;height:80px;border-radius:50%;background:' + cfg.bg + ';display:flex;align-items:center;justify-content:center;margin:0 auto 14px">' + mainSvg + '</div>'
+    + '<div style="display:inline-block;background:' + cfg.bg + ';color:' + cfg.badgeColor + ';padding:6px 18px;border-radius:20px;font-size:13px;font-weight:800;margin-bottom:10px">' + cfg.badge + '</div>'
+    + '<div style="font-size:13px;color:#6B7280;line-height:1.7">' + cfg.msg + '</div>'
+    + '</div>'
+    + timelineHtml
+    + '<div style="background:#F9FAFB;border-radius:12px;padding:14px;font-size:12px;color:#374151;line-height:1.9">'
+    + '<div style="font-weight:700;color:#111827;margin-bottom:6px">Informations</div>'
+    + '📅 Notifications envoyées par email<br>'
+    + '🔄 Statut mis à jour automatiquement<br>'
+    + '📞 Support : support@credigo.ci'
+    + '</div>'
+    + rejBtn
+    + '</div>';
+
   showScreen(screenId);
 }
 
