@@ -1692,9 +1692,19 @@ textarea{resize:vertical;min-height:70px}
       </div>
       </div>
     </div>
-    <div class="btn-row">
+    <!-- Confirmation avant soumission -->
+    <div style="background:#F0FDF4;border:1.5px solid #BBF7D0;border-radius:12px;padding:14px;margin-top:8px">
+      <div style="display:flex;align-items:flex-start;gap:10px;cursor:pointer;margin-bottom:10px" onclick="toggleKycConsent('e')">
+        <div id="kyc-e-consent-box" style="width:22px;height:22px;flex-shrink:0;border:2px solid #D1D5DB;border-radius:5px;background:#fff;display:flex;align-items:center;justify-content:center;transition:.15s;margin-top:1px">
+          <svg id="kyc-e-consent-chk" width="13" height="13" viewBox="0 0 12 12" style="display:none"><polyline points="1.5,6 4.5,9 10.5,3" fill="none" stroke="#fff" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </div>
+        <input type="checkbox" id="kyc-e-consent" style="display:none">
+        <span style="font-size:13px;color:#065F46;font-weight:600;line-height:1.5">Je certifie l'exactitude de tous les documents soumis et autorise Credigo à procéder à leur vérification conformément aux CGU.</span>
+      </div>
+    </div>
+    <div class="btn-row" style="margin-top:12px">
       <button class="btn-s" onclick="kycEBack(4)"><i class="ti ti-arrow-left"></i> Retour</button>
-      <button class="btn-p" style="background:#059669" onclick="kycESubmit()"><i class="ti ti-send"></i> Soumettre le dossier</button>
+      <button id="kyc-e-submit-btn" class="btn-p" style="background:#059669;opacity:0.4;cursor:not-allowed" onclick="kycESubmit()" disabled><i class="ti ti-send"></i> Soumettre le dossier</button>
     </div>
   </div>
 </div>
@@ -1912,8 +1922,18 @@ textarea{resize:vertical;min-height:70px}
       </div>
       </div>
     </div>
+    <!-- Confirmation avant soumission financeur -->
+    <div style="background:#F0FDF4;border:1.5px solid #BBF7D0;border-radius:12px;padding:14px;margin-top:8px">
+      <div style="display:flex;align-items:flex-start;gap:10px;cursor:pointer;margin-bottom:10px" onclick="toggleKycConsent('f')">
+        <div id="kyc-f-consent-box" style="width:22px;height:22px;flex-shrink:0;border:2px solid #D1D5DB;border-radius:5px;background:#fff;display:flex;align-items:center;justify-content:center;transition:.15s;margin-top:1px">
+          <svg id="kyc-f-consent-chk" width="13" height="13" viewBox="0 0 12 12" style="display:none"><polyline points="1.5,6 4.5,9 10.5,3" fill="none" stroke="#fff" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </div>
+        <input type="checkbox" id="kyc-f-consent" style="display:none">
+        <span style="font-size:13px;color:#065F46;font-weight:600;line-height:1.5">Je certifie l'exactitude de tous les documents soumis et autorise Credigo à procéder à leur vérification conformément aux CGU.</span>
+      </div>
+    </div>
     <div class="btn-row">
-      <button class="btn-s" onclick="kycFBack(2)"><i class="ti ti-arrow-left"></i> Retour</button>
+      <button id="kyc-f-submit-btn" disabled class="btn-s" onclick="kycFBack(2)"><i class="ti ti-arrow-left"></i> Retour</button>
       <button class="btn-p" onclick="kycFNext(2)">Étape suivante <i class="ti ti-arrow-right"></i></button>
     </div>
   </div>
@@ -1971,7 +1991,7 @@ textarea{resize:vertical;min-height:70px}
     </div>
     <div class="btn-row">
       <button class="btn-s" onclick="kycFBack(3)"><i class="ti ti-arrow-left"></i> Retour</button>
-      <button class="btn-p" style="background:#059669" onclick="kycFSubmit()"><i class="ti ti-send"></i> Soumettre le dossier</button>
+      <button class="btn-p" style="background:#059669;opacity:0.4;cursor:not-allowed" onclick="kycFSubmit()"><i class="ti ti-send"></i> Soumettre le dossier</button>
     </div>
   </div>
 </div>
@@ -4001,16 +4021,93 @@ function submitKyc(role) {
 }
 
 function showKycSuccess(role) {
-  const screenId = role === 'entrepreneur' ? 'e-kyc' : 'f-kyc-upload';
-  const screen = document.getElementById(screenId);
-  if (screen) {
-    const banner = document.createElement('div');
-    banner.style.cssText = 'background:linear-gradient(135deg,#D1FAE5,#A7F3D0);border-radius:14px;padding:20px;margin-bottom:16px;text-align:center';
-    banner.innerHTML = '<div style="font-size:32px;margin-bottom:8px">✅</div><div style="font-size:15px;font-weight:800;color:#065F46">Dossier KYC soumis avec succès !</div><div style="font-size:12px;color:#059669;margin-top:6px">Notre équipe de conformité va examiner vos documents sous 24 à 48h ouvrables.<br>Vous serez notifié par email et WhatsApp dès la validation.</div>';
-    screen.insertBefore(banner, screen.firstChild);
-    screen.scrollTo(0, 0);
+  // Mettre à jour le statut KYC partout
+  if (authUser) {
+    authUser.kycStatus = 'pending_review';
+    authSaveSession(authUser);
   }
-  toast('✅ Dossier KYC envoyé ! Validation sous 24-48h.');
+  // Masquer le bandeau KYC
+  var banner = document.getElementById('kyc-required-banner');
+  if (banner) banner.style.display = 'none';
+  var contentEl = document.querySelector('.content');
+  if (contentEl) contentEl.style.paddingBottom = '';
+
+  // Mettre à jour les badges de statut KYC partout
+  updateKycStatusBadges('pending_review');
+
+  // Afficher modal de succès
+  var modal = document.getElementById('kyc-success-modal');
+  if (modal) {
+    modal.style.display = 'flex';
+    return;
+  }
+  // Créer le modal si pas encore présent
+  var overlay = document.createElement('div');
+  overlay.id = 'kyc-success-modal';
+  overlay.style.cssText = 'position:fixed;inset:0;z-index:9998;background:rgba(0,0,0,.5);display:flex;align-items:center;justify-content:center;padding:20px';
+  overlay.innerHTML = [
+    '<div style="background:#fff;border-radius:20px;padding:32px 24px;max-width:380px;width:100%;text-align:center;box-shadow:0 8px 32px rgba(0,0,0,.2)">',
+    '<div style="width:72px;height:72px;background:#D1FAE5;border-radius:50%;display:flex;align-items:center;justify-content:center;margin:0 auto 20px">',
+    '<i class="ti ti-shield-check" style="font-size:36px;color:#059669"></i></div>',
+    '<div style="font-size:20px;font-weight:800;color:#065F46;margin-bottom:10px">Dossier soumis avec succ\u00e8s !</div>',
+    '<div style="font-size:13px;color:#374151;line-height:1.7;margin-bottom:8px">Votre dossier KYC a \u00e9t\u00e9 envoy\u00e9 \u00e0 notre \u00e9quipe de conformit\u00e9.</div>',
+    '<div style="background:#F0FDF4;border-radius:10px;padding:14px;margin-bottom:24px;font-size:12px;color:#065F46;line-height:1.8;text-align:left">',
+    '\u23F1 <strong>D\u00e9lai de traitement : 24h \u00e0 48h ouvrables</strong><br>',
+    '\uD83D\uDCE7 Vous recevrez un email de confirmation<br>',
+    '\uD83D\uDD04 Revenez r\u00e9guli\u00e8rement v\u00e9rifier votre statut<br>',
+    '\uD83D\uDCF1 V\u00e9rifiez aussi vos spams si vous ne recevez pas de mail',
+    '</div>',
+    '<button onclick="closeKycSuccessModal()" class="btn-p" style="width:100%;justify-content:center;background:#059669;margin-bottom:10px">',
+    '<i class="ti ti-home"></i> Retourner \u00e0 l\'accueil</button>',
+    '<button onclick="closeKycSuccessModal()" style="background:none;border:none;cursor:pointer;font-size:12px;color:#9CA3AF;font-family:inherit">Fermer</button>',
+    '</div>'
+  ].join('');
+  document.body.appendChild(overlay);
+}
+
+function closeKycSuccessModal() {
+  var modal = document.getElementById('kyc-success-modal');
+  if (modal) modal.style.display = 'none';
+  // Retourner à l'accueil selon le portail
+  if (authUser && authUser.role === 'e') {
+    showScreen('e-submit');
+    if (typeof switchTo === 'function') switchTo('e');
+  } else {
+    showScreen('f-offers');
+    if (typeof switchTo === 'function') switchTo('f');
+  }
+}
+
+function updateKycStatusBadges(status) {
+  var labels = {
+    'not_started': 'KYC non démarré',
+    'in_progress': 'KYC en cours',
+    'pending_review': 'KYC soumis — En attente',
+    'approved': 'KYC validé ✓',
+    'rejected': 'KYC rejeté'
+  };
+  var colors = {
+    'not_started': { bg:'#F3F4F6', color:'#6B7280' },
+    'in_progress': { bg:'#DBEAFE', color:'#1D4ED8' },
+    'pending_review': { bg:'#FEF3C7', color:'#92400E' },
+    'approved': { bg:'#D1FAE5', color:'#065F46' },
+    'rejected': { bg:'#FEE2E2', color:'#991B1B' }
+  };
+  var label = labels[status] || status;
+  var style = colors[status] || { bg:'#F3F4F6', color:'#6B7280' };
+  // Mettre à jour tous les éléments affichant le statut KYC
+  document.querySelectorAll('.kyc-status-display').forEach(function(el) {
+    el.textContent = label;
+    el.style.background = style.bg;
+    el.style.color = style.color;
+  });
+  // Masquer le bandeau KYC si approuvé
+  if (status === 'approved') {
+    var kyc_banner = document.getElementById('kyc-required-banner');
+    if (kyc_banner) kyc_banner.style.display = 'none';
+    var contentEl2 = document.querySelector('.content');
+    if (contentEl2) contentEl2.style.paddingBottom = '';
+  }
 }
 
 /* ══ INIT ══ */
@@ -5762,33 +5859,68 @@ function kycEBack(s) { kycEGoStep(s - 1); }
 function kycFNext(s) { kycFGoStep(s + 1); }
 function kycFBack(s) { kycFGoStep(s - 1); }
 
+function toggleKycConsent(portal) {
+  var cb = document.getElementById('kyc-' + portal + '-consent');
+  var box = document.getElementById('kyc-' + portal + '-consent-box');
+  var chk = document.getElementById('kyc-' + portal + '-consent-chk');
+  var btn = document.getElementById('kyc-' + portal + '-submit-btn');
+  if (!cb) return;
+  cb.checked = !cb.checked;
+  if (cb.checked) {
+    box.style.background = '#059669'; box.style.borderColor = '#059669';
+    if (chk) chk.style.display = 'block';
+    if (btn) { btn.disabled = false; btn.style.opacity = '1'; btn.style.cursor = 'pointer'; }
+  } else {
+    box.style.background = '#fff'; box.style.borderColor = '#D1D5DB';
+    if (chk) chk.style.display = 'none';
+    if (btn) { btn.disabled = true; btn.style.opacity = '0.4'; btn.style.cursor = 'not-allowed'; }
+  }
+}
+
 function kycESubmit() {
+  // Bloquer si déjà soumis ou approuvé
+  if (authUser && (authUser.kycStatus === 'pending_review' || authUser.kycStatus === 'approved')) {
+    toast('\u2139\uFE0F Votre dossier KYC a d\u00e9j\u00e0 \u00e9t\u00e9 soumis. Statut : ' + (authUser.kycStatus === 'approved' ? 'Valid\u00e9 ✓' : 'En cours de v\u00e9rification'));
+    return;
+  }
+  var consent = document.getElementById('kyc-e-consent');
+  if (!consent || !consent.checked) {
+    toast('\u26A0\uFE0F Veuillez cocher la case de certification avant de soumettre.');
+    return;
+  }
   if (window.CredigoDB && window.CredigoDB.ready) {
     toast('Envoi du dossier en cours…');
     window.credigoSubmitKycDossier().then(function(res) {
       if (res.error) { toast('Erreur : ' + res.error); return; }
-      if (authUser) { authUser.kycStatus = 'pending_review'; authSaveSession(authUser); }
-      toast('Dossier KYC soumis ! Notre équipe vous contactera sous 48h.');
-      pushNotif('kyc','ti-shield-check','#EEE8FF','#6C3FE8','Dossier KYC soumis','Votre dossier est en cours de vérification. Délai : 24-48h.','e');
+      showKycSuccess('entrepreneur');
+      pushNotif('kyc','ti-shield-check','#D1FAE5','#059669','Dossier KYC soumis','Validation sous 24-48h. Vérifiez votre email.','e');
     });
     return;
   }
-  toast('Dossier KYC soumis ! Notre équipe vous contactera sous 48h.');
-  pushNotif('kyc','ti-shield-check','#EEE8FF','#6C3FE8','Dossier KYC soumis','Votre dossier est en cours de vérification. Délai : 24-48h.','e');
+  showKycSuccess('entrepreneur');
+  pushNotif('kyc','ti-shield-check','#D1FAE5','#059669','Dossier KYC soumis','Validation sous 24-48h. Vérifiez votre email.','e');
 }
 function kycFSubmit() {
+  if (authUser && (authUser.kycStatus === 'pending_review' || authUser.kycStatus === 'approved')) {
+    toast('\u2139\uFE0F Votre dossier KYC a d\u00e9j\u00e0 \u00e9t\u00e9 soumis.');
+    return;
+  }
+  var consent = document.getElementById('kyc-f-consent');
+  if (!consent || !consent.checked) {
+    toast('\u26A0\uFE0F Veuillez cocher la case de certification avant de soumettre.');
+    return;
+  }
   if (window.CredigoDB && window.CredigoDB.ready) {
     toast('Envoi du dossier en cours…');
     window.credigoSubmitKycDossier().then(function(res) {
       if (res.error) { toast('Erreur : ' + res.error); return; }
-      if (authUser) { authUser.kycStatus = 'pending_review'; authSaveSession(authUser); }
-      toast('Dossier KYC investisseur soumis ! Vérification sous 48h.');
-      pushNotif('kyc','ti-shield-check','#EEE8FF','#6C3FE8','Dossier KYC soumis','Votre profil investisseur est en cours de vérification.','f');
+      showKycSuccess('financeur');
+      pushNotif('kyc','ti-shield-check','#D1FAE5','#059669','Dossier KYC soumis','Validation sous 24-48h. V\u00e9rifiez votre email.','f');
     });
     return;
   }
-  toast('Dossier KYC investisseur soumis ! Vérification sous 48h.');
-  pushNotif('kyc','ti-shield-check','#EEE8FF','#6C3FE8','Dossier KYC soumis','Votre profil investisseur est en cours de vérification.','f');
+  showKycSuccess('financeur');
+  pushNotif('kyc','ti-shield-check','#D1FAE5','#059669','Dossier KYC soumis','Validation sous 24-48h. V\u00e9rifiez votre email.','f');
 }
 
 // Mettre à jour les badges quand un doc est uploadé
@@ -6152,6 +6284,10 @@ function authEnterApp(user) {
         hideKycBanner();
       } else {
         showKycBanner(user);
+  // Mettre à jour les badges de statut KYC
+  if (user && user.kycStatus) {
+    setTimeout(function() { updateKycStatusBadges(user.kycStatus); }, 300);
+  }
         if (!user.profileComplete) {
           showScreen(user.role === 'e' ? 'e-profile' : 'f-profile');
         }
