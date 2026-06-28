@@ -5965,7 +5965,11 @@ function authLoadSession() {
 }
 function authSaveSession(user) {
   authUser = user;
-  try { localStorage.setItem('credigo_session', JSON.stringify(user)); } catch(e) {}
+  try {
+    localStorage.setItem('credigo_session', JSON.stringify(user));
+    // Marquer la session comme active dans sessionStorage
+    if (window._markSessionActive) window._markSessionActive();
+  } catch(e) {}
 }
 function authClearSession() {
   authUser = null;
@@ -6915,8 +6919,86 @@ function authCleanCorruptedSession() {
 
 /* ── authInit sécurisé ─────────────────────────────────────────── */
 var _origAuthInit = window.authInit;
+/* ══ DÉCONNEXION AUTOMATIQUE ══
+   Sécurité : déconnexion dès que l'app passe en arrière-plan ou est fermée
+   L'utilisateur doit se reconnecter à chaque retour sur l'app
+*/
+(function() {
+  // Utiliser sessionStorage pour marquer la session active
+  // sessionStorage est effacé automatiquement à la fermeture de l'onglet/navigateur
+  function markSessionActive() {
+    try { sessionStorage.setItem('credigo_active', '1'); } catch(e) {}
+  }
+  function clearActiveSession() {
+    try {
+      sessionStorage.removeItem('credigo_active');
+      // Supprimer aussi la session persistante
+      localStorage.removeItem('credigo_session');
+    } catch(e) {}
+  }
+  function isSessionActive() {
+    try { return !!sessionStorage.getItem('credigo_active'); } catch(e) { return false; }
+  }
+
+  // Au chargement : vérifier si session valide
+  var _originalAuthInit = null;
+  document.addEventListener('DOMContentLoaded', function() {
+    // Si pas de session active dans sessionStorage → forcer reconnexion
+    if (!isSessionActive()) {
+      // Nettoyer toute session persistante
+      try { localStorage.removeItem('credigo_session'); } catch(e) {}
+    }
+  });
+
+  // Déconnexion quand l'app passe en arrière-plan (onglet caché)
+  document.addEventListener('visibilitychange', function() {
+    if (document.hidden) {
+      // App masquée → déconnecter immédiatement
+      clearActiveSession();
+      if (typeof authUser !== 'undefined' && authUser) {
+        // Déconnecter Supabase Auth
+        if (window.CredigoDB && window.CredigoDB.sb) {
+          window.CredigoDB.sb.auth.signOut().catch(function(){});
+        }
+        // Réinitialiser l'état local
+        authUser = null;
+        // Afficher l'overlay d'auth
+        var overlay = document.getElementById('auth-overlay');
+        if (overlay) overlay.style.display = 'flex';
+        // Masquer les bandeaux
+        var kyc_banner = document.getElementById('kyc-required-banner');
+        if (kyc_banner) kyc_banner.style.display = 'none';
+        var pending = document.getElementById('kyc-pending-banner');
+        if (pending) pending.style.display = 'none';
+        var rejected = document.getElementById('kyc-rejected-banner');
+        if (rejected) rejected.style.display = 'none';
+      }
+    }
+  });
+
+  // Déconnexion à la fermeture de la page
+  window.addEventListener('beforeunload', function() {
+    clearActiveSession();
+  });
+
+  // Déconnexion sur pagehide (mobile - plus fiable que beforeunload)
+  window.addEventListener('pagehide', function() {
+    clearActiveSession();
+  });
+
+  // Exposer les fonctions pour authSaveSession
+  window._markSessionActive = markSessionActive;
+  window._isSessionActive = isSessionActive;
+  window._clearActiveSession = clearActiveSession;
+})();
+
 window.authInit = function() {
   authCleanCorruptedSession();
+  // Vérifier si la session est active dans sessionStorage
+  // Si non (fermeture/navigation) → forcer reconnexion
+  if (window._isSessionActive && !window._isSessionActive()) {
+    try { localStorage.removeItem('credigo_session'); } catch(e) {}
+  }
   if (authLoadSession() && authUser) {
     if (!authUser.role || (authUser.role !== 'e' && authUser.role !== 'f')) {
       authClearSession();
