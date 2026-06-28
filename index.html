@@ -334,7 +334,7 @@ textarea{resize:vertical;min-height:70px}
 /* ── MODAL PAIEMENT ── */
 .modal-ov{display:none;position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:300;align-items:flex-end;justify-content:center}
 .modal-ov.open{display:flex}
-.modal-sheet{background:#fff;border-radius:22px 22px 0 0;padding:22px 16px 48px;width:100%;max-width:500px;max-height:92vh;overflow-y:auto;-webkit-overflow-scrolling:touch;animation:slideUp .22s ease;box-sizing:border-box}
+.modal-sheet{background:#fff;border-radius:22px 22px 0 0;padding:20px 16px 60px;width:100%;max-width:500px;max-height:90vh;overflow-y:auto;-webkit-overflow-scrolling:touch;animation:slideUp .22s ease;box-sizing:border-box}
 @keyframes slideUp{from{transform:translateY(100%)}to{transform:translateY(0)}}
 .modal-handle{width:38px;height:4px;background:#E5E7EB;border-radius:4px;margin:0 auto 18px}
 .modal-title{font-size:17px;font-weight:800;color:#111827;margin-bottom:3px}
@@ -577,7 +577,8 @@ textarea{resize:vertical;min-height:70px}
 
 #signup-create-btn:disabled{opacity:0.4;cursor:not-allowed;pointer-events:none;}
 #signup-create-btn:not(:disabled){opacity:1;cursor:pointer;}
-</style>
+
+.modal-sheet input,.modal-sheet select,.modal-sheet textarea{box-sizing:border-box;max-width:100%;width:100%}</style>
 <!-- ══ Intégration Supabase ══
      Ces clés sont publiques par design (clé "anon", limitée par les
      policies RLS côté serveur) — voir SUPABASE_SETUP.md. -->
@@ -5033,14 +5034,25 @@ function validateKycVsProfile() {
   }
 
   // Vérifier le numéro RCCM
-  var profileRccm = normalizeStr(authUser.rccm_number || '');
+  // Récupérer le RCCM depuis authUser OU le profil local OU le champ HTML
+  var profileRccmRaw = authUser.rccm_number || '';
+  if (!profileRccmRaw) {
+    try {
+      var localProfile = JSON.parse(localStorage.getItem('credigo_profile_e') || '{}');
+      profileRccmRaw = localProfile.rccm || '';
+    } catch(e) {}
+  }
+  if (!profileRccmRaw) {
+    var epfRccm = document.getElementById('epf-rccm');
+    if (epfRccm) profileRccmRaw = epfRccm.value || '';
+  }
+  var profileRccm = normalizeStr(profileRccmRaw);
   var kycRccm = normalizeStr(formData.rccm || formData.numero_rccm || formData.rccm_number || '');
   if (profileRccm && kycRccm && profileRccm.length > 3 && kycRccm.length > 3) {
-    // Comparer les 6 premiers caractères du RCCM (ignorer les espaces et tirets)
     var pRccmClean = profileRccm.replace(/[-\s]/g, '');
     var kRccmClean = kycRccm.replace(/[-\s]/g, '');
-    if (pRccmClean.substring(0, 6) !== kRccmClean.substring(0, 6)) {
-      warnings.push('⚠️ Numéro RCCM "' + (formData.rccm || '') + '" différent du profil ("' + (authUser.rccm_number || '') + '"). Vérifiez vos informations.');
+    if (pRccmClean !== kRccmClean && pRccmClean.substring(0,6) !== kRccmClean.substring(0,6)) {
+      warnings.push('\u26A0\uFE0F N\u00b0 RCCM "' + kycRccm + '" diff\u00e9rent du profil ("' + profileRccmRaw + '"). Corrigez avant de continuer.');
     }
   }
 
