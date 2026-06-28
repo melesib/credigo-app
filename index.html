@@ -578,7 +578,9 @@ textarea{resize:vertical;min-height:70px}
 #signup-create-btn:disabled{opacity:0.4;cursor:not-allowed;pointer-events:none;}
 #signup-create-btn:not(:disabled){opacity:1;cursor:pointer;}
 
-.modal-sheet input,.modal-sheet select,.modal-sheet textarea{box-sizing:border-box;max-width:100%;width:100%}</style>
+.modal-sheet input,.modal-sheet select,.modal-sheet textarea{box-sizing:border-box;max-width:100%;width:100%}
+#e-kyc .btn-row, #f-kyc-upload .btn-row { margin-bottom: 100px; }
+</style>
 <!-- ══ Intégration Supabase ══
      Ces clés sont publiques par design (clé "anon", limitée par les
      policies RLS côté serveur) — voir SUPABASE_SETUP.md. -->
@@ -5907,9 +5909,8 @@ function kycUpdateProgress(portal, config) {
 }
 
 function kycEGoStep(s) {
-  // Bloquer si approuvé ou pending (pas si rejected avec resubmit autorisé)
   if (authUser && (authUser.kycStatus === 'pending_review' || authUser.kycStatus === 'approved')) {
-    return; // Rester sur l'écran, applyKycLockMode gère l'affichage
+    return;
   }
   for (var i = 1; i <= 4; i++) {
     var el = document.getElementById('kyc-e-step-' + i);
@@ -5920,6 +5921,10 @@ function kycEGoStep(s) {
   kycUpdateBadge('e', s, KYC_E_STEPS);
   kycUpdateProgress('e', KYC_E_STEPS);
   window.scrollTo({top:0, behavior:'smooth'});
+  // Réappliquer le lock mode après changement d'étape
+  if (authUser && authUser.kycStatus === 'rejected') {
+    setTimeout(function() { applyKycLockMode('e-kyc'); }, 50);
+  }
 }
 
 function kycFGoStep(s) {
@@ -5935,6 +5940,10 @@ function kycFGoStep(s) {
   kycUpdateBadge('f', s, KYC_F_STEPS);
   kycUpdateProgress('f', KYC_F_STEPS);
   window.scrollTo({top:0, behavior:'smooth'});
+  // Réappliquer le lock mode après changement d'étape
+  if (authUser && authUser.kycStatus === 'rejected') {
+    setTimeout(function() { applyKycLockMode('f-kyc-upload'); }, 50);
+  }
 }
 
 function kycENext(s) {
