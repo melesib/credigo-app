@@ -6446,6 +6446,24 @@ function showKycPendingBanner(user) {
   }
 }
 
+function showKycRejectedBanner(reason) {
+  // Masquer les autres bandeaux
+  var b1 = document.getElementById('kyc-required-banner');
+  var b2 = document.getElementById('kyc-pending-banner');
+  if (b1) b1.style.display = 'none';
+  if (b2) b2.style.display = 'none';
+  // Afficher le bandeau rouge
+  var bar = document.getElementById('kyc-rejected-banner');
+  if (bar) {
+    bar.style.display = 'flex';
+    var motif = reason || (authUser && authUser.rejection_reason) || null;
+    var motifEl = document.getElementById('kyc-rejected-motif');
+    if (motifEl) motifEl.textContent = motif ? 'Motif : ' + motif : 'Contactez support@credigo.ci pour connaître les raisons';
+    var c = document.querySelector('.content');
+    if (c) c.style.paddingBottom = '80px';
+  }
+}
+
 function hideKycBanner() {
   var banner = document.getElementById('kyc-required-banner');
   if (banner) banner.style.display = 'none';
