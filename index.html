@@ -6326,7 +6326,8 @@ function authEnterApp(user) {
   if (typeof updateSwitchVisibility === 'function') updateSwitchVisibility();
 
   // Rafraîchir le statut KYC depuis Supabase
-  if (window.CredigoDB && window.CredigoDB.ready && user.dbUserId) {
+  // Forcer le refresh même sans dbUserId (utilise Supabase Auth directement)
+  if (window.CredigoDB && window.CredigoDB.ready) {
     window.credigoRefreshKycStatus().then(function(fresh) {
       if (!fresh) return;
       user.kycStatus = fresh.kyc_status;
