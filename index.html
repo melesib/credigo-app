@@ -6312,11 +6312,20 @@ function saveFProfile() {
 /* ── Aller au KYC depuis le profil ── */
 function goToKycFromProfile(role) {
   if (role === 'e') {
+    // Activer le portail entrepreneur sans rediriger (switchTo appelle showScreen)
+    currentPortal = 'e';
+    var sbE = document.getElementById('sb-e');
+    var sbF = document.getElementById('sb-f');
+    if (sbE) sbE.style.display = 'block';
+    if (sbF) sbF.style.display = 'none';
     showScreen('e-kyc');
-    if (typeof switchTo === 'function') switchTo('e');
   } else {
+    currentPortal = 'f';
+    var sbE2 = document.getElementById('sb-e');
+    var sbF2 = document.getElementById('sb-f');
+    if (sbE2) sbE2.style.display = 'none';
+    if (sbF2) sbF2.style.display = 'block';
     showScreen('f-kyc-upload');
-    if (typeof switchTo === 'function') switchTo('f');
   }
 }
 
