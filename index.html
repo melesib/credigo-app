@@ -7267,17 +7267,25 @@ var _origAuthInit = window.authInit;
 
 function lockAppForRejectedKyc(user) {
   var role = user && user.role === 'e' ? 'e' : 'f';
-  showScreen(role + '-support');
-  var navItems = document.querySelectorAll('#sb-' + role + ' .nav-link, #sb-' + role + ' [onclick]');
+  var kycScreen = role === 'e' ? 'e-kyc' : 'f-kyc-upload';
+  // Aller sur la section KYC pour voir les docs à resoumettre
+  showScreen(kycScreen);
+  // Griser tout sauf KYC et Support
+  var navItems = document.querySelectorAll('#sb-' + role + ' .slink');
   navItems.forEach(function(item) {
     var oc = item.getAttribute('onclick') || '';
-    if (!oc.includes('support')) {
+    var isKyc = oc.includes('e-kyc') || oc.includes('f-kyc') || oc.includes('kyc-upload');
+    var isSupport = oc.includes('support');
+    if (!isKyc && !isSupport) {
       item.style.opacity = '0.4';
       item.style.pointerEvents = 'none';
+    } else {
+      item.style.opacity = '1';
+      item.style.pointerEvents = 'auto';
     }
   });
   setTimeout(function() {
-    toast('\u274C KYC rejet\u00e9e. Seule la section Support est accessible.');
+    toast('\u274C KYC rejet\u00e9e. Sections KYC et Support accessibles.');
   }, 500);
 }
 
