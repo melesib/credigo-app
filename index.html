@@ -2812,10 +2812,19 @@ function showScreen(id) {
   if (profileScreens.indexOf(id) !== -1) {
     if (banner) banner.style.display = 'none';
     if (contentEl) contentEl.style.paddingBottom = '';
-  } else if (banner && banner.style.display === 'none' && authUser && (!authUser.profileComplete || authUser.kycStatus !== 'approved')) {
-    // Ré-afficher le banner si on quitte un écran de profil
-    if (banner) banner.style.display = 'flex';
-    if (contentEl) contentEl.style.paddingBottom = '80px';
+  } else if (banner) {
+    // Ne ré-afficher le banner KYC requis que si pas encore soumis
+    var kycNotSubmitted = authUser && !authUser.profileComplete && 
+      authUser.kycStatus !== 'approved' && 
+      authUser.kycStatus !== 'pending_review';
+    if (kycNotSubmitted && banner.style.display === 'none') {
+      banner.style.display = 'flex';
+      if (contentEl) contentEl.style.paddingBottom = '80px';
+    } else if (!kycNotSubmitted) {
+      // Toujours masquer si soumis/approuvé
+      banner.style.display = 'none';
+      if (contentEl) contentEl.style.paddingBottom = '';
+    }
   }
 }
 function renderScreen(id) {
@@ -6296,10 +6305,12 @@ function authEnterApp(user) {
   }
 
   // Redirection immédiate vers profil si incomplet ET KYC pas encore soumis
-  if (user.kycStatus === 'pending_review') {
+  if (user.kycStatus === 'rejected') {
+    setTimeout(function() { showKycRejectedBanner(); }, 400);
+  } else if (user.kycStatus === 'pending_review') {
     showKycPendingBanner(user);
   } else if (user.kycStatus === 'approved') {
-    // KYC approuvé - pas de bandeau, pas de redirection
+    // KYC approuvé - pas de bandeau
   } else if (!user.profileComplete) {
     showKycBanner(user);
     setTimeout(function() {
@@ -6331,15 +6342,13 @@ function authEnterApp(user) {
 function showKycBanner(user) {
   var banner = document.getElementById('kyc-required-banner');
   if (!banner) return;
-  // Ne pas afficher si KYC soumis ou approuvé
-  if (user && (user.kycStatus === 'pending_review' || user.kycStatus === 'approved')) {
+  // Ne pas afficher si KYC soumis, approuvé ou rejeté
+  if (user && (user.kycStatus === 'pending_review' || user.kycStatus === 'approved' || user.kycStatus === 'rejected')) {
     banner.style.display = 'none';
     var contentEl0 = document.querySelector('.content');
     if (contentEl0) contentEl0.style.paddingBottom = '';
-    // Mettre à jour le texte du bandeau si soumis
-    if (user.kycStatus === 'pending_review') {
-      showKycPendingBanner(user);
-    }
+    if (user.kycStatus === 'pending_review') showKycPendingBanner(user);
+    if (user.kycStatus === 'rejected') showKycRejectedBanner();
     return;
   }
   // Ne pas afficher sur les écrans de profil
@@ -6396,8 +6405,17 @@ function goToKyc() {
 /* ── Bloquer les actions si KYC non approuvé ── */
 function requireKyc(action) {
   if (!authUser) { showAuthOverlay(); return false; }
+  if (authUser.kycStatus === 'rejected') {
+    toast('\u274C KYC rejet\u00e9e. Veuillez contacter le support : support@credigo.ci');
+    showKycRejectedBanner();
+    return false;
+  }
+  if (authUser.kycStatus === 'pending_review') {
+    toast('\u23F3 Votre dossier KYC est en cours de v\u00e9rification. Vous pourrez soumettre des contrats une fois valid\u00e9.');
+    return false;
+  }
   if (authUser.kycStatus !== 'approved') {
-    toast('\uD83D\uDD12 KYC requis. Complétez votre profil et dossier KYC.');
+    toast('\uD83D\uDD12 KYC requis. Compl\u00e9tez votre profil et dossier KYC.');
     showKycBanner(authUser);
     goToKyc();
     return false;
