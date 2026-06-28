@@ -7020,9 +7020,15 @@ function applyKycLockMode(screenId) {
     if (oc.includes('kycENext') || oc.includes('kycEBack') || oc.includes('kycFNext') || oc.includes('kycFBack')) {
       btn.style.pointerEvents = 'auto';
       btn.style.opacity = '1';
-    } else if (!isActive && (oc.includes('kycESubmit') || oc.includes('kycFSubmit'))) {
-      btn.style.pointerEvents = 'none';
-      btn.style.opacity = '0.4';
+    } else if (oc.includes('kycESubmit') || oc.includes('kycFSubmit')) {
+      // Bouton soumettre : actif seulement si resubmit autorisé
+      if (resubmitAllowed && reqDocs && reqDocs.length > 0) {
+        btn.style.pointerEvents = 'auto';
+        btn.style.opacity = '1';
+      } else {
+        btn.style.pointerEvents = 'none';
+        btn.style.opacity = '0.4';
+      }
     }
   });
 }
