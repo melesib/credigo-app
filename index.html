@@ -6474,14 +6474,18 @@ function hideKycBanner() {
 function goToKyc() {
   if (!authUser) return;
   var role = authUser.role;
-  // D\'abord aller au profil
-  if (typeof showScreen === 'function') {
+  var ks = authUser.kycStatus;
+  if (ks === 'pending_review' || ks === 'approved' || ks === 'rejected') {
+    showKycStatusScreen(role);
+    return;
+  }
+  if (!authUser.profileComplete) {
     showScreen(role + '-profile');
-    // Scroll to kyc after a moment
     setTimeout(function() {
-      var kycScreen = role === 'e' ? 'e-kyc' : 'f-kyc-upload';
-      showScreen(kycScreen);
+      showScreen(role === 'e' ? 'e-kyc' : 'f-kyc-upload');
     }, 300);
+  } else {
+    showScreen(role === 'e' ? 'e-kyc' : 'f-kyc-upload');
   }
 }
 
