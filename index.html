@@ -2801,6 +2801,17 @@ function hideAll() {
   ALL_SCREENS.forEach(id => { const el = document.getElementById(id); if (el) { el.style.display = 'none'; el.classList.remove('on'); } });
 }
 function showScreen(id) {
+  // Intercepter l'accès aux écrans KYC si déjà soumis/rejeté
+  if ((id === 'e-kyc' || id === 'f-kyc-upload') && authUser &&
+      (authUser.kycStatus === 'pending_review' || authUser.kycStatus === 'approved' || authUser.kycStatus === 'rejected')) {
+    var role = id === 'e-kyc' ? 'e' : 'f';
+    // Afficher l'écran mais avec le contenu statut (pas le formulaire)
+    hideAll();
+    var screen = document.getElementById(id);
+    if (screen) { screen.style.display = 'block'; screen.classList.add('on'); }
+    showKycStatusScreen(role);
+    return;
+  }
   hideAll();
   const el = document.getElementById(id);
   if (el) { el.style.display = 'block'; el.classList.add('on'); }
@@ -4845,6 +4856,14 @@ let formData = {};
 let sigCanvas, sigCtx, sigDrawing = false, sigHasSig = false;
 
 function openFormModal(docId, targetRowId) {
+  // Bloquer si KYC déjà soumis ou rejeté
+  if (authUser && (authUser.kycStatus === 'pending_review' || authUser.kycStatus === 'approved' || authUser.kycStatus === 'rejected')) {
+    var msg = authUser.kycStatus === 'rejected'
+      ? '\u274C KYC rejet\u00e9e. Contactez support@credigo.ci'
+      : '\u26A0\uFE0F Votre dossier KYC a d\u00e9j\u00e0 \u00e9t\u00e9 soumis. Aucune modification possible.';
+    toast(msg);
+    return;
+  }
   const schema = FORM_SCHEMAS[docId];
   if (!schema) { downloadDoc(docId); return; }
   if (targetRowId) currentFormTargetRow = targetRowId;
@@ -5295,6 +5314,12 @@ var KYC_DOC_MAP = {
 
 var _kycUploadBusy = {};
 function handleKycUpload(input, rowId) {
+  // Bloquer si KYC déjà soumis ou rejeté
+  if (authUser && (authUser.kycStatus === 'pending_review' || authUser.kycStatus === 'approved' || authUser.kycStatus === 'rejected')) {
+    toast('\u26A0\uFE0F Votre dossier KYC a d\u00e9j\u00e0 \u00e9t\u00e9 soumis. Aucune modification possible.');
+    input.value = '';
+    return;
+  }
   // Protection anti-récursion via flag
   if (_kycUploadBusy[rowId]) return;
   var file = input.files && input.files[0];
@@ -5840,6 +5865,11 @@ function kycUpdateProgress(portal, config) {
 }
 
 function kycEGoStep(s) {
+  // Bloquer si déjà soumis ou rejeté
+  if (authUser && (authUser.kycStatus === 'pending_review' || authUser.kycStatus === 'approved' || authUser.kycStatus === 'rejected')) {
+    showKycStatusScreen('e');
+    return;
+  }
   for (var i = 1; i <= 4; i++) {
     var el = document.getElementById('kyc-e-step-' + i);
     if (el) el.style.display = i === s ? 'block' : 'none';
@@ -5852,6 +5882,10 @@ function kycEGoStep(s) {
 }
 
 function kycFGoStep(s) {
+  if (authUser && (authUser.kycStatus === 'pending_review' || authUser.kycStatus === 'approved' || authUser.kycStatus === 'rejected')) {
+    showKycStatusScreen('f');
+    return;
+  }
   for (var i = 1; i <= 3; i++) {
     var el = document.getElementById('kyc-f-step-' + i);
     if (el) el.style.display = i === s ? 'block' : 'none';
@@ -5863,7 +5897,12 @@ function kycFGoStep(s) {
   window.scrollTo({top:0, behavior:'smooth'});
 }
 
-function kycENext(s) { kycEGoStep(s + 1); }
+function kycENext(s) {
+  if (authUser && (authUser.kycStatus === 'pending_review' || authUser.kycStatus === 'approved' || authUser.kycStatus === 'rejected')) {
+    showKycStatusScreen('e'); return;
+  }
+  kycEGoStep(s + 1);
+}
 function kycEBack(s) { kycEGoStep(s - 1); }
 function kycFNext(s) { kycFGoStep(s + 1); }
 function kycFBack(s) { kycFGoStep(s - 1); }
