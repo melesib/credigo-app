@@ -32,6 +32,35 @@
   // Expose pour usage/debug
   window.CredigoDB = { sb: sb, ready: supabaseReady };
 
+  // Fonction de refresh standalone - utilisable même sans session locale
+  window.credigoForceRefreshStatus = async function(email, portal) {
+    if (!supabaseReady || !sb) return null;
+    try {
+      // Si email fourni, chercher par email
+      if (email) {
+        var q = sb.from('app_users')
+          .select('id, kyc_status, profile_complete')
+          .eq('email', email)
+          .is('deleted_at', null);
+        if (portal) q = q.eq('portal', portal === 'e' ? 'entrepreneur' : 'financeur');
+        var r = await q.limit(1).maybeSingle();
+        if (r.error || !r.data) return null;
+        var data = r.data;
+        if (data.kyc_status === 'rejected') {
+          var sub = await sb.from('kyc_submissions')
+            .select('decision_notes')
+            .eq('app_user_id', data.id)
+            .eq('status', 'rejected')
+            .order('reviewed_at', { ascending: false })
+            .limit(1).maybeSingle();
+          data.rejection_reason = (sub && sub.data && sub.data.decision_notes) || null;
+        }
+        return data;
+      }
+      return null;
+    } catch(e) { console.error('[refresh]', e); return null; }
+  };
+
   // ── Helpers ──────────────────────────────────────────────────
   function currentAppUserId() {
     try {
