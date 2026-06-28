@@ -6914,8 +6914,10 @@ function applyKycLockMode(screenId) {
   if (!screen) return;
   var status = authUser ? authUser.kycStatus : '';
   var reqDocs = (authUser && authUser.kyc_required_docs) || [];
-  var resubmitAllowed = authUser && authUser.kyc_resubmit_allowed;
+  var resubmitAllowed = !!(authUser && authUser.kyc_resubmit_allowed);
   var resubmitNote = (authUser && authUser.kyc_resubmit_note) || null;
+  // kyc_rejected_docs : { docType: reason } - motifs de rejet par document
+  var rejectedDocs = (authUser && authUser.kyc_rejected_docs) || {};
 
   // Afficher une bannière de statut en haut de l'écran KYC
   var existingBanner = screen.querySelector('.kyc-status-top-banner');
@@ -6951,32 +6953,42 @@ function applyKycLockMode(screenId) {
       isActive = reqDocs.length === 0 || (docType && reqDocs.includes(docType));
     }
 
+    // Nettoyer les tags existants
+    var oldTags = row.querySelectorAll('.resubmit-tag, .reject-reason-tag');
+    oldTags.forEach(function(t) { t.remove(); });
+
     if (isActive) {
-      // Doc activé pour re-soumission : fond vert clair, bouton actif
+      // Doc activé pour re-soumission
       row.style.opacity = '1';
       row.style.pointerEvents = 'auto';
       row.style.background = '#F0FDF4';
       row.style.border = '1.5px solid #6EE7B7';
       row.style.borderRadius = '10px';
       row.style.marginBottom = '6px';
-      // Ajouter badge "À soumettre"
-      var existingTag = row.querySelector('.resubmit-tag');
-      if (!existingTag) {
-        var tag = document.createElement('div');
-        tag.className = 'resubmit-tag';
-        tag.style.cssText = 'font-size:10px;font-weight:800;color:#065F46;background:#D1FAE5;padding:2px 8px;border-radius:6px;margin-top:4px;display:inline-block';
-        tag.textContent = '↑ À soumettre';
-        var docText = row.querySelector('.kyc-doc-text');
-        if (docText) docText.appendChild(tag);
+      row.style.padding = '8px';
+      // Badge "À soumettre"
+      var tag = document.createElement('div');
+      tag.className = 'resubmit-tag';
+      tag.style.cssText = 'font-size:10px;font-weight:800;color:#065F46;background:#D1FAE5;padding:3px 10px;border-radius:6px;margin-top:6px;display:inline-block';
+      tag.textContent = '↑ Document à resoumettre';
+      var docText = row.querySelector('.kyc-doc-text');
+      if (docText) docText.appendChild(tag);
+      // Afficher le motif de rejet si disponible
+      var reason = docType ? (rejectedDocs[docType] || null) : null;
+      if (reason) {
+        var reasonTag = document.createElement('div');
+        reasonTag.className = 'reject-reason-tag';
+        reasonTag.style.cssText = 'font-size:11px;color:#DC2626;background:#FEE2E2;padding:6px 10px;border-radius:6px;margin-top:6px;line-height:1.4;border-left:3px solid #DC2626';
+        reasonTag.innerHTML = '<strong>Motif :</strong> ' + reason;
+        if (docText) docText.appendChild(reasonTag);
       }
     } else {
       // Doc verrouillé : grisé, non cliquable
-      row.style.opacity = '0.45';
+      row.style.opacity = '0.4';
       row.style.pointerEvents = 'none';
       row.style.background = '';
       row.style.border = '';
-      var oldTag = row.querySelector('.resubmit-tag');
-      if (oldTag) oldTag.remove();
+      row.style.padding = '';
     }
   });
 

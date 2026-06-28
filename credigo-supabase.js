@@ -350,6 +350,14 @@
           var sub2 = await sb.from('kyc_submissions').select('decision_notes').eq('app_user_id', userId).eq('status', 'rejected').order('reviewed_at', { ascending: false }).limit(1).maybeSingle();
           result2.rejection_reason = (sub2 && sub2.data && sub2.data.decision_notes) || null;
         }
+        // Docs rejetés avec motifs
+        result2.kyc_resubmit_allowed = result2.kyc_resubmit_allowed || false;
+        result2.kyc_required_docs = result2.kyc_required_docs || null;
+        result2.kyc_rejected_docs = {};
+        try {
+          var rj2 = await sb.from('kyc_documents').select('doc_type, rejection_reason').eq('app_user_id', result2.id).eq('status', 'rejected');
+          if (!rj2.error && rj2.data) rj2.data.forEach(function(d) { if(d.rejection_reason) result2.kyc_rejected_docs[d.doc_type] = d.rejection_reason; });
+        } catch(e) {}
         return result2;
       } catch(e) { return null; }
     }
@@ -359,6 +367,21 @@
     result.kyc_required_docs = res.data.kyc_required_docs || null;
     result.kyc_resubmit_allowed = res.data.kyc_resubmit_allowed || false;
     result.kyc_resubmit_note = res.data.kyc_resubmit_note || null;
+    // Récupérer les documents rejetés avec motifs
+    try {
+      var rejDocs = await sb.from('kyc_documents')
+        .select('doc_type, rejection_reason')
+        .eq('app_user_id', userId)
+        .eq('status', 'rejected');
+      if (!rejDocs.error && rejDocs.data) {
+        result.kyc_rejected_docs = {};
+        rejDocs.data.forEach(function(d) {
+          if (d.rejection_reason) result.kyc_rejected_docs[d.doc_type] = d.rejection_reason;
+        });
+      } else {
+        result.kyc_rejected_docs = {};
+      }
+    } catch(e) { result.kyc_rejected_docs = {}; }
     // Récupérer le motif de rejet si rejected
     if (result.kyc_status === 'rejected') {
       try {
