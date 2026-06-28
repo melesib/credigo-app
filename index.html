@@ -3968,11 +3968,14 @@ function buildPDF(jsPDF, filename, docTitle, docLines, signatureDataUrl, formVal
     // FILIGRANE : dessiné en DERNIER = par-dessus le contenu visible MAIS
     // avec couleur extremement proche du blanc => quasiment invisible
     // jsPDF n\'a pas de vrai canal alpha, on simule avec RGB tres proche de blanc
+    // Filigrane style Word - très pâle, rose/gris, grande police en diagonale
     pdf.setFont('helvetica', 'bold');
-    pdf.setFontSize(55);
-    // Filigrane ultra-transparent (245,243,252) - quasi invisible, juste perceptible
-    pdf.setTextColor(245, 243, 252);
-    pdf.text('CREDIGO', W / 2, H / 2 + 15, { angle: 45, align: 'center' });
+    pdf.setFontSize(72);
+    pdf.setTextColor(250, 235, 235);
+    pdf.text('CREDIGO', W / 2, H / 2, { angle: 45, align: 'center' });
+    pdf.setFontSize(28);
+    pdf.setTextColor(250, 235, 235);
+    pdf.text('SARL', W / 2, H / 2 + 22, { angle: 45, align: 'center' });
 
     // Logo icone en bas a droite
     try { pdf.addImage('data:image/png;base64,' + ICON, 'PNG', W - MR - 10, H - MB + 4, 7, 7); } catch(e) {}
