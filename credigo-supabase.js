@@ -301,8 +301,25 @@
    */
   window.credigoRefreshKycStatus = async function () {
     if (!supabaseReady) return null;
+    // Essayer d'abord avec le userId local
     var userId = currentAppUserId();
-    if (!userId) return null;
+    // Si pas de userId local, utiliser l'email depuis la session Supabase Auth
+    if (!userId) {
+      try {
+        var authSession = await sb.auth.getSession();
+        var email = authSession && authSession.data && authSession.data.session && authSession.data.session.user && authSession.data.session.user.email;
+        if (!email) return null;
+        // Récupérer l'app_user par email et portail
+        var portal = (function() {
+          try { var s = JSON.parse(localStorage.getItem('credigo_session') || 'null'); return s ? (s.role === 'e' ? 'entrepreneur' : 'financeur') : null; } catch(e) { return null; }
+        })();
+        var query = sb.from('app_users').select('id, kyc_status, profile_complete').eq('email', email).is('deleted_at', null);
+        if (portal) query = query.eq('portal', portal);
+        var res2 = await query.limit(1).single();
+        if (res2.error || !res2.data) return null;
+        return res2.data;
+      } catch(e) { return null; }
+    }
     var res = await sb.from('app_users').select('kyc_status, profile_complete').eq('id', userId).single();
     if (res.error) return null;
     return res.data;

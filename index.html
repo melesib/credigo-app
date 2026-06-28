@@ -6322,40 +6322,28 @@ function authEnterApp(user) {
   }
 
   // Redirection immédiate vers profil si incomplet ET KYC pas encore soumis
-  if (user.kycStatus === 'rejected') {
-    setTimeout(function() {
-      showKycRejectedBanner();
-      lockAppForRejectedKyc(user);
-    }, 400);
-  } else if (user.kycStatus === 'pending_review') {
-    showKycPendingBanner(user);
-  } else if (user.kycStatus === 'approved') {
-    // KYC approuvé - pas de bandeau
-  } else if (!user.profileComplete) {
-    showKycBanner(user);
-    setTimeout(function() {
-      showScreen(user.role === 'e' ? 'e-profile' : 'f-profile');
-    }, 200);
-  } else {
-    showKycBanner(user);
-  }
+  // Attendre le refresh Supabase avant d'afficher les bandeaux
+  // Les bandeaux initiaux sont affichés par le callback de credigoRefreshKycStatus
 
-  // Notification de bienvenue
+  // Notification de bienvenue - après le refresh du statut KYC
   setTimeout(function() {
     if (typeof toast === 'function') {
+      var ks = authUser ? authUser.kycStatus : user.kycStatus;
       var msg;
-      if (user.kycStatus === 'approved') {
+      if (ks === 'rejected') {
+        msg = '\u274C KYC rejet\u00e9e. Contactez support@credigo.ci';
+      } else if (ks === 'approved') {
         msg = 'Bienvenue ' + (user.name || '') + ' !';
-      } else if (user.kycStatus === 'pending_review') {
-        msg = 'Bienvenue ' + (user.name || '') + ' ! Votre dossier KYC est en cours de v\u00e9rification.';
+      } else if (ks === 'pending_review') {
+        msg = 'Bienvenue ' + (user.name || '') + ' ! Dossier KYC en cours de v\u00e9rification.';
       } else if (user.profileComplete) {
-        msg = 'Bienvenue ' + (user.name || '') + ' ! Votre profil est complet.';
+        msg = 'Bienvenue ' + (user.name || '') + ' ! Soumettez votre dossier KYC.';
       } else {
-        msg = 'Bienvenue ! Compl\u00e9tez votre profil et KYC pour acc\u00e9der \u00e0 toutes les fonctionnalit\u00e9s.';
+        msg = 'Bienvenue ! Compl\u00e9tez votre profil et KYC.';
       }
       toast(msg);
     }
-  }, 600);
+  }, 1200);
 }
 
 /* ── Bannière KYC ── */
