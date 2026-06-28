@@ -866,7 +866,7 @@ textarea{resize:vertical;min-height:70px}
   <div class="slink" onclick="goSc('e-remboursements','e',this)"><i class="ti ti-credit-card"></i><span class="lbl">Remboursements</span></div>
   <div class="s-sec">Compte</div>
   <div class="slink" onclick="goSc('e-profile','e',this)"><i class="ti ti-user-circle"></i><span class="lbl">Mon profil</span></div>
-  <div class="slink" onclick="goSc('e-kyc','e',this)"><i class="ti ti-shield-check"></i><span class="lbl">Vérification KYC</span></div>
+  <div class="slink" onclick="goSc('e-kyc','e',this)"><i class="ti ti-shield-check"></i><span class="lbl">Vérification KYC</span><span id="kyc-status-badge-e" style="display:none;margin-left:auto;font-size:9px;font-weight:800;padding:2px 7px;border-radius:10px;background:#FEF3C7;color:#92400E"></span></div>
   <div class="slink" onclick="goSc('e-support','e',this)"><i class="ti ti-headset"></i><span class="lbl">Support</span></div>
 </div>
 
@@ -881,7 +881,7 @@ textarea{resize:vertical;min-height:70px}
   <div class="slink" onclick="goSc('f-retraits','f',this)"><i class="ti ti-cash"></i><span class="lbl">Retraits</span></div>
   <div class="s-sec">Compte</div>
   <div class="slink" onclick="goSc('f-profile','f',this)"><i class="ti ti-user-circle"></i><span class="lbl">Mon profil</span></div>
-  <div class="slink" onclick="goSc('f-kyc-upload','f',this)"><i class="ti ti-shield-check"></i><span class="lbl">Vérification KYC</span></div>
+  <div class="slink" onclick="goSc('f-kyc-upload','f',this)"><i class="ti ti-shield-check"></i><span class="lbl">Vérification KYC</span><span id="kyc-status-badge-f" style="display:none;margin-left:auto;font-size:9px;font-weight:800;padding:2px 7px;border-radius:10px;background:#FEF3C7;color:#92400E"></span></div>
   <div class="slink" onclick="goSc('f-support','f',this)"><i class="ti ti-headset"></i><span class="lbl">Support</span></div>
 </div>
 
@@ -4118,28 +4118,30 @@ function closeKycSuccessModal() {
 }
 
 function updateKycStatusBadges(status) {
-  var labels = {
-    'not_started': 'KYC non démarré',
-    'in_progress': 'KYC en cours',
-    'pending_review': 'KYC soumis — En attente',
-    'approved': 'KYC validé ✓',
-    'rejected': 'KYC rejeté'
+  var badges = {
+    'not_started':    { label:'', show:false },
+    'in_progress':    { label:'En cours', show:true,  bg:'#DBEAFE', color:'#1D4ED8' },
+    'pending_review': { label:'En attente', show:true, bg:'#FEF3C7', color:'#92400E' },
+    'approved':       { label:'Validé ✓',  show:true, bg:'#D1FAE5', color:'#065F46' },
+    'rejected':       { label:'Rejeté',    show:true, bg:'#FEE2E2', color:'#991B1B' }
   };
-  var colors = {
-    'not_started': { bg:'#F3F4F6', color:'#6B7280' },
-    'in_progress': { bg:'#DBEAFE', color:'#1D4ED8' },
-    'pending_review': { bg:'#FEF3C7', color:'#92400E' },
-    'approved': { bg:'#D1FAE5', color:'#065F46' },
-    'rejected': { bg:'#FEE2E2', color:'#991B1B' }
-  };
-  var label = labels[status] || status;
-  var style = colors[status] || { bg:'#F3F4F6', color:'#6B7280' };
-  // Mettre à jour tous les éléments affichant le statut KYC
-  document.querySelectorAll('.kyc-status-display').forEach(function(el) {
-    el.textContent = label;
-    el.style.background = style.bg;
-    el.style.color = style.color;
+  var cfg = badges[status] || badges['not_started'];
+  
+  // Mettre à jour les badges dans la sidebar
+  ['e','f'].forEach(function(role) {
+    var badge = document.getElementById('kyc-status-badge-' + role);
+    if (badge) {
+      if (cfg.show) {
+        badge.textContent = cfg.label;
+        badge.style.background = cfg.bg;
+        badge.style.color = cfg.color;
+        badge.style.display = 'inline-block';
+      } else {
+        badge.style.display = 'none';
+      }
+    }
   });
+
   // Masquer le bandeau KYC si approuvé
   if (status === 'approved') {
     var kyc_banner = document.getElementById('kyc-required-banner');
@@ -5333,11 +5335,29 @@ var KYC_DOC_MAP = {
 
 var _kycUploadBusy = {};
 function handleKycUpload(input, rowId) {
-  // Bloquer si KYC déjà soumis ou rejeté
-  if (authUser && (authUser.kycStatus === 'pending_review' || authUser.kycStatus === 'approved' || authUser.kycStatus === 'rejected')) {
-    toast('\u26A0\uFE0F Votre dossier KYC a d\u00e9j\u00e0 \u00e9t\u00e9 soumis. Aucune modification possible.');
-    input.value = '';
-    return;
+  // Bloquer si KYC approuvé
+  if (authUser && authUser.kycStatus === 'approved') {
+    toast('\u2705 Votre KYC est d\u00e9j\u00e0 valid\u00e9e.');
+    input.value = ''; return;
+  }
+  // Bloquer si pending_review (soumis, en attente)
+  if (authUser && authUser.kycStatus === 'pending_review') {
+    toast('\u23F3 Votre dossier est en cours de v\u00e9rification. Aucune modification possible.');
+    input.value = ''; return;
+  }
+  // Si rejected avec docs requis spécifiques, vérifier que ce doc est autorisé
+  if (authUser && authUser.kycStatus === 'rejected' && authUser.kyc_resubmit_allowed) {
+    var reqDocs = authUser.kyc_required_docs;
+    if (reqDocs && reqDocs.length > 0) {
+      var docInfo = KYC_DOC_MAP[rowId];
+      if (docInfo && !reqDocs.includes(docInfo.type)) {
+        toast('\u26A0\uFE0F Ce document ne fait pas partie des documents demand\u00e9s par notre \u00e9quipe.');
+        input.value = ''; return;
+      }
+    }
+  } else if (authUser && authUser.kycStatus === 'rejected' && !authUser.kyc_resubmit_allowed) {
+    toast('\u274C KYC rejet\u00e9e. Contactez le support pour soumettre \u00e0 nouveau.');
+    input.value = ''; return;
   }
   // Protection anti-récursion via flag
   if (_kycUploadBusy[rowId]) return;

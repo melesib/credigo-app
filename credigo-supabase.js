@@ -353,9 +353,12 @@
         return result2;
       } catch(e) { return null; }
     }
-    var res = await sb.from('app_users').select('kyc_status, profile_complete').eq('id', userId).single();
+    var res = await sb.from('app_users').select('kyc_status, profile_complete, kyc_required_docs, kyc_resubmit_allowed, kyc_resubmit_note').eq('id', userId).single();
     if (res.error) return null;
     var result = res.data;
+    result.kyc_required_docs = res.data.kyc_required_docs || null;
+    result.kyc_resubmit_allowed = res.data.kyc_resubmit_allowed || false;
+    result.kyc_resubmit_note = res.data.kyc_resubmit_note || null;
     // Récupérer le motif de rejet si rejected
     if (result.kyc_status === 'rejected') {
       try {
