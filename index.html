@@ -2820,14 +2820,20 @@ function hideAll() {
   ALL_SCREENS.forEach(id => { const el = document.getElementById(id); if (el) { el.style.display = 'none'; el.classList.remove('on'); } });
 }
 function showScreen(id) {
-  // Si KYC soumis/approuvé/rejeté, afficher l'écran KYC mais en mode lecture seule
+  // Si KYC soumis/approuvé/rejeté, afficher l'écran KYC en mode lecture seule
   if ((id === 'e-kyc' || id === 'f-kyc-upload') && authUser &&
       (authUser.kycStatus === 'pending_review' || authUser.kycStatus === 'approved' || authUser.kycStatus === 'rejected')) {
     hideAll();
     var kycScreen = document.getElementById(id);
     if (kycScreen) { kycScreen.style.display = 'block'; kycScreen.classList.add('on'); }
+    renderScreen(id);
     // Appliquer le mode verrouillé après affichage
-    setTimeout(function() { applyKycLockMode(id); }, 50);
+    setTimeout(function() { applyKycLockMode(id); }, 100);
+    // Gérer les bandeaux
+    var banner2 = document.getElementById('kyc-required-banner');
+    if (banner2) banner2.style.display = 'none';
+    var contentEl3 = document.querySelector('.content');
+    if (contentEl3) contentEl3.style.paddingBottom = '';
     return;
   }
   hideAll();
@@ -6912,6 +6918,8 @@ function goToKycFromProfile(role) {
 function applyKycLockMode(screenId) {
   var screen = document.getElementById(screenId);
   if (!screen) return;
+  // S'assurer que l'écran est visible
+  if (screen.style.display === 'none') return;
   var status = authUser ? authUser.kycStatus : '';
   var reqDocs = (authUser && authUser.kyc_required_docs) || [];
   var resubmitAllowed = !!(authUser && authUser.kyc_resubmit_allowed);
