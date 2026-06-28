@@ -3990,6 +3990,8 @@ function buildPDF(jsPDF, filename, docTitle, docLines, signatureDataUrl, formVal
   }
 
   pdf.save(filename);
+  // Retourner le blob pour upload vers Supabase
+  return pdf.output('blob');
 }
 
 
@@ -4618,7 +4620,7 @@ function formatTrackingLines(fp) {
 }
 
 // Envoyer les métadonnées au BO admin
-async function sendToBO(docId, formDataSent, fp, pdfName) {
+async function sendToBO(docId, formDataSent, fp, pdfName, pdfBlob) {
   const payload = {
     event:        'kyc_form_submitted',
     doc_id:       docId,
@@ -4677,9 +4679,9 @@ async function sendToBO(docId, formDataSent, fp, pdfName) {
     localStorage.setItem('credigo_submissions', JSON.stringify(existing));
   } catch(e) {}
 
-  // Sauvegarder dans Supabase kyc_documents
+  // Sauvegarder dans Supabase kyc_documents avec le PDF
   if (window.credigoSaveKycFormData) {
-    const doc = CREDIGO_DOCS && CREDIGO_DOCS[docId];
+    const docInfo = CREDIGO_DOCS && CREDIGO_DOCS[docId];
     const stepMap = {
       'beneficiaires': 3, 'origine_fonds_e': 3, 'ppe_e': 3,
       'engagement_lbcft_e': 3, 'cgu_e': 4,
@@ -4688,13 +4690,13 @@ async function sendToBO(docId, formDataSent, fp, pdfName) {
     };
     window.credigoSaveKycFormData(
       docId,
-      doc ? doc.title : docId,
+      docInfo ? docInfo.title : docId,
       stepMap[docId] || 3,
       formDataSent,
-      null
+      pdfBlob || null
     ).then(function(res) {
       if (res.error) console.warn('[KYC Form] Erreur sauvegarde Supabase:', res.error);
-      else console.log('[KYC Form] Formulaire sauvegardé dans Supabase:', docId);
+      else console.log('[KYC Form] Formulaire + PDF sauvegardés dans Supabase:', docId);
     });
   }
 
@@ -5267,10 +5269,10 @@ function submitFormPDF() {
         const allLines = formLines.concat(trackingLines);
 
         // 4. Générer le PDF avec les métadonnées intégrées
-        buildPDF(jsPDF, doc.name, schema.title, allLines, sigImg, { lieu:lieu, date:date });
+        var pdfBlob = buildPDF(jsPDF, doc.name, schema.title, allLines, sigImg, { lieu:lieu, date:date });
 
-        // 5. Envoyer au BO admin
-        sendToBO(currentFormId, formData, fp, doc.name);
+        // 5. Envoyer au BO admin + uploader le PDF dans Supabase
+        sendToBO(currentFormId, formData, fp, doc.name, pdfBlob);
 
         if (submitBtn) { submitBtn.innerHTML = '<i class="ti ti-file-check"></i> Valider & Télécharger PDF signé'; submitBtn.disabled = false; }
 
