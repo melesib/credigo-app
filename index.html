@@ -7786,6 +7786,26 @@ function closeLegalModal() {
   }
 }
 
+function toggleLegalAccept() {
+  var cb = document.getElementById('legal-accept-check');
+  var box = document.getElementById('legal-accept-box');
+  var chk = document.getElementById('legal-accept-chk');
+  var btn = document.getElementById('legal-accept-btn');
+  if (!cb) return;
+  cb.checked = !cb.checked;
+  if (cb.checked) {
+    box.style.background = '#6C3FE8';
+    box.style.borderColor = '#6C3FE8';
+    if (chk) chk.style.display = 'block';
+    if (btn) { btn.style.opacity = '1'; btn.style.cursor = 'pointer'; }
+  } else {
+    box.style.background = '#fff';
+    box.style.borderColor = '#D1D5DB';
+    if (chk) chk.style.display = 'none';
+    if (btn) { btn.style.opacity = '.5'; btn.style.cursor = 'not-allowed'; }
+  }
+}
+
 function confirmLegalAcceptance() {
   var check = document.getElementById('legal-accept-check');
   if (!check || !check.checked) {
@@ -8512,8 +8532,11 @@ if (window.CredigoDB && window.CredigoDB.sb) {
     <!-- Footer si mode validation -->
     <div id="legal-modal-footer" style="display:none;padding:16px 24px;border-top:1px solid #E5E7EB;background:#F9FAFB">
       <div style="display:flex;align-items:center;gap:10px;margin-bottom:12px">
-        <input type="checkbox" id="legal-accept-check" style="width:16px;height:16px;accent-color:#6C3FE8;flex-shrink:0">
-        <label for="legal-accept-check" style="font-size:12px;font-weight:600;color:#374151;cursor:pointer">
+        <input type="checkbox" id="legal-accept-check" style="display:none">
+        <div id="legal-accept-box" onclick="toggleLegalAccept()" style="width:22px;height:22px;flex-shrink:0;border:2px solid #D1D5DB;border-radius:5px;background:#fff;display:flex;align-items:center;justify-content:center;cursor:pointer;transition:.15s">
+          <svg id="legal-accept-chk" width="13" height="13" viewBox="0 0 12 12" style="display:none"><polyline points="1.5,6 4.5,9 10.5,3" fill="none" stroke="#fff" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </div>
+        <label onclick="toggleLegalAccept()" style="font-size:13px;font-weight:600;color:#374151;cursor:pointer;line-height:1.5">
           J'ai lu et j'accepte les <span id="legal-accept-label">présentes conditions</span>
         </label>
       </div>
