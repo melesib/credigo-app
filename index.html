@@ -6293,14 +6293,27 @@ function authEnterApp(user) {
       user.kycStatus = fresh.kyc_status;
       user.profileComplete = fresh.profile_complete;
       authSaveSession(user);
-      if (user.profileComplete && user.kycStatus === 'approved') {
+      updateKycStatusBadges(user.kycStatus);
+      // Masquer tous les bandeaux d'abord
+      var b1 = document.getElementById('kyc-required-banner');
+      var b2 = document.getElementById('kyc-pending-banner');
+      var b3 = document.getElementById('kyc-rejected-banner');
+      if (b1) b1.style.display = 'none';
+      if (b2) b2.style.display = 'none';
+      if (b3) b3.style.display = 'none';
+      var c = document.querySelector('.content');
+      if (c) c.style.paddingBottom = '';
+      // Afficher le bon bandeau selon le statut
+      if (user.kycStatus === 'rejected') {
+        showKycRejectedBanner();
+        // Bloquer toutes les actions sauf support
+        lockAppForRejectedKyc(user);
+      } else if (user.kycStatus === 'approved') {
         hideKycBanner();
+      } else if (user.kycStatus === 'pending_review') {
+        showKycPendingBanner(user);
       } else {
         showKycBanner(user);
-  // Mettre à jour les badges de statut KYC
-  if (user && user.kycStatus) {
-    setTimeout(function() { updateKycStatusBadges(user.kycStatus); }, 300);
-  }
         if (!user.profileComplete) {
           showScreen(user.role === 'e' ? 'e-profile' : 'f-profile');
         }
@@ -6310,7 +6323,10 @@ function authEnterApp(user) {
 
   // Redirection immédiate vers profil si incomplet ET KYC pas encore soumis
   if (user.kycStatus === 'rejected') {
-    setTimeout(function() { showKycRejectedBanner(); }, 400);
+    setTimeout(function() {
+      showKycRejectedBanner();
+      lockAppForRejectedKyc(user);
+    }, 400);
   } else if (user.kycStatus === 'pending_review') {
     showKycPendingBanner(user);
   } else if (user.kycStatus === 'approved') {
