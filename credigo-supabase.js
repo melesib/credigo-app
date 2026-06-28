@@ -344,6 +344,38 @@
     }
   };
 
+  // Sauvegarder les données d'un formulaire KYC rempli dans kyc_documents
+  window.credigoSaveKycFormData = async function(docType, docLabel, stepNumber, formData, pdfBlob) {
+    if (!supabaseReady) return { error: 'Supabase non configuré.' };
+    var userId = currentAppUserId();
+    if (!userId) return { error: 'Utilisateur non synchronisé.' };
+    try {
+      // Sauvegarder le PDF dans Storage si disponible
+      var fileUrl = null;
+      if (pdfBlob) {
+        var path = userId + '/' + docType + '_' + Date.now() + '.pdf';
+        var upload = await sb.storage.from('kyc-documents').upload(path, pdfBlob, { upsert: true, contentType: 'application/pdf' });
+        if (!upload.error) fileUrl = path;
+      }
+      // Upsert dans kyc_documents
+      var res = await sb.from('kyc_documents').upsert({
+        app_user_id: userId,
+        doc_type: docType,
+        doc_label: docLabel,
+        step_number: stepNumber,
+        file_url: fileUrl,
+        file_name: docType + '_signe.pdf',
+        status: 'pending',
+        form_data: JSON.stringify(formData),
+        uploaded_at: nowIso(),
+      }, { onConflict: 'app_user_id,doc_type' }).select().single();
+      if (res.error) throw res.error;
+      return { success: true, document: res.data };
+    } catch(err) {
+      return { error: err.message };
+    }
+  };
+
   /**
    * Récupère le statut KYC à jour depuis Supabase (pour rafraîchir
    * l'état local après une décision du back-office).

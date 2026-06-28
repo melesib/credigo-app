@@ -4677,6 +4677,27 @@ async function sendToBO(docId, formDataSent, fp, pdfName) {
     localStorage.setItem('credigo_submissions', JSON.stringify(existing));
   } catch(e) {}
 
+  // Sauvegarder dans Supabase kyc_documents
+  if (window.credigoSaveKycFormData) {
+    const doc = CREDIGO_DOCS && CREDIGO_DOCS[docId];
+    const stepMap = {
+      'beneficiaires': 3, 'origine_fonds_e': 3, 'ppe_e': 3,
+      'engagement_lbcft_e': 3, 'cgu_e': 4,
+      'origine_fonds_f': 2, 'ppe_f': 2, 'engagement_lbcft_f': 3,
+      'cgu_f': 3, 'contrat_investisseur': 3
+    };
+    window.credigoSaveKycFormData(
+      docId,
+      doc ? doc.title : docId,
+      stepMap[docId] || 3,
+      formDataSent,
+      null
+    ).then(function(res) {
+      if (res.error) console.warn('[KYC Form] Erreur sauvegarde Supabase:', res.error);
+      else console.log('[KYC Form] Formulaire sauvegardé dans Supabase:', docId);
+    });
+  }
+
   return payload;
 }
 
