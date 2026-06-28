@@ -2438,7 +2438,7 @@ textarea{resize:vertical;min-height:70px}
 </div></div>
 <!-- ══ MODAL FORMULAIRE EN LIGNE ══ -->
 <div class="modal-ov" id="form-modal" onclick="closeFormModalOut(event)">
-  <div class="modal-sheet" id="form-modal-sheet" onclick="event.stopPropagation()" style="max-width:600px;max-height:90vh;width:calc(100% - 0px);overflow-y:auto;-webkit-overflow-scrolling:touch;padding:22px 16px 48px;box-sizing:border-box">
+  <div class="modal-sheet" id="form-modal-sheet" onclick="event.stopPropagation()" style="max-width:600px;max-height:88vh;overflow-y:auto;-webkit-overflow-scrolling:touch;padding:20px 14px 60px;box-sizing:border-box;width:100%">
     <div class="modal-handle"></div>
     <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">
       <div>
@@ -4823,22 +4823,36 @@ function openFormModal(docId, targetRowId) {
         lbl.style.cssText = 'font-size:12px;font-weight:600;color:#374151;margin-bottom:6px;display:block';
         lbl.textContent = field.label;
         wrap.appendChild(lbl);
-        (field.opts||[]).forEach(function(opt, idx) {
-          const lab = document.createElement('label');
-          lab.id = 'rwrap_' + field.id + '_' + idx;
-          lab.style.cssText = 'display:flex;align-items:flex-start;gap:8px;padding:9px 12px;border-radius:9px;border:1.5px solid #E5E7EB;cursor:pointer;margin-bottom:6px;transition:.15s';
+        (field.opts||[]).forEach(function(opt, optIdx) {
+          const lab = document.createElement('div');
+          lab.id = 'rwrap_' + field.id + '_' + optIdx;
+          lab.style.cssText = 'display:flex;align-items:flex-start;gap:10px;padding:10px 12px;border-radius:9px;border:1.5px solid #E5E7EB;cursor:pointer;margin-bottom:6px;transition:.15s;-webkit-tap-highlight-color:rgba(108,63,232,.1)';
+          // Custom radio SVG
+          const rbox = document.createElement('div');
+          rbox.id = 'rbox_' + field.id + '_' + optIdx;
+          rbox.style.cssText = 'width:20px;height:20px;flex-shrink:0;border:2px solid #D1D5DB;border-radius:50%;background:#fff;display:flex;align-items:center;justify-content:center;transition:.15s;margin-top:1px';
+          rbox.innerHTML = '<div id="rdot_' + field.id + '_' + optIdx + '" style="width:10px;height:10px;border-radius:50%;background:#6C3FE8;display:none"></div>';
           const rb = document.createElement('input');
-          rb.type = 'radio'; rb.name = 'ff_' + field.id; rb.value = opt;
-          rb.style.cssText = 'width:16px;height:16px;margin-top:2px;accent-color:#6C3FE8;flex-shrink:0';
-          rb.addEventListener('change', function() {
-            formData[field.id] = opt;
-            document.querySelectorAll('[id^="rwrap_' + field.id + '_"]').forEach(function(w) { w.style.borderColor='#E5E7EB'; w.style.background='#fff'; });
+          rb.type = 'radio'; rb.name = 'ff_' + field.id; rb.value = opt; rb.style.display = 'none';
+          function selectRadio(fid, oidx, o) {
+            formData[fid] = o;
+            document.querySelectorAll('[id^="rwrap_' + fid + '_"]').forEach(function(w, wi) {
+              w.style.borderColor = '#E5E7EB'; w.style.background = '#fff';
+              var b = document.getElementById('rbox_' + fid + '_' + wi);
+              var d = document.getElementById('rdot_' + fid + '_' + wi);
+              if (b) { b.style.borderColor = '#D1D5DB'; b.style.background = '#fff'; }
+              if (d) d.style.display = 'none';
+            });
             lab.style.borderColor = '#6C3FE8'; lab.style.background = '#F5F3FF';
-          });
+            rbox.style.borderColor = '#6C3FE8'; rbox.style.background = '#EEE8FF';
+            var dot = document.getElementById('rdot_' + fid + '_' + oidx);
+            if (dot) dot.style.display = 'block';
+          }
+          (function(fid, oidx, o){ lab.addEventListener('click', function() { selectRadio(fid, oidx, o); }); })(field.id, optIdx, opt);
           const sp = document.createElement('span');
-          sp.style.cssText = 'font-size:12px;font-weight:500;color:#374151';
+          sp.style.cssText = 'font-size:13px;font-weight:500;color:#374151;line-height:1.5;padding-top:1px';
           sp.textContent = opt;
-          lab.appendChild(rb); lab.appendChild(sp);
+          lab.appendChild(rbox); lab.appendChild(rb); lab.appendChild(sp);
           wrap.appendChild(lab);
         });
       } else if (field.type === 'select') {
@@ -4872,8 +4886,21 @@ function openFormModal(docId, targetRowId) {
     container.appendChild(secDiv);
   });
 
+  // Réinitialiser les checkboxes consent (cochées = false)
   document.getElementById('form-consent1').checked = false;
   document.getElementById('form-consent2').checked = false;
+  // Réinitialiser le visuel SVG des cases
+  var fc1box = document.getElementById('fc1-box');
+  var fc1chk = document.getElementById('fc1-check');
+  var fc2box = document.getElementById('fc2-box');
+  var fc2chk = document.getElementById('fc2-check');
+  if (fc1box) { fc1box.style.background='#fff'; fc1box.style.borderColor='#D1D5DB'; }
+  if (fc1chk) fc1chk.style.display = 'none';
+  if (fc2box) { fc2box.style.background='#fff'; fc2box.style.borderColor='#D1D5DB'; }
+  if (fc2chk) fc2chk.style.display = 'none';
+  // Désactiver le bouton submit
+  var submitBtn = document.getElementById('form-submit-btn');
+  if (submitBtn) { submitBtn.disabled = true; submitBtn.style.opacity = '0.4'; submitBtn.style.cursor = 'not-allowed'; }
   initSigCanvas();
   document.getElementById('form-modal').classList.add('open');
 }
@@ -5002,6 +5029,18 @@ function validateKycVsProfile() {
   if (kycRaison && kycRaison.length > 2 && profileCompany.length > 2) {
     if (!strSimilar(kycRaison, profileCompany)) {
       warnings.push('⚠️ Raison sociale "' + (formData.raison_sociale || '') + '" différente du profil ("' + (authUser.company_name || '') + '"). Vérifiez vos informations.');
+    }
+  }
+
+  // Vérifier le numéro RCCM
+  var profileRccm = normalizeStr(authUser.rccm_number || '');
+  var kycRccm = normalizeStr(formData.rccm || formData.numero_rccm || formData.rccm_number || '');
+  if (profileRccm && kycRccm && profileRccm.length > 3 && kycRccm.length > 3) {
+    // Comparer les 6 premiers caractères du RCCM (ignorer les espaces et tirets)
+    var pRccmClean = profileRccm.replace(/[-\s]/g, '');
+    var kRccmClean = kycRccm.replace(/[-\s]/g, '');
+    if (pRccmClean.substring(0, 6) !== kRccmClean.substring(0, 6)) {
+      warnings.push('⚠️ Numéro RCCM "' + (formData.rccm || '') + '" différent du profil ("' + (authUser.rccm_number || '') + '"). Vérifiez vos informations.');
     }
   }
 

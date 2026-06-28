@@ -68,7 +68,7 @@
       // Chercher le compte existant (inclut les supprimés pour détecter les tentatives)
       var existing = await sb
         .from('app_users')
-        .select('id, kyc_status, profile_complete, is_active, blocked_reason, deleted_at')
+        .select('id, kyc_status, profile_complete, is_active, blocked_reason, deleted_at, rccm_number, company_name, first_name, last_name')
         .eq('email', user.email)
         .eq('portal', portal)
         .maybeSingle();
@@ -120,6 +120,10 @@
       user.kycStatus = dbUser.kyc_status;
       user.profileComplete = dbUser.profile_complete;
       user.isActive = dbUser.is_active !== false;
+      user.rccm_number = dbUser.rccm_number || null;
+      user.company_name = dbUser.company_name || null;
+      user.first_name = dbUser.first_name || null;
+      user.last_name = dbUser.last_name || null;
       return user;
     } catch (err) {
       console.error('[Credigo] Échec sync utilisateur Supabase :', err.message);
