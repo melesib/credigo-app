@@ -4985,6 +4985,9 @@ function buildFormLines(schema, data, lieu, date) {
 
 
 /* ══ UPLOAD KYC DOCUMENTS ══ */
+// Stockage des documents uploadés
+var kycUploaded = {};
+
 // Mapping rowId → { docType, docLabel, step }
 var KYC_DOC_MAP = {
   'kdoc-cni':          { type: 'cni',           label: "Pièce d'identité (CNI/Passeport)",    step: 1 },
