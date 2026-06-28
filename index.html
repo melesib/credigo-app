@@ -794,6 +794,25 @@ textarea{resize:vertical;min-height:70px}
   </button>
 </div>
 
+<!-- BANDEAU KYC EN ATTENTE -->
+<div id="kyc-pending-banner" style="display:none;position:fixed;bottom:0;left:0;right:0;z-index:300;background:linear-gradient(135deg,#F59E0B,#D97706);padding:12px 16px;align-items:center;gap:10px;box-shadow:0 -4px 16px rgba(0,0,0,.15)">
+  <i class="ti ti-clock" style="font-size:20px;color:#fff;flex-shrink:0"></i>
+  <div style="flex:1;min-width:0">
+    <div style="font-size:12px;font-weight:800;color:#fff">KYC en cours de vérification</div>
+    <div style="font-size:10px;color:#FEF3C7;margin-top:1px">Notre équipe examine votre dossier · Réponse sous 24-48h ouvrables</div>
+  </div>
+  <span style="background:#fff;border-radius:8px;padding:5px 10px;font-size:11px;font-weight:800;color:#D97706;flex-shrink:0">En attente</span>
+</div>
+
+<!-- BANDEAU KYC REJETÉ -->
+<div id="kyc-rejected-banner" style="display:none;position:fixed;bottom:0;left:0;right:0;z-index:300;background:linear-gradient(135deg,#DC2626,#991B1B);padding:12px 16px;align-items:flex-start;gap:10px;box-shadow:0 -4px 16px rgba(0,0,0,.2)">
+  <i class="ti ti-shield-x" style="font-size:20px;color:#fff;flex-shrink:0;margin-top:1px"></i>
+  <div style="flex:1;min-width:0">
+    <div style="font-size:12px;font-weight:800;color:#fff">❌ KYC rejetée</div>
+    <div id="kyc-rejected-motif" style="font-size:10px;color:#FEE2E2;margin-top:1px;line-height:1.5">Contactez support@credigo.ci pour connaître les raisons</div>
+  </div>
+  <a href="mailto:support@credigo.ci" style="background:#fff;border-radius:8px;padding:5px 10px;font-size:11px;font-weight:800;color:#DC2626;text-decoration:none;flex-shrink:0;margin-top:1px">Support</a>
+</div>
 
 <!-- NAV -->
 <div class="nav">
@@ -6419,19 +6438,12 @@ function showKycBanner(user) {
 }
 
 function showKycPendingBanner(user) {
-  // Afficher un bandeau informatif KYC en attente (différent du bandeau rouge)
-  var existing = document.getElementById('kyc-pending-banner');
-  if (existing) { existing.style.display = 'flex'; return; }
-  var bar = document.createElement('div');
-  bar.id = 'kyc-pending-banner';
-  bar.style.cssText = 'position:fixed;bottom:0;left:0;right:0;z-index:300;background:linear-gradient(135deg,#F59E0B,#D97706);padding:10px 16px;display:flex;align-items:center;gap:10px;box-shadow:0 -4px 16px rgba(0,0,0,.15)';
-  bar.innerHTML = '<i class="ti ti-clock" style="font-size:18px;color:#fff;flex-shrink:0"></i>' +
-    '<div style="flex:1"><div style="font-size:12px;font-weight:800;color:#fff">KYC en cours de v\u00e9rification</div>' +
-    '<div style="font-size:10px;color:#FEF3C7;margin-top:1px">Notre \u00e9quipe examine votre dossier · R\u00e9ponse sous 24-48h</div></div>' +
-    '<span style="background:#fff;border-radius:8px;padding:4px 10px;font-size:11px;font-weight:800;color:#D97706">En attente</span>';
-  document.body.appendChild(bar);
-  var contentEl = document.querySelector('.content');
-  if (contentEl) contentEl.style.paddingBottom = '70px';
+  var bar = document.getElementById('kyc-pending-banner');
+  if (bar) {
+    bar.style.display = 'flex';
+    var c = document.querySelector('.content');
+    if (c) c.style.paddingBottom = '70px';
+  }
 }
 
 function hideKycBanner() {
