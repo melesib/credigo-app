@@ -6344,8 +6344,9 @@ function authEnterApp(user) {
       if (c) c.style.paddingBottom = '';
       // Afficher le bon bandeau selon le statut
       if (user.kycStatus === 'rejected') {
-        showKycRejectedBanner();
-        // Bloquer toutes les actions sauf support
+        user.rejection_reason = fresh.rejection_reason || null;
+        authSaveSession(user);
+        showKycRejectedBanner(user.rejection_reason);
         lockAppForRejectedKyc(user);
       } else if (user.kycStatus === 'approved') {
         hideKycBanner();
@@ -6395,7 +6396,7 @@ function showKycBanner(user) {
     var contentEl0 = document.querySelector('.content');
     if (contentEl0) contentEl0.style.paddingBottom = '';
     if (user.kycStatus === 'pending_review') showKycPendingBanner(user);
-    if (user.kycStatus === 'rejected') showKycRejectedBanner();
+    if (user.kycStatus === 'rejected') showKycRejectedBanner(user.rejection_reason || null);
     return;
   }
   // Ne pas afficher sur les écrans de profil

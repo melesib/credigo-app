@@ -301,15 +301,12 @@
    */
   window.credigoRefreshKycStatus = async function () {
     if (!supabaseReady) return null;
-    // Essayer d'abord avec le userId local
     var userId = currentAppUserId();
-    // Si pas de userId local, utiliser l'email depuis la session Supabase Auth
     if (!userId) {
       try {
         var authSession = await sb.auth.getSession();
         var email = authSession && authSession.data && authSession.data.session && authSession.data.session.user && authSession.data.session.user.email;
         if (!email) return null;
-        // Récupérer l'app_user par email et portail
         var portal = (function() {
           try { var s = JSON.parse(localStorage.getItem('credigo_session') || 'null'); return s ? (s.role === 'e' ? 'entrepreneur' : 'financeur') : null; } catch(e) { return null; }
         })();
@@ -317,12 +314,27 @@
         if (portal) query = query.eq('portal', portal);
         var res2 = await query.limit(1).single();
         if (res2.error || !res2.data) return null;
-        return res2.data;
+        userId = res2.data.id;
+        var result2 = res2.data;
+        // Récupérer le motif de rejet si rejected
+        if (result2.kyc_status === 'rejected') {
+          var sub2 = await sb.from('kyc_submissions').select('decision_notes').eq('app_user_id', userId).eq('status', 'rejected').order('reviewed_at', { ascending: false }).limit(1).maybeSingle();
+          result2.rejection_reason = (sub2 && sub2.data && sub2.data.decision_notes) || null;
+        }
+        return result2;
       } catch(e) { return null; }
     }
     var res = await sb.from('app_users').select('kyc_status, profile_complete').eq('id', userId).single();
     if (res.error) return null;
-    return res.data;
+    var result = res.data;
+    // Récupérer le motif de rejet si rejected
+    if (result.kyc_status === 'rejected') {
+      try {
+        var sub = await sb.from('kyc_submissions').select('decision_notes').eq('app_user_id', userId).eq('status', 'rejected').order('reviewed_at', { ascending: false }).limit(1).maybeSingle();
+        result.rejection_reason = (sub && sub.data && sub.data.decision_notes) || null;
+      } catch(e) { result.rejection_reason = null; }
+    }
+    return result;
   };
 
   // ════════════════════════════════════════════════════════════
