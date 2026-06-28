@@ -6350,7 +6350,7 @@ function authEnterApp(user) {
   if (_refreshFn) {
     var _refreshPromise = window.credigoForceRefreshStatus
       ? window.credigoForceRefreshStatus(user.email, user.role)
-      : window.credigoRefreshKycStatus();
+      : (window.credigoRefreshKycStatus ? window.credigoRefreshKycStatus() : Promise.resolve(null));
     _refreshPromise.then(function(fresh) {
       if (!fresh) return;
       user.kycStatus = fresh.kyc_status;
@@ -7082,6 +7082,22 @@ var _origAuthInit = window.authInit;
   window._isSessionActive = isSessionActive;
   window._clearActiveSession = clearActiveSession;
 })();
+
+function lockAppForRejectedKyc(user) {
+  var role = user && user.role === 'e' ? 'e' : 'f';
+  showScreen(role + '-support');
+  var navItems = document.querySelectorAll('#sb-' + role + ' .nav-link, #sb-' + role + ' [onclick]');
+  navItems.forEach(function(item) {
+    var oc = item.getAttribute('onclick') || '';
+    if (!oc.includes('support')) {
+      item.style.opacity = '0.4';
+      item.style.pointerEvents = 'none';
+    }
+  });
+  setTimeout(function() {
+    toast('\u274C KYC rejet\u00e9e. Seule la section Support est accessible.');
+  }, 500);
+}
 
 function authResetToRoleSelect() {
   // Revenir à l'étape de sélection du rôle
