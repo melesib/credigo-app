@@ -6295,24 +6295,33 @@ function authEnterApp(user) {
     });
   }
 
-  // Redirection immédiate vers profil si incomplet (avant le retour Supabase async)
-  if (!user.profileComplete || user.kycStatus === 'not_started') {
+  // Redirection immédiate vers profil si incomplet ET KYC pas encore soumis
+  if (user.kycStatus === 'pending_review') {
+    showKycPendingBanner(user);
+  } else if (user.kycStatus === 'approved') {
+    // KYC approuvé - pas de bandeau, pas de redirection
+  } else if (!user.profileComplete) {
     showKycBanner(user);
     setTimeout(function() {
       showScreen(user.role === 'e' ? 'e-profile' : 'f-profile');
     }, 200);
-  } else if (user.kycStatus === 'pending_review') {
-    showKycPendingBanner(user);
-  } else if (user.kycStatus !== 'approved') {
+  } else {
     showKycBanner(user);
   }
 
   // Notification de bienvenue
   setTimeout(function() {
     if (typeof toast === 'function') {
-      var msg = user.kycStatus === 'approved'
-        ? 'Bienvenue ' + (user.name || '') + ' !'
-        : 'Bienvenue ! Complétez votre profil et KYC pour accéder à toutes les fonctionnalités.';
+      var msg;
+      if (user.kycStatus === 'approved') {
+        msg = 'Bienvenue ' + (user.name || '') + ' !';
+      } else if (user.kycStatus === 'pending_review') {
+        msg = 'Bienvenue ' + (user.name || '') + ' ! Votre dossier KYC est en cours de v\u00e9rification.';
+      } else if (user.profileComplete) {
+        msg = 'Bienvenue ' + (user.name || '') + ' ! Votre profil est complet.';
+      } else {
+        msg = 'Bienvenue ! Compl\u00e9tez votre profil et KYC pour acc\u00e9der \u00e0 toutes les fonctionnalit\u00e9s.';
+      }
       toast(msg);
     }
   }, 600);
