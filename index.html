@@ -2820,15 +2820,14 @@ function hideAll() {
   ALL_SCREENS.forEach(id => { const el = document.getElementById(id); if (el) { el.style.display = 'none'; el.classList.remove('on'); } });
 }
 function showScreen(id) {
-  // Intercepter l'accès aux écrans KYC si déjà soumis/rejeté
+  // Si KYC soumis/approuvé/rejeté, afficher l'écran KYC mais en mode lecture seule
   if ((id === 'e-kyc' || id === 'f-kyc-upload') && authUser &&
       (authUser.kycStatus === 'pending_review' || authUser.kycStatus === 'approved' || authUser.kycStatus === 'rejected')) {
-    var role = id === 'e-kyc' ? 'e' : 'f';
-    // Afficher l'écran mais avec le contenu statut (pas le formulaire)
     hideAll();
-    var screen = document.getElementById(id);
-    if (screen) { screen.style.display = 'block'; screen.classList.add('on'); }
-    showKycStatusScreen(role);
+    var kycScreen = document.getElementById(id);
+    if (kycScreen) { kycScreen.style.display = 'block'; kycScreen.classList.add('on'); }
+    // Appliquer le mode verrouillé après affichage
+    setTimeout(function() { applyKycLockMode(id); }, 50);
     return;
   }
   hideAll();
@@ -5904,10 +5903,9 @@ function kycUpdateProgress(portal, config) {
 }
 
 function kycEGoStep(s) {
-  // Bloquer si déjà soumis ou rejeté
-  if (authUser && (authUser.kycStatus === 'pending_review' || authUser.kycStatus === 'approved' || authUser.kycStatus === 'rejected')) {
-    showKycStatusScreen('e');
-    return;
+  // Bloquer si approuvé ou pending (pas si rejected avec resubmit autorisé)
+  if (authUser && (authUser.kycStatus === 'pending_review' || authUser.kycStatus === 'approved')) {
+    return; // Rester sur l'écran, applyKycLockMode gère l'affichage
   }
   for (var i = 1; i <= 4; i++) {
     var el = document.getElementById('kyc-e-step-' + i);
@@ -5921,8 +5919,7 @@ function kycEGoStep(s) {
 }
 
 function kycFGoStep(s) {
-  if (authUser && (authUser.kycStatus === 'pending_review' || authUser.kycStatus === 'approved' || authUser.kycStatus === 'rejected')) {
-    showKycStatusScreen('f');
+  if (authUser && (authUser.kycStatus === 'pending_review' || authUser.kycStatus === 'approved')) {
     return;
   }
   for (var i = 1; i <= 3; i++) {
@@ -6910,6 +6907,92 @@ function goToKycFromProfile(role) {
     if (sbF2) sbF2.style.display = 'block';
     showScreen('f-kyc-upload');
   }
+}
+
+function applyKycLockMode(screenId) {
+  var screen = document.getElementById(screenId);
+  if (!screen) return;
+  var status = authUser ? authUser.kycStatus : '';
+  var reqDocs = (authUser && authUser.kyc_required_docs) || [];
+  var resubmitAllowed = authUser && authUser.kyc_resubmit_allowed;
+  var resubmitNote = (authUser && authUser.kyc_resubmit_note) || null;
+
+  // Afficher une bannière de statut en haut de l'écran KYC
+  var existingBanner = screen.querySelector('.kyc-status-top-banner');
+  if (existingBanner) existingBanner.remove();
+
+  var statusLabels = {
+    'pending_review': { bg:'#FEF3C7', color:'#92400E', icon:'ti-clock', text:'Dossier en cours de vérification · Réponse sous 24-48h' },
+    'approved':       { bg:'#D1FAE5', color:'#065F46', icon:'ti-shield-check', text:'KYC validée ✓ · Accès complet activé' },
+    'rejected':       { bg:'#FEE2E2', color:'#991B1B', icon:'ti-shield-x',
+      text: resubmitAllowed
+        ? (resubmitNote ? 'Motif : ' + resubmitNote + ' · Certains documents peuvent être re-soumis' : 'Certains documents peuvent être re-soumis')
+        : 'KYC rejetée · Contactez le support' }
+  };
+  var sc = statusLabels[status];
+  if (sc) {
+    var banner = document.createElement('div');
+    banner.className = 'kyc-status-top-banner';
+    banner.style.cssText = 'background:' + sc.bg + ';border-radius:12px;padding:12px 14px;margin-bottom:14px;display:flex;align-items:center;gap:10px;font-size:12px;font-weight:700;color:' + sc.color;
+    banner.innerHTML = '<i class="ti ' + sc.icon + '" style="font-size:18px"></i><span>' + sc.text + '</span>';
+    screen.insertBefore(banner, screen.firstChild);
+  }
+
+  // Griser/activer chaque row de document
+  var rows = screen.querySelectorAll('.kyc-doc-row');
+  rows.forEach(function(row) {
+    var rowId = row.id;
+    var docInfo = KYC_DOC_MAP && KYC_DOC_MAP[rowId];
+    var docType = docInfo ? docInfo.type : null;
+
+    // Déterminer si ce doc est activé pour re-soumission
+    var isActive = false;
+    if (status === 'rejected' && resubmitAllowed) {
+      isActive = reqDocs.length === 0 || (docType && reqDocs.includes(docType));
+    }
+
+    if (isActive) {
+      // Doc activé pour re-soumission : fond vert clair, bouton actif
+      row.style.opacity = '1';
+      row.style.pointerEvents = 'auto';
+      row.style.background = '#F0FDF4';
+      row.style.border = '1.5px solid #6EE7B7';
+      row.style.borderRadius = '10px';
+      row.style.marginBottom = '6px';
+      // Ajouter badge "À soumettre"
+      var existingTag = row.querySelector('.resubmit-tag');
+      if (!existingTag) {
+        var tag = document.createElement('div');
+        tag.className = 'resubmit-tag';
+        tag.style.cssText = 'font-size:10px;font-weight:800;color:#065F46;background:#D1FAE5;padding:2px 8px;border-radius:6px;margin-top:4px;display:inline-block';
+        tag.textContent = '↑ À soumettre';
+        var docText = row.querySelector('.kyc-doc-text');
+        if (docText) docText.appendChild(tag);
+      }
+    } else {
+      // Doc verrouillé : grisé, non cliquable
+      row.style.opacity = '0.45';
+      row.style.pointerEvents = 'none';
+      row.style.background = '';
+      row.style.border = '';
+      var oldTag = row.querySelector('.resubmit-tag');
+      if (oldTag) oldTag.remove();
+    }
+  });
+
+  // Désactiver les boutons de navigation entre étapes si pas en mode résoumission
+  var navBtns = screen.querySelectorAll('.btn-p, .btn-s');
+  navBtns.forEach(function(btn) {
+    var oc = btn.getAttribute('onclick') || '';
+    // Garder actifs les boutons de navigation entre étapes
+    if (oc.includes('kycENext') || oc.includes('kycEBack') || oc.includes('kycFNext') || oc.includes('kycFBack')) {
+      btn.style.pointerEvents = 'auto';
+      btn.style.opacity = '1';
+    } else if (!isActive && (oc.includes('kycESubmit') || oc.includes('kycFSubmit'))) {
+      btn.style.pointerEvents = 'none';
+      btn.style.opacity = '0.4';
+    }
+  });
 }
 
 function showKycStatusScreen(role) {
