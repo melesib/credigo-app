@@ -6301,6 +6301,8 @@ function authEnterApp(user) {
     setTimeout(function() {
       showScreen(user.role === 'e' ? 'e-profile' : 'f-profile');
     }, 200);
+  } else if (user.kycStatus === 'pending_review') {
+    showKycPendingBanner(user);
   } else if (user.kycStatus !== 'approved') {
     showKycBanner(user);
   }
@@ -6320,20 +6322,45 @@ function authEnterApp(user) {
 function showKycBanner(user) {
   var banner = document.getElementById('kyc-required-banner');
   if (!banner) return;
-  // Ne pas afficher sur les écrans de profil (l'utilisateur est en train de le remplir)
+  // Ne pas afficher si KYC soumis ou approuvé
+  if (user && (user.kycStatus === 'pending_review' || user.kycStatus === 'approved')) {
+    banner.style.display = 'none';
+    var contentEl0 = document.querySelector('.content');
+    if (contentEl0) contentEl0.style.paddingBottom = '';
+    // Mettre à jour le texte du bandeau si soumis
+    if (user.kycStatus === 'pending_review') {
+      showKycPendingBanner(user);
+    }
+    return;
+  }
+  // Ne pas afficher sur les écrans de profil
   var profileScreens = ['e-profile', 'f-profile', 'e-kyc', 'f-kyc-upload'];
   var currentScreen = document.querySelector('.screen.on');
   if (currentScreen && profileScreens.indexOf(currentScreen.id) !== -1) return;
   banner.style.display = 'flex';
-  // Ajouter padding-bottom au contenu pour éviter que le banner cache les boutons
   var contentEl = document.querySelector('.content');
   if (contentEl) contentEl.style.paddingBottom = '80px';
-  // Ajuster couleur selon rôle
   if (user && user.role === 'f') {
     banner.style.background = 'linear-gradient(135deg,#059669,#065F46)';
     var btn = document.getElementById('kyc-banner-btn');
     if (btn) btn.style.color = '#059669';
   }
+}
+
+function showKycPendingBanner(user) {
+  // Afficher un bandeau informatif KYC en attente (différent du bandeau rouge)
+  var existing = document.getElementById('kyc-pending-banner');
+  if (existing) { existing.style.display = 'flex'; return; }
+  var bar = document.createElement('div');
+  bar.id = 'kyc-pending-banner';
+  bar.style.cssText = 'position:fixed;bottom:0;left:0;right:0;z-index:300;background:linear-gradient(135deg,#F59E0B,#D97706);padding:10px 16px;display:flex;align-items:center;gap:10px;box-shadow:0 -4px 16px rgba(0,0,0,.15)';
+  bar.innerHTML = '<i class="ti ti-clock" style="font-size:18px;color:#fff;flex-shrink:0"></i>' +
+    '<div style="flex:1"><div style="font-size:12px;font-weight:800;color:#fff">KYC en cours de v\u00e9rification</div>' +
+    '<div style="font-size:10px;color:#FEF3C7;margin-top:1px">Notre \u00e9quipe examine votre dossier · R\u00e9ponse sous 24-48h</div></div>' +
+    '<span style="background:#fff;border-radius:8px;padding:4px 10px;font-size:11px;font-weight:800;color:#D97706">En attente</span>';
+  document.body.appendChild(bar);
+  var contentEl = document.querySelector('.content');
+  if (contentEl) contentEl.style.paddingBottom = '70px';
 }
 
 function hideKycBanner() {
@@ -6729,8 +6756,12 @@ function saveFProfile() {
 
 /* ── Aller au KYC depuis le profil ── */
 function goToKycFromProfile(role) {
+  // Si KYC déjà soumis, montrer le statut
+  if (authUser && (authUser.kycStatus === 'pending_review' || authUser.kycStatus === 'approved')) {
+    showKycStatusScreen(role);
+    return;
+  }
   if (role === 'e') {
-    // Activer le portail entrepreneur sans rediriger (switchTo appelle showScreen)
     currentPortal = 'e';
     var sbE = document.getElementById('sb-e');
     var sbF = document.getElementById('sb-f');
@@ -6745,6 +6776,49 @@ function goToKycFromProfile(role) {
     if (sbF2) sbF2.style.display = 'block';
     showScreen('f-kyc-upload');
   }
+}
+
+function showKycStatusScreen(role) {
+  var screenId = role === 'e' ? 'e-kyc' : 'f-kyc-upload';
+  currentPortal = role;
+  var sbE = document.getElementById('sb-e');
+  var sbF = document.getElementById('sb-f');
+  if (sbE) sbE.style.display = role === 'e' ? 'block' : 'none';
+  if (sbF) sbF.style.display = role === 'e' ? 'none' : 'block';
+  
+  // Remplacer le contenu de l'écran KYC par un écran de statut
+  var screen = document.getElementById(screenId);
+  if (!screen) { showScreen(screenId); return; }
+  
+  var status = authUser ? authUser.kycStatus : 'pending_review';
+  var isApproved = status === 'approved';
+  var statusConfig = {
+    'pending_review': { icon:'ti-clock', color:'#D97706', bg:'#FEF3C7', label:'En cours de v\u00e9rification', msg:'Notre \u00e9quipe examine votre dossier. R\u00e9ponse sous 24-48h ouvrables.' },
+    'approved':       { icon:'ti-shield-check', color:'#059669', bg:'#D1FAE5', label:'KYC Valid\u00e9 ✓', msg:'Votre identit\u00e9 a \u00e9t\u00e9 v\u00e9rifi\u00e9e avec succ\u00e8s. Vous avez acc\u00e8s \u00e0 toutes les fonctionnalit\u00e9s.' },
+    'rejected':       { icon:'ti-shield-x', color:'#DC2626', bg:'#FEE2E2', label:'Dossier rejet\u00e9', msg:'Votre dossier a \u00e9t\u00e9 rejet\u00e9. Contactez support@credigo.ci pour plus d\'informations.' }
+  };
+  var cfg = statusConfig[status] || statusConfig['pending_review'];
+  
+  // Sauvegarder le contenu original et remplacer
+  if (!screen.getAttribute('data-original-saved')) {
+    screen.setAttribute('data-original', screen.innerHTML);
+    screen.setAttribute('data-original-saved', '1');
+  }
+  
+  screen.innerHTML = '<div style="padding:20px">' +
+    '<div style="text-align:center;padding:32px 20px">' +
+    '<div style="width:80px;height:80px;background:' + cfg.bg + ';border-radius:50%;display:flex;align-items:center;justify-content:center;margin:0 auto 20px">' +
+    '<i class="ti ' + cfg.icon + '" style="font-size:38px;color:' + cfg.color + '"></i></div>' +
+    '<div style="font-size:18px;font-weight:800;color:#111827;margin-bottom:8px">' + cfg.label + '</div>' +
+    '<div style="font-size:13px;color:#6B7280;line-height:1.7;margin-bottom:24px">' + cfg.msg + '</div>' +
+    (isApproved ? '' : '<div style="background:' + cfg.bg + ';border-radius:12px;padding:16px;margin-bottom:20px;font-size:12px;color:' + cfg.color + ';line-height:1.8;text-align:left">' +
+    '<strong>Documents soumis :</strong><br>' +
+    Object.keys(kycUploaded).map(function(k) { return '\u2713 ' + (kycUploaded[k].name || k); }).join('<br>') +
+    (Object.keys(kycUploaded).length === 0 ? 'Documents en cours de traitement...' : '') +
+    '</div>') +
+    '</div></div>';
+  
+  showScreen(screenId);
 }
 
 /* ══ SWITCH E/F — Visible uniquement si l'utilisateur a les deux portails ══ */
