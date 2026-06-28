@@ -5017,7 +5017,9 @@ var KYC_DOC_MAP = {
 
 function handleKycUpload(input, rowId) {
   var file = input.files && input.files[0];
-  if (!file) return;
+  if (!file || !file.name) return;
+  // Détacher temporairement l'event pour éviter la récursion
+  input.onchange = null;
 
   var docInfo = KYC_DOC_MAP[rowId];
   if (!docInfo) { console.warn('Doc non mappé:', rowId); return; }
@@ -5090,8 +5092,10 @@ function handleKycUpload(input, rowId) {
     toast('\u2705 ' + file.name + ' sélectionné.');
   }
 
-  // Réinitialiser l'input pour permettre re-sélection
-  input.value = '';
+  // Réattacher l'event après un délai
+  setTimeout(function() {
+    input.onchange = function() { handleKycUpload(input, rowId); };
+  }, 500);
 }
 
 function handleKycUploadFromForm(docId, filename) {
