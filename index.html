@@ -6957,8 +6957,14 @@ function applyKycLockMode(screenId) {
 
     // Déterminer si ce doc est activé pour re-soumission
     var isActive = false;
-    if (status === 'rejected' && resubmitAllowed) {
-      isActive = reqDocs.length === 0 || (docType && reqDocs.includes(docType));
+    if (status === 'rejected') {
+      if (reqDocs && reqDocs.length > 0) {
+        // Docs spécifiques activés depuis le BO
+        isActive = docType && reqDocs.includes(docType);
+      } else if (resubmitAllowed && (!reqDocs || reqDocs.length === 0)) {
+        // Tous les docs autorisés si kyc_resubmit_allowed mais pas de liste spécifique
+        isActive = true;
+      }
     }
 
     // Nettoyer les tags existants
@@ -7267,9 +7273,8 @@ var _origAuthInit = window.authInit;
 
 function lockAppForRejectedKyc(user) {
   var role = user && user.role === 'e' ? 'e' : 'f';
-  var kycScreen = role === 'e' ? 'e-kyc' : 'f-kyc-upload';
-  // Aller sur la section KYC pour voir les docs à resoumettre
-  showScreen(kycScreen);
+  var kycScreenId = role === 'e' ? 'e-kyc' : 'f-kyc-upload';
+
   // Griser tout sauf KYC et Support
   var navItems = document.querySelectorAll('#sb-' + role + ' .slink');
   navItems.forEach(function(item) {
@@ -7284,9 +7289,33 @@ function lockAppForRejectedKyc(user) {
       item.style.pointerEvents = 'auto';
     }
   });
+
+  // Forcer un refresh pour obtenir les docs requis depuis Supabase
+  var refreshFn = window.credigoForceRefreshStatus || (window.credigoRefreshKycStatus ? window.credigoRefreshKycStatus : null);
+  if (refreshFn) {
+    var p = window.credigoForceRefreshStatus
+      ? window.credigoForceRefreshStatus(user.email, user.role)
+      : window.credigoRefreshKycStatus();
+    p.then(function(fresh) {
+      if (fresh) {
+        authUser.kyc_resubmit_allowed = fresh.kyc_resubmit_allowed || false;
+        authUser.kyc_required_docs = fresh.kyc_required_docs || null;
+        authUser.kyc_rejected_docs = fresh.kyc_rejected_docs || {};
+        authUser.kyc_resubmit_note = fresh.kyc_resubmit_note || null;
+        authSaveSession(authUser);
+      }
+      // Aller sur KYC et appliquer le mode verrouillé avec les vraies données
+      showScreen(kycScreenId);
+    }).catch(function() {
+      showScreen(kycScreenId);
+    });
+  } else {
+    showScreen(kycScreenId);
+  }
+
   setTimeout(function() {
-    toast('\u274C KYC rejet\u00e9e. Sections KYC et Support accessibles.');
-  }, 500);
+    toast('\u274C KYC rejet\u00e9e. V\u00e9rifiez la section KYC pour les documents \u00e0 resoumettre.');
+  }, 800);
 }
 
 function authResetToRoleSelect() {
