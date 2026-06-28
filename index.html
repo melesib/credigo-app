@@ -795,23 +795,21 @@ textarea{resize:vertical;min-height:70px}
 </div>
 
 <!-- BANDEAU KYC EN ATTENTE -->
-<div id="kyc-pending-banner" style="display:none;position:fixed;bottom:0;left:0;right:0;z-index:300;background:linear-gradient(135deg,#F59E0B,#D97706);padding:12px 16px;align-items:center;gap:10px;box-shadow:0 -4px 16px rgba(0,0,0,.15)">
-  <i class="ti ti-clock" style="font-size:20px;color:#fff;flex-shrink:0"></i>
+<div id="kyc-pending-banner" style="display:none;position:fixed;bottom:0;left:0;right:0;z-index:300;background:linear-gradient(135deg,#F59E0B,#D97706);padding:8px 12px;align-items:center;gap:8px;box-shadow:0 -4px 16px rgba(0,0,0,.15)">
+  <i class="ti ti-clock" style="font-size:16px;color:#fff;flex-shrink:0"></i>
   <div style="flex:1;min-width:0">
-    <div style="font-size:12px;font-weight:800;color:#fff">KYC en cours de vérification</div>
-    <div style="font-size:10px;color:#FEF3C7;margin-top:1px">Notre équipe examine votre dossier · Réponse sous 24-48h ouvrables</div>
+    <div style="font-size:11px;font-weight:800;color:#fff">KYC en cours de vérification · Réponse sous 24-48h</div>
   </div>
-  <span style="background:#fff;border-radius:8px;padding:5px 10px;font-size:11px;font-weight:800;color:#D97706;flex-shrink:0">En attente</span>
+  <span style="background:#fff;border-radius:6px;padding:3px 8px;font-size:10px;font-weight:800;color:#D97706;flex-shrink:0">En attente</span>
 </div>
 
 <!-- BANDEAU KYC REJETÉ -->
-<div id="kyc-rejected-banner" style="display:none;position:fixed;bottom:0;left:0;right:0;z-index:300;background:linear-gradient(135deg,#DC2626,#991B1B);padding:12px 16px;align-items:flex-start;gap:10px;box-shadow:0 -4px 16px rgba(0,0,0,.2)">
-  <i class="ti ti-shield-x" style="font-size:20px;color:#fff;flex-shrink:0;margin-top:1px"></i>
+<div id="kyc-rejected-banner" style="display:none;position:fixed;bottom:0;left:0;right:0;z-index:300;background:linear-gradient(135deg,#DC2626,#991B1B);padding:8px 12px;align-items:center;gap:8px;box-shadow:0 -4px 16px rgba(0,0,0,.2)">
+  <i class="ti ti-shield-x" style="font-size:16px;color:#fff;flex-shrink:0"></i>
   <div style="flex:1;min-width:0">
-    <div style="font-size:12px;font-weight:800;color:#fff">❌ KYC rejetée</div>
-    <div id="kyc-rejected-motif" style="font-size:10px;color:#FEE2E2;margin-top:1px;line-height:1.5">Contactez support@credigo.ci pour connaître les raisons</div>
+    <div style="font-size:11px;font-weight:800;color:#fff;display:flex;align-items:center;gap:6px">❌ KYC rejetée <span id="kyc-rejected-motif" style="font-size:10px;font-weight:500;color:#FEE2E2;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:180px"></span></div>
   </div>
-  <button onclick="if(authUser)showScreen(authUser.role==='e'?'e-support':'f-support')" style="background:#fff;border:none;border-radius:8px;padding:5px 10px;font-size:11px;font-weight:800;color:#DC2626;cursor:pointer;flex-shrink:0;margin-top:1px;font-family:inherit">Support</button>
+  <button onclick="if(authUser)showScreen(authUser.role==='e'?'e-support':'f-support')" style="background:#fff;border:none;border-radius:6px;padding:4px 8px;font-size:10px;font-weight:800;color:#DC2626;cursor:pointer;flex-shrink:0;font-family:inherit">Support</button>
 </div>
 
 <!-- NAV -->
@@ -6470,20 +6468,19 @@ function showKycPendingBanner(user) {
 }
 
 function showKycRejectedBanner(reason) {
-  // Masquer les autres bandeaux
   var b1 = document.getElementById('kyc-required-banner');
   var b2 = document.getElementById('kyc-pending-banner');
   if (b1) b1.style.display = 'none';
   if (b2) b2.style.display = 'none';
-  // Afficher le bandeau rouge
   var bar = document.getElementById('kyc-rejected-banner');
   if (bar) {
     bar.style.display = 'flex';
     var motif = reason || (authUser && authUser.rejection_reason) || null;
     var motifEl = document.getElementById('kyc-rejected-motif');
     if (motifEl) motifEl.textContent = motif ? 'Motif : ' + motif : 'Contactez support@credigo.ci pour connaître les raisons';
+    // Assez de padding pour les boutons de navigation KYC
     var c = document.querySelector('.content');
-    if (c) c.style.paddingBottom = '80px';
+    if (c) c.style.paddingBottom = '120px';
   }
 }
 
