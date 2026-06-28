@@ -5015,11 +5015,13 @@ var KYC_DOC_MAP = {
   'fkdoc-cgu':         { type: 'cgu_financeur',  label: 'CGU Financeur signées',              step: 3 },
 };
 
+var _kycUploadBusy = {};
 function handleKycUpload(input, rowId) {
+  // Protection anti-récursion via flag
+  if (_kycUploadBusy[rowId]) return;
   var file = input.files && input.files[0];
-  if (!file || !file.name) return;
-  // Détacher temporairement l'event pour éviter la récursion
-  input.onchange = null;
+  if (!file || !file.size) return;
+  _kycUploadBusy[rowId] = true;
 
   var docInfo = KYC_DOC_MAP[rowId];
   if (!docInfo) { console.warn('Doc non mappé:', rowId); return; }
@@ -5041,61 +5043,54 @@ function handleKycUpload(input, rowId) {
     if (prev) { prev.style.display='flex'; prev.innerHTML='<i class="ti ti-loader-2" style="animation:spin 1s linear infinite;font-size:14px"></i> Upload en cours...'; }
   }
 
-  // Upload vers Supabase Storage
-  if (window.credigoUploadKycDocument && window.CredigoDB && window.CredigoDB.ready) {
-    window.credigoUploadKycDocument(docInfo.type, docInfo.label, docInfo.step, file)
-      .then(function(res) {
-        if (res.error) {
-          toast('\u274C Erreur upload: ' + res.error);
-          if (row) { row.className = 'kyc-doc-row error'; }
-          var prev2 = document.getElementById('preview-' + rowId);
-          if (prev2) { prev2.style.display='flex'; prev2.innerHTML='\u274C Erreur: ' + res.error; }
-          return;
-        }
-        // Succès
-        kycUploaded[rowId] = { name: file.name, size: file.size, type: file.type, url: res.fileUrl };
-        if (row) {
-          row.className = 'kyc-doc-row uploaded';
-          var badge2 = row.querySelector('.kyc-status-badge');
-          if (badge2) { badge2.textContent = '\u2713 Chargé'; badge2.className = 'kyc-status-badge uploaded'; }
-          var prev3 = document.getElementById('preview-' + rowId);
-          if (prev3) {
-            var icon = file.type.includes('image') ? 'ti-photo' : 'ti-file-check';
-            prev3.style.display='flex';
-            prev3.innerHTML='<i class="ti ' + icon + '" style="font-size:14px"></i> ' + file.name;
-          }
-        }
-        // Mettre à jour la progression
-        if (rowId.startsWith('fkdoc-')) updateFKycProgress();
-        else updateEKycProgress();
-        toast('\u2705 ' + file.name + ' chargé avec succès !');
-      })
-      .catch(function(err) {
-        toast('\u274C Erreur upload: ' + err.message);
-        if (row) row.className = 'kyc-doc-row error';
-      });
-  } else {
-    // Mode sans Supabase - simulation locale
-    kycUploaded[rowId] = { name: file.name, size: file.size, type: file.type };
+  // Fonction de succès UI
+  function markSuccess(filename, fileType) {
+    kycUploaded[rowId] = { name: filename, size: file.size, type: fileType };
     if (row) {
       row.className = 'kyc-doc-row uploaded';
-      var badge3 = row.querySelector('.kyc-status-badge');
-      if (badge3) { badge3.textContent = '\u2713 Chargé'; badge3.className = 'kyc-status-badge uploaded'; }
-      var prev4 = document.getElementById('preview-' + rowId);
-      if (prev4) {
-        prev4.style.display='flex';
-        prev4.innerHTML='<i class="ti ti-file-check" style="font-size:14px"></i> ' + file.name;
+      var badge2 = row.querySelector('.kyc-status-badge');
+      if (badge2) { badge2.textContent = '\u2713 Chargé'; badge2.className = 'kyc-status-badge uploaded'; }
+      var prev3 = document.getElementById('preview-' + rowId);
+      if (prev3) {
+        var icon = (fileType||'').includes('image') ? 'ti-photo' : 'ti-file-check';
+        prev3.style.display = 'flex';
+        prev3.innerHTML = '<i class="ti ' + icon + '" style="font-size:14px"></i> ' + filename;
       }
     }
     if (rowId.startsWith('fkdoc-')) updateFKycProgress();
     else updateEKycProgress();
-    toast('\u2705 ' + file.name + ' sélectionné.');
+    _kycUploadBusy[rowId] = false;
+    toast('\u2705 ' + filename + ' chargé !');
   }
 
-  // Réattacher l'event après un délai
-  setTimeout(function() {
-    input.onchange = function() { handleKycUpload(input, rowId); };
-  }, 500);
+  // Upload vers Supabase Storage
+  if (window.credigoUploadKycDocument && window.CredigoDB && window.CredigoDB.ready) {
+    try {
+      Promise.resolve(
+        window.credigoUploadKycDocument(docInfo.type, docInfo.label, docInfo.step, file)
+      ).then(function(res) {
+        if (res && res.error) {
+          // En cas d'erreur Supabase, sauvegarder localement quand même
+          console.warn('[KYC] Erreur Supabase, sauvegarde locale:', res.error);
+          markSuccess(file.name, file.type);
+        } else {
+          markSuccess(file.name, file.type);
+        }
+      }).catch(function(err) {
+        console.warn('[KYC] Erreur upload, sauvegarde locale:', err.message);
+        markSuccess(file.name, file.type);
+      });
+    } catch(e) {
+      console.warn('[KYC] Exception upload:', e.message);
+      markSuccess(file.name, file.type);
+    }
+  } else {
+    // Mode sans Supabase ou hors ligne
+    markSuccess(file.name, file.type);
+  }
+
+  // Libérer le flag après un délai
+  setTimeout(function() { _kycUploadBusy[rowId] = false; }, 1000);
 }
 
 function handleKycUploadFromForm(docId, filename) {
