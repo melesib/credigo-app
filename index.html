@@ -811,7 +811,7 @@ textarea{resize:vertical;min-height:70px}
     <div style="font-size:12px;font-weight:800;color:#fff">❌ KYC rejetée</div>
     <div id="kyc-rejected-motif" style="font-size:10px;color:#FEE2E2;margin-top:1px;line-height:1.5">Contactez support@credigo.ci pour connaître les raisons</div>
   </div>
-  <a href="mailto:support@credigo.ci" style="background:#fff;border-radius:8px;padding:5px 10px;font-size:11px;font-weight:800;color:#DC2626;text-decoration:none;flex-shrink:0;margin-top:1px">Support</a>
+  <button onclick="if(authUser)showScreen(authUser.role==='e'?'e-support':'f-support')" style="background:#fff;border:none;border-radius:8px;padding:5px 10px;font-size:11px;font-weight:800;color:#DC2626;cursor:pointer;flex-shrink:0;margin-top:1px;font-family:inherit">Support</button>
 </div>
 
 <!-- NAV -->
