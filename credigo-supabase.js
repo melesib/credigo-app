@@ -36,17 +36,21 @@
   window.credigoForceRefreshStatus = async function(email, portal) {
     if (!supabaseReady || !sb) return null;
     try {
-      // Si email fourni, chercher par email
       if (email) {
         var q = sb.from('app_users')
-          .select('id, kyc_status, profile_complete')
+          .select('id, kyc_status, profile_complete, kyc_required_docs, kyc_resubmit_allowed, kyc_resubmit_note')
           .eq('email', email)
           .is('deleted_at', null);
         if (portal) q = q.eq('portal', portal === 'e' ? 'entrepreneur' : 'financeur');
         var r = await q.limit(1).maybeSingle();
         if (r.error || !r.data) return null;
         var data = r.data;
+        data.kyc_required_docs = data.kyc_required_docs || null;
+        data.kyc_resubmit_allowed = data.kyc_resubmit_allowed || false;
+        data.kyc_resubmit_note = data.kyc_resubmit_note || null;
+        data.kyc_rejected_docs = {};
         if (data.kyc_status === 'rejected') {
+          // Motif de rejet global
           var sub = await sb.from('kyc_submissions')
             .select('decision_notes')
             .eq('app_user_id', data.id)
@@ -54,6 +58,22 @@
             .order('reviewed_at', { ascending: false })
             .limit(1).maybeSingle();
           data.rejection_reason = (sub && sub.data && sub.data.decision_notes) || null;
+          // Motifs de rejet par document
+          var rejDocs = await sb.from('kyc_documents')
+            .select('doc_type, rejection_reason')
+            .eq('app_user_id', data.id)
+            .eq('status', 'rejected');
+          if (!rejDocs.error && rejDocs.data) {
+            rejDocs.data.forEach(function(d) {
+              if (d.rejection_reason) data.kyc_rejected_docs[d.doc_type] = d.rejection_reason;
+              // Si un doc est rejeté, l'ajouter aux reqDocs si pas déjà présent
+              if (!data.kyc_required_docs) data.kyc_required_docs = [];
+              if (!data.kyc_required_docs.includes(d.doc_type)) {
+                data.kyc_required_docs.push(d.doc_type);
+                data.kyc_resubmit_allowed = true;
+              }
+            });
+          }
         }
         return data;
       }
@@ -364,10 +384,10 @@
     var res = await sb.from('app_users').select('kyc_status, profile_complete, kyc_required_docs, kyc_resubmit_allowed, kyc_resubmit_note').eq('id', userId).single();
     if (res.error) return null;
     var result = res.data;
-    result.kyc_required_docs = res.data.kyc_required_docs || null;
+    result.kyc_required_docs = res.data.kyc_required_docs ? [...res.data.kyc_required_docs] : [];
     result.kyc_resubmit_allowed = res.data.kyc_resubmit_allowed || false;
     result.kyc_resubmit_note = res.data.kyc_resubmit_note || null;
-    // Récupérer les documents rejetés avec motifs
+    // Récupérer les documents rejetés avec motifs et auto-remplir kyc_required_docs
     try {
       var rejDocs = await sb.from('kyc_documents')
         .select('doc_type, rejection_reason')
@@ -377,6 +397,11 @@
         result.kyc_rejected_docs = {};
         rejDocs.data.forEach(function(d) {
           if (d.rejection_reason) result.kyc_rejected_docs[d.doc_type] = d.rejection_reason;
+          // Auto-ajouter aux docs requis si pas déjà présent
+          if (!result.kyc_required_docs.includes(d.doc_type)) {
+            result.kyc_required_docs.push(d.doc_type);
+            result.kyc_resubmit_allowed = true;
+          }
         });
       } else {
         result.kyc_rejected_docs = {};
