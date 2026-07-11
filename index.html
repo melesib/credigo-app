@@ -7983,6 +7983,7 @@ function lockAppForRejectedKyc(user) {
   navItems.forEach(function(item) {
     var oc = item.getAttribute('onclick') || '';
     var isFree = oc.includes('e-home') || oc.includes('e-notifs') || oc.includes('e-score') ||
+                 oc.includes('e-references') ||
                  oc.includes('e-kyc') || oc.includes('f-kyc') || oc.includes('kyc-upload') ||
                  oc.includes('e-profile') || oc.includes('f-profile') || oc.includes('support');
     if (!isFree) {
