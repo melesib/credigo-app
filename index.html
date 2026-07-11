@@ -7654,13 +7654,14 @@ function lockAppForRejectedKyc(user) {
   var role = user && user.role === 'e' ? 'e' : 'f';
   var kycScreenId = role === 'e' ? 'e-kyc' : 'f-kyc-upload';
 
-  // Griser tout sauf KYC et Support
+  // Griser seulement les écrans d'action (financement) ; garder les écrans d'information, le profil, le KYC et le support accessibles
   var navItems = document.querySelectorAll('#sb-' + role + ' .slink');
   navItems.forEach(function(item) {
     var oc = item.getAttribute('onclick') || '';
-    var isKyc = oc.includes('e-kyc') || oc.includes('f-kyc') || oc.includes('kyc-upload');
-    var isSupport = oc.includes('support');
-    if (!isKyc && !isSupport) {
+    var isFree = oc.includes('e-home') || oc.includes('e-notifs') || oc.includes('e-score') ||
+                 oc.includes('e-kyc') || oc.includes('f-kyc') || oc.includes('kyc-upload') ||
+                 oc.includes('e-profile') || oc.includes('f-profile') || oc.includes('support');
+    if (!isFree) {
       item.style.opacity = '0.4';
       item.style.pointerEvents = 'none';
     } else {
