@@ -7070,6 +7070,30 @@ function drawAuthLogo() {
 function loadProfileForms() {
   if (!authUser) return;
   var u = authUser;
+  // Relire d'abord depuis Supabase pour avoir les données à jour (persistées entre sessions)
+  if (window.CredigoDB && window.CredigoDB.ready && typeof window.credigoGetProfile === 'function') {
+    window.credigoGetProfile().then(function(res){
+      if (res && res.profile) {
+        var p = res.profile;
+        // Mapper les champs Supabase vers le format local et remplir
+        var merged = {
+          prenom: p.first_name||'', nom: p.last_name||'', dob: p.date_of_birth||'',
+          nationalite: p.nationality||'', adresse: p.address||'', tel: p.phone||'',
+          raison: p.company_name||'', forme: p.legal_form||'', rccm: p.rccm_number||'',
+          tax: p.tax_number||'', secteur: p.sector||'', effectif: p.employee_count||'', siege: p.hq_address||'',
+          profession: p.profession||'', risque: p.risk_profile||'', capacite: p.investment_capacity||'', source: p.funds_source||''
+        };
+        try { localStorage.setItem('credigo_profile_' + u.role, JSON.stringify(merged)); } catch(e){}
+        if (p.profile_complete) { authUser.profileComplete = true; authSaveSession(authUser); }
+        // Re-remplir le formulaire maintenant que le localStorage est à jour
+        _fillProfileForm(u);
+      }
+    }).catch(function(){});
+  }
+  _fillProfileForm(u);
+}
+
+function _fillProfileForm(u) {
 
   // Décomposer le nom complet en prénom/nom
   var nameParts = (u.name || '').trim().split(' ');

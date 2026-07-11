@@ -250,6 +250,18 @@
     return { user: res.data };
   };
 
+  // Relit le profil complet de l'utilisateur depuis Supabase
+  window.credigoGetProfile = async function () {
+    if (!supabaseReady) return { error: 'Supabase non configuré.' };
+    var userId = currentAppUserId();
+    if (!userId) return { error: 'Utilisateur non synchronisé.' };
+    var res = await sb.from('app_users')
+      .select('first_name, last_name, phone, address, date_of_birth, nationality, company_name, legal_form, rccm_number, tax_number, sector, employee_count, hq_address, profession, risk_profile, investment_capacity, funds_source, profile_complete')
+      .eq('id', userId).single();
+    if (res.error) return { error: res.error.message };
+    return { profile: res.data };
+  };
+
   // ════════════════════════════════════════════════════════════
   // KYC — upload de document vers Supabase Storage + ligne DB
   // ════════════════════════════════════════════════════════════
