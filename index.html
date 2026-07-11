@@ -581,6 +581,30 @@ textarea{resize:vertical;min-height:70px}
 .modal-sheet input,.modal-sheet select,.modal-sheet textarea{box-sizing:border-box;max-width:100%;width:100%}
 #e-kyc .btn-row, #f-kyc-upload .btn-row { margin-bottom: 100px; }
 
+/* Références & attestations */
+.ref-sec-title{font-size:15px;font-weight:800;display:flex;align-items:center;gap:8px;margin-bottom:4px}
+.ref-count{background:#EEE8FF;color:#6C3FE8;font-size:12px;font-weight:800;padding:2px 9px;border-radius:20px;margin-left:auto}
+.ref-sub{font-size:12.5px;color:#6B7280;margin-bottom:12px}
+.ref-card{background:#fff;border-radius:13px;padding:14px;border:1.5px solid #EDECEF;margin-bottom:10px}
+.ref-card-top{display:flex;align-items:flex-start;justify-content:space-between;gap:10px}
+.ref-card-name{font-size:14px;font-weight:800}
+.ref-card-org{font-size:12px;color:#6B7280;margin-top:1px}
+.ref-card-market{font-size:12px;color:#374151;margin-top:6px;display:flex;align-items:center;gap:5px}
+.ref-status{font-size:10px;font-weight:800;padding:4px 9px;border-radius:20px;white-space:nowrap;text-transform:uppercase;letter-spacing:.03em}
+.rs-pending{background:#FEF3C7;color:#92660E}
+.rs-proved{background:#DCFCE7;color:#166534}
+.rs-false{background:#FEE2E2;color:#991B1B}
+.ref-add-btn{width:100%;justify-content:center;border-style:dashed;margin-top:2px}
+.ref-modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:400;display:none;align-items:flex-end;justify-content:center}
+.ref-modal-overlay.on{display:flex}
+.ref-modal{background:#fff;border-radius:20px 20px 0 0;width:100%;max-width:440px;max-height:88vh;overflow-y:auto;padding:20px}
+.ref-modal-h{font-size:17px;font-weight:800;margin-bottom:16px}
+.ref-modal-actions{display:flex;gap:10px;margin-top:8px}
+.ref-modal-actions button{flex:1;justify-content:center}
+.ref-attach{border:2px dashed #C4B5FD;border-radius:13px;padding:18px;text-align:center;background:#FaF9FF;cursor:pointer;margin-bottom:14px}
+.ref-attach-t{font-size:13px;font-weight:700;color:#4C1D95;margin-top:6px}
+.ref-empty{font-size:12.5px;color:#9CA3AF;text-align:center;padding:16px;background:#F9FAFB;border-radius:12px;margin-bottom:10px}
+
 /* Bandeau d'invitation contextuel */
 .cta-invite{background:#F5F3FF;border:2px solid #DDD6FE;border-radius:15px;padding:15px;display:flex;gap:12px;align-items:center;margin-bottom:16px;cursor:pointer}
 .cta-ic{width:44px;height:44px;border-radius:12px;flex-shrink:0;display:flex;align-items:center;justify-content:center}
@@ -1064,6 +1088,7 @@ textarea{resize:vertical;min-height:70px}
   <div class="slink" onclick="goSc('e-notifs','e',this)"><i class="ti ti-bell"></i><span class="lbl">Notifications</span><span id="notif-badge-e" class="sbadge" style="background:#EF4444">3</span></div>
   <div class="s-sec">Mon activité</div>
   <div class="slink" onclick="goSc('e-score','e',this)"><i class="ti ti-star"></i><span class="lbl">Mon score</span></div>
+  <div class="slink" onclick="goSc('e-references','e',this)"><i class="ti ti-award"></i><span class="lbl">Mes preuves</span></div>
   <div class="s-sec">Compte</div>
   <div class="slink" onclick="goSc('e-profile','e',this)"><i class="ti ti-user-circle"></i><span class="lbl">Mon profil</span></div>
   <div class="slink" onclick="goSc('e-kyc','e',this)"><i class="ti ti-shield-check"></i><span class="lbl">Vérification KYC</span><span id="kyc-status-badge-e" style="display:none;margin-left:auto;font-size:9px;font-weight:800;padding:2px 7px;border-radius:10px;background:#FEF3C7;color:#92400E"></span></div>
@@ -1270,13 +1295,64 @@ textarea{resize:vertical;min-height:70px}
         <div class="es-d">Plus votre score monte, plus vous obtenez de bonnes conditions.</div>
       </div>
     </div>
-    <div class="es-next"><i class="ti ti-trophy"></i><div>Encore <b>8 points</b> pour devenir <b>Très fiable</b> et payer moins de frais.</div></div>
+    <div class="es-next" id="es-next"><i class="ti ti-trophy"></i><div>Continuez à construire votre fiabilité.</div></div>
   </div>
   <div class="es-tips-title"><i class="ti ti-bulb"></i> Comment gagner des points</div>
-  <div class="es-tip"><div class="es-tic" style="background:#DBEAFE"><i class="ti ti-clock" style="color:#1E40AF"></i></div><div><div class="es-tt">Livrez vos marchés à temps</div><div class="es-td">Chaque marché fini à temps monte votre score</div></div><span class="es-pts">+ points</span></div>
-  <div class="es-tip"><div class="es-tic" style="background:#EEE8FF"><i class="ti ti-arrow-right" style="color:#6C3FE8"></i></div><div><div class="es-tt">Recevez le paiement via Credigo</div><div class="es-td">Ne laissez jamais le client vous payer en direct</div></div><span class="es-pts">+ points</span></div>
-  <div class="es-tip"><div class="es-tic" style="background:#FEF3C7"><i class="ti ti-star" style="color:#F59E0B"></i></div><div><div class="es-tt">Ajoutez une référence vérifiée</div><div class="es-td">Un ancien client qui confirme votre sérieux</div></div><span class="es-pts">+ 5 pts</span></div>
-  <div class="es-tip"><div class="es-tic" style="background:#DDF1EE"><i class="ti ti-map-pin" style="color:#0A6E3B"></i></div><div><div class="es-tt">Travaillez avec nos clients partenaires</div><div class="es-td">Les marchés avec eux comptent plus</div></div><span class="es-pts">+ points</span></div>
+  <div id="es-tips"></div>
+</div>
+
+<!-- ═══ E-REFERENCES : Références & attestations ═══ -->
+<div id="e-references" class="screen">
+  <div class="pg-title">Mes preuves de fiabilité</div>
+  <div class="pg-sub">Ajoutez des références et attestations pour gagner des points</div>
+
+  <div class="es-next" style="margin-bottom:16px"><i class="ti ti-info-circle"></i><div>Nos équipes vérifient chaque preuve. Les points sont accordés une fois la vérification faite.</div></div>
+
+  <!-- Références -->
+  <div class="ref-sec-title"><i class="ti ti-users" style="color:#6C3FE8"></i> Références <span class="ref-count" id="ref-count">0</span></div>
+  <div class="ref-sub">Un ancien client qui peut confirmer que vous avez bien travaillé.</div>
+  <div id="ref-list"></div>
+  <button class="btn-s ref-add-btn" onclick="openRefForm()"><i class="ti ti-plus"></i> Ajouter une référence</button>
+
+  <!-- Attestations -->
+  <div class="ref-sec-title" style="margin-top:24px"><i class="ti ti-certificate" style="color:#0A6E3B"></i> Attestations de bonne exécution <span class="ref-count" id="att-count">0</span></div>
+  <div class="ref-sub">Un document officiel prouvant qu'un marché a été bien livré.</div>
+  <div id="att-list"></div>
+  <button class="btn-s ref-add-btn" onclick="openAttForm()"><i class="ti ti-plus"></i> Ajouter une attestation</button>
+</div>
+
+<!-- Modal ajout référence -->
+<div class="ref-modal-overlay" id="ref-modal">
+  <div class="ref-modal">
+    <div class="ref-modal-h">Ajouter une référence</div>
+    <div class="wiz-field"><label>Nom du contact *</label><input type="text" id="rf-name" placeholder="Ex. M. Kouamé, responsable achats"></div>
+    <div class="wiz-field"><label>Organisation</label><input type="text" id="rf-org" placeholder="Ex. Ministère de l'Éducation"></div>
+    <div class="wiz-field"><label>Téléphone du contact *</label><input type="tel" id="rf-phone" placeholder="Ex. 07 00 00 00 00"></div>
+    <div class="wiz-field"><label>Le marché concerné</label><input type="text" id="rf-market" placeholder="Ex. Livraison de mobilier scolaire 2023"></div>
+    <div class="ref-modal-actions">
+      <button class="btn-s" onclick="closeRefForm()">Annuler</button>
+      <button class="btn-p" onclick="submitRef()"><i class="ti ti-check"></i> Envoyer</button>
+    </div>
+  </div>
+</div>
+
+<!-- Modal ajout attestation -->
+<div class="ref-modal-overlay" id="att-modal">
+  <div class="ref-modal">
+    <div class="ref-modal-h">Ajouter une attestation</div>
+    <div class="wiz-field"><label>Le marché attesté *</label><input type="text" id="af-market" placeholder="Ex. Construction de 3 salles de classe"></div>
+    <div class="wiz-field"><label>Qui a délivré l'attestation ?</label><input type="text" id="af-authority" placeholder="Ex. Mairie de Yamoussoukro"></div>
+    <div class="wiz-field"><label>Montant du marché (FCFA)</label><input type="number" id="af-amount" placeholder="Ex. 8 000 000"></div>
+    <div class="ref-attach" onclick="document.getElementById('af-file').click()">
+      <i class="ti ti-file-upload" style="font-size:32px;color:#6C3FE8"></i>
+      <div class="ref-attach-t" id="af-file-label">Joindre le document</div>
+      <input type="file" id="af-file" style="display:none" accept="image/*,.pdf" onchange="afFilePicked(this)">
+    </div>
+    <div class="ref-modal-actions">
+      <button class="btn-s" onclick="closeAttForm()">Annuler</button>
+      <button class="btn-p" onclick="submitAtt()"><i class="ti ti-check"></i> Envoyer</button>
+    </div>
+  </div>
 </div>
 
 <!-- ═══ E-NOTIFS : Notifications ═══ -->
@@ -2845,7 +2921,7 @@ function closeSidebar() {
 }
 
 /* == SWITCH == */
-const ALL_SCREENS = ['e-home','e-submit','e-list','e-detail','e-score','e-notifs','e-profile','e-kyc','e-support','f-offers','f-portfolio','f-wallet','f-transactions','f-retraits','f-kyc','f-kyc-upload','f-profile','f-support'];
+const ALL_SCREENS = ['e-home','e-submit','e-list','e-detail','e-score','e-references','e-notifs','e-profile','e-kyc','e-support','f-offers','f-portfolio','f-wallet','f-transactions','f-retraits','f-kyc','f-kyc-upload','f-profile','f-support'];
 function hideAll() {
   ALL_SCREENS.forEach(id => { const el = document.getElementById(id); if (el) { el.style.display = 'none'; el.classList.remove('on'); } });
 }
@@ -2872,7 +2948,7 @@ function showScreen(id) {
   renderScreen(id);
   // Masquer le banner KYC sur les écrans qui ne nécessitent pas le KYC
   // (profil, KYC, et écrans d'information : accueil, notifications, score, support)
-  var profileScreens = ['e-home', 'e-notifs', 'e-score', 'e-profile', 'f-profile', 'e-kyc', 'f-kyc-upload', 'e-support', 'f-support'];
+  var profileScreens = ['e-home', 'e-notifs', 'e-score', 'e-references', 'e-profile', 'f-profile', 'e-kyc', 'f-kyc-upload', 'e-support', 'f-support'];
   var banner = document.getElementById('kyc-required-banner');
   var contentEl = document.querySelector('.content');
   if (profileScreens.indexOf(id) !== -1) {
@@ -2898,6 +2974,7 @@ function renderScreen(id) {
   if (id === 'e-submit') wizReset();
   if (id === 'e-list') renderEList();
   if (id === 'e-score') renderEScore();
+  if (id === 'e-references') renderEReferences();
   if (id === 'e-notifs') renderENotifs();
   if (id === 'f-portfolio') renderFPortfolio();
   if (id === 'f-wallet') renderFWallet();
@@ -3105,7 +3182,173 @@ function openContrat(id){
 }
 
 // ── Score ──
-function renderEScore(){ /* statique pour l'instant, données par défaut dans le HTML */ }
+// ── Score : lit le vrai reliability_score depuis Supabase ──
+function scoreLevel(s){
+  if(s>=90) return {name:'Excellence Credigo', color:'#16A34A', bg:'#DCFCE7', txt:'Vous êtes une référence', next:null};
+  if(s>=75) return {name:'Très fiable', color:'#16A34A', bg:'#DCFCE7', txt:'Vous inspirez pleine confiance', next:{at:90,label:'Excellence Credigo'}};
+  if(s>=55) return {name:'Bon payeur', color:'#16A34A', bg:'#DCFCE7', txt:'Vous inspirez confiance', next:{at:75,label:'Très fiable'}};
+  if(s>=30) return {name:'En bonne voie', color:'#D97706', bg:'#FEF3C7', txt:'Vous construisez votre fiabilité', next:{at:55,label:'Bon payeur'}};
+  return {name:'Profil à construire', color:'#DC2626', bg:'#FEE2E2', txt:'Commencez à bâtir votre fiabilité', next:{at:30,label:'En bonne voie'}};
+}
+
+function renderEScore(){
+  // Valeurs par défaut le temps du chargement
+  _paintScore(authUser && authUser.reliabilityScore ? authUser.reliabilityScore : 0, null);
+  if(window.CredigoDB && window.CredigoDB.ready && typeof window.credigoGetScore==='function'){
+    window.credigoGetScore().then(function(res){
+      if(res && res.score){
+        var s = res.score.reliability_score || 0;
+        var bd = res.score.score_breakdown || {};
+        if(authUser){ authUser.reliabilityScore = s; }
+        _paintScore(s, bd, res.score);
+      }
+    }).catch(function(){});
+  }
+}
+
+function _paintScore(score, breakdown, raw){
+  var lvl = scoreLevel(score);
+  // Jauge
+  var arc = document.getElementById('es-arc');
+  if(arc){ var circ=251; arc.style.strokeDashoffset = circ - (circ*score/100); arc.style.stroke = lvl.color; }
+  var num = document.getElementById('es-score'); if(num) num.textContent = score;
+  var lvlEl = document.getElementById('es-level'); if(lvlEl) lvlEl.textContent = lvl.name;
+  var badge = document.querySelector('#e-score .es-badge'); if(badge){ badge.style.background=lvl.bg; badge.style.color=lvl.color; }
+  var tEl = document.querySelector('#e-score .es-t'); if(tEl) tEl.textContent = lvl.txt;
+  // Objectif suivant
+  var nextEl = document.getElementById('es-next');
+  if(nextEl){
+    if(lvl.next){
+      var pts = lvl.next.at - score;
+      nextEl.innerHTML = '<i class="ti ti-trophy"></i><div>Encore <b>'+pts+' point'+(pts>1?'s':'')+'</b> pour devenir <b>'+lvl.next.label+'</b> et obtenir de meilleures conditions.</div>';
+      nextEl.style.display='flex';
+    } else {
+      nextEl.innerHTML = '<i class="ti ti-crown" style="color:#D97706"></i><div>Vous avez atteint le plus haut niveau. Bravo !</div>';
+      nextEl.style.display='flex';
+    }
+  }
+  // Astuces personnalisées selon ce qui manque
+  renderScoreTips(breakdown, raw);
+}
+
+// Astuces dynamiques : on met en avant les leviers non encore acquis
+function renderScoreTips(breakdown, raw){
+  var wrap = document.getElementById('es-tips');
+  if(!wrap) return;
+  var bd = breakdown || {};
+  var tips = [];
+  var profileOk = raw ? raw.profile_complete : (authUser && authUser.profileComplete);
+  var kycOk = raw ? (raw.kyc_status==='approved') : (authUser && authUser.kycStatus==='approved');
+
+  // 1. Profil 100%
+  if(!profileOk){
+    tips.push({ic:'#EEE8FF',icon:'user-edit',ic_color:'#6C3FE8',t:'Complétez votre profil à 100%',d:'Remplissez toutes vos informations',pts:'+15 pts',onclick:"goToProfileFromInvite()"});
+  }
+  // 2. KYC
+  if(!kycOk){
+    tips.push({ic:'#FEF3C7',icon:'shield-check',ic_color:'#D97706',t:'Vérifiez votre identité (KYC)',d:'Validez votre dossier de vérification',pts:'+15 pts',onclick:"goToKycFromInvite()"});
+  }
+  // 3. Références (si moins de 3 prouvées)
+  var refsProved = bd.references_proved || 0;
+  if(refsProved < 3){
+    tips.push({ic:'#FEF3C7',icon:'star',ic_color:'#F59E0B',t:'Ajoutez une référence vérifiée',d:'Un ancien client qui confirme votre sérieux',pts:'+5 pts',onclick:"goSc('e-references','e',null)"});
+  }
+  // 4. Attestations (si moins de 3 prouvées)
+  var attProved = bd.attestations_proved || 0;
+  if(attProved < 3){
+    tips.push({ic:'#DDF1EE',icon:'certificate',ic_color:'#0A6E3B',t:'Ajoutez une attestation de bonne exécution',d:'La preuve d\'un marché bien livré',pts:'+10 pts',onclick:"goSc('e-references','e',null)"});
+  }
+  // 5. Track record (toujours pertinent)
+  tips.push({ic:'#DBEAFE',icon:'clock',ic_color:'#1E40AF',t:'Livrez vos marchés à temps',d:'Chaque marché soldé sans incident monte votre score',pts:'+8 pts',onclick:null});
+  // 6. Anti-contournement (toujours pertinent)
+  tips.push({ic:'#EEE8FF',icon:'arrow-right',ic_color:'#6C3FE8',t:'Recevez le paiement via Credigo',d:'Ne laissez jamais le client vous payer en direct',pts:'protège vos points',onclick:null});
+
+  wrap.innerHTML = tips.map(function(t){
+    return '<div class="es-tip"'+(t.onclick?' style="cursor:pointer" onclick="'+t.onclick+'"':'')+'>'+
+      '<div class="es-tic" style="background:'+t.ic+'"><i class="ti ti-'+t.icon+'" style="color:'+t.ic_color+'"></i></div>'+
+      '<div><div class="es-tt">'+t.t+'</div><div class="es-td">'+t.d+'</div></div>'+
+      '<span class="es-pts">'+t.pts+'</span></div>';
+  }).join('');
+}
+
+// ── Écran Références & Attestations ──
+function renderEReferences(){
+  var refList=document.getElementById('ref-list');
+  var attList=document.getElementById('att-list');
+  if(refList) refList.innerHTML='<div class="ref-empty">Chargement…</div>';
+  if(attList) attList.innerHTML='<div class="ref-empty">Chargement…</div>';
+  if(window.CredigoDB && window.CredigoDB.ready){
+    if(typeof window.credigoGetReferences==='function'){
+      window.credigoGetReferences().then(function(res){
+        if(res && res.references){ paintRefs(res.references); }
+        else { paintRefs([]); }
+      }).catch(function(){ paintRefs([]); });
+    }
+    if(typeof window.credigoGetAttestations==='function'){
+      window.credigoGetAttestations().then(function(res){
+        if(res && res.attestations){ paintAtts(res.attestations); }
+        else { paintAtts([]); }
+      }).catch(function(){ paintAtts([]); });
+    }
+  } else { paintRefs([]); paintAtts([]); }
+}
+function statusPill(st){
+  if(st==='proved') return '<span class="ref-status rs-proved">Vérifiée ✓</span>';
+  if(st==='false')  return '<span class="ref-status rs-false">Non valide</span>';
+  return '<span class="ref-status rs-pending">En vérification</span>';
+}
+function paintRefs(refs){
+  var wrap=document.getElementById('ref-list'); if(!wrap) return;
+  var cnt=document.getElementById('ref-count'); if(cnt) cnt.textContent=refs.length;
+  if(refs.length===0){ wrap.innerHTML='<div class="ref-empty">Aucune référence pour l\'instant. Ajoutez-en pour gagner des points.</div>'; return; }
+  wrap.innerHTML=refs.map(function(r){
+    return '<div class="ref-card"><div class="ref-card-top"><div><div class="ref-card-name">'+(r.contact_name||'—')+'</div>'+
+      (r.organization?'<div class="ref-card-org">'+r.organization+'</div>':'')+'</div>'+statusPill(r.status)+'</div>'+
+      (r.market_object?'<div class="ref-card-market"><i class="ti ti-briefcase"></i> '+r.market_object+'</div>':'')+'</div>';
+  }).join('');
+}
+function paintAtts(atts){
+  var wrap=document.getElementById('att-list'); if(!wrap) return;
+  var cnt=document.getElementById('att-count'); if(cnt) cnt.textContent=atts.length;
+  if(atts.length===0){ wrap.innerHTML='<div class="ref-empty">Aucune attestation pour l\'instant. Ajoutez-en pour gagner plus de points.</div>'; return; }
+  wrap.innerHTML=atts.map(function(a){
+    return '<div class="ref-card"><div class="ref-card-top"><div><div class="ref-card-name">'+(a.market_object||'—')+'</div>'+
+      (a.issuing_authority?'<div class="ref-card-org">'+a.issuing_authority+'</div>':'')+'</div>'+statusPill(a.status)+'</div></div>';
+  }).join('');
+}
+// Modals
+function openRefForm(){ var m=document.getElementById('ref-modal'); if(m) m.classList.add('on'); }
+function closeRefForm(){ var m=document.getElementById('ref-modal'); if(m) m.classList.remove('on'); }
+function openAttForm(){ var m=document.getElementById('att-modal'); if(m) m.classList.add('on'); }
+function closeAttForm(){ var m=document.getElementById('att-modal'); if(m) m.classList.remove('on'); }
+function afFilePicked(input){ var l=document.getElementById('af-file-label'); if(l && input.files && input.files[0]) l.textContent=input.files[0].name; }
+
+function submitRef(){
+  var name=(document.getElementById('rf-name')||{}).value||'';
+  var phone=(document.getElementById('rf-phone')||{}).value||'';
+  if(!name.trim() || !phone.trim()){ toast('Indiquez au moins le nom et le téléphone du contact.'); return; }
+  var ref={ contact_name:name, organization:(document.getElementById('rf-org')||{}).value||'', contact_phone:phone, market_object:(document.getElementById('rf-market')||{}).value||'' };
+  if(window.CredigoDB && window.CredigoDB.ready && typeof window.credigoAddReference==='function'){
+    window.credigoAddReference(ref).then(function(res){
+      if(res && res.reference){ toast('Référence envoyée ! Elle sera vérifiée par nos équipes.'); closeRefForm(); clearRefForm(); renderEReferences(); }
+      else { toast('Erreur : '+((res&&res.error)||'réessayez')); }
+    });
+  } else { toast('Connexion requise pour enregistrer.'); }
+}
+function clearRefForm(){ ['rf-name','rf-org','rf-phone','rf-market'].forEach(function(id){ var el=document.getElementById(id); if(el) el.value=''; }); }
+
+function submitAtt(){
+  var market=(document.getElementById('af-market')||{}).value||'';
+  if(!market.trim()){ toast('Indiquez le marché attesté.'); return; }
+  var att={ market_object:market, issuing_authority:(document.getElementById('af-authority')||{}).value||'', market_amount:parseFloat((document.getElementById('af-amount')||{}).value)||null };
+  if(window.CredigoDB && window.CredigoDB.ready && typeof window.credigoAddAttestation==='function'){
+    window.credigoAddAttestation(att).then(function(res){
+      if(res && res.attestation){ toast('Attestation envoyée ! Elle sera vérifiée par nos équipes.'); closeAttForm(); clearAttForm(); renderEReferences(); }
+      else { toast('Erreur : '+((res&&res.error)||'réessayez')); }
+    });
+  } else { toast('Connexion requise pour enregistrer.'); }
+}
+function clearAttForm(){ ['af-market','af-authority','af-amount'].forEach(function(id){ var el=document.getElementById(id); if(el) el.value=''; }); var l=document.getElementById('af-file-label'); if(l) l.textContent='Joindre le document'; }
 
 // ── Notifications ──
 function renderENotifs(){
@@ -6844,7 +7087,7 @@ function showKycBanner(user) {
     return;
   }
   // Ne pas afficher sur les écrans de profil
-  var profileScreens = ['e-home', 'e-notifs', 'e-score', 'e-profile', 'f-profile', 'e-kyc', 'f-kyc-upload', 'e-support', 'f-support'];
+  var profileScreens = ['e-home', 'e-notifs', 'e-score', 'e-references', 'e-profile', 'f-profile', 'e-kyc', 'f-kyc-upload', 'e-support', 'f-support'];
   var currentScreen = document.querySelector('.screen.on');
   if (currentScreen && profileScreens.indexOf(currentScreen.id) !== -1) return;
   banner.style.display = 'flex';
@@ -7996,12 +8239,13 @@ window.authSelectRole = function(role) {
 var _origGoSc = window.goSc;
 window.goSc = function(id, portal, el) {
   var freeScreens = [
-    'e-home', 'e-notifs', 'e-score',       // écrans d'information : toujours consultables
+    'e-home', 'e-notifs', 'e-score', 'e-references',  // écrans d'information : toujours consultables
     'e-profile', 'f-profile', 'e-kyc', 'f-kyc-upload',
     'e-support', 'f-support'  // support toujours accessible
   ];
   // Écrans de financement (action) : nécessitent profil complet ET KYC approuvé
   var financeScreens = ['e-submit', 'e-list', 'e-detail'];
+  // e-references est libre (comme le score) : on peut y accéder pour bâtir sa fiabilité
   if (authUser && financeScreens.indexOf(id) !== -1) {
     if (!authUser.profileComplete) {
       toast('Complétez d\'abord votre profil pour demander un financement.');

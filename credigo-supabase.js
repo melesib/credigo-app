@@ -262,6 +262,84 @@
   };
 
   // ════════════════════════════════════════════════════════════
+  // SCORE DE FIABILITÉ
+  // ════════════════════════════════════════════════════════════
+
+  // Lit le score et son détail depuis Supabase
+  window.credigoGetScore = async function () {
+    if (!supabaseReady) return { error: 'Supabase non configuré.' };
+    var userId = currentAppUserId();
+    if (!userId) return { error: 'Utilisateur non synchronisé.' };
+    var res = await sb.from('app_users')
+      .select('reliability_score, score_breakdown, kyc_status, profile_complete')
+      .eq('id', userId).single();
+    if (res.error) return { error: res.error.message };
+    return { score: res.data };
+  };
+
+  // Lit les références de l'entrepreneur
+  window.credigoGetReferences = async function () {
+    if (!supabaseReady) return { error: 'Supabase non configuré.' };
+    var userId = currentAppUserId();
+    if (!userId) return { error: 'Utilisateur non synchronisé.' };
+    var res = await sb.from('entrepreneur_references')
+      .select('*').eq('app_user_id', userId).order('created_at', { ascending: false });
+    if (res.error) return { error: res.error.message };
+    return { references: res.data || [] };
+  };
+
+  // Ajoute une référence (statut pending, à vérifier par le BO)
+  window.credigoAddReference = async function (ref) {
+    if (!supabaseReady) return { error: 'Supabase non configuré.' };
+    var userId = currentAppUserId();
+    if (!userId) return { error: 'Utilisateur non synchronisé.' };
+    var payload = {
+      app_user_id: userId,
+      contact_name: ref.contact_name || '',
+      organization: ref.organization || null,
+      contact_phone: ref.contact_phone || null,
+      contact_email: ref.contact_email || null,
+      market_object: ref.market_object || null,
+      market_amount: ref.market_amount || null,
+      status: 'pending'
+    };
+    var res = await sb.from('entrepreneur_references').insert(payload).select().single();
+    if (res.error) return { error: res.error.message };
+    return { reference: res.data };
+  };
+
+  // Lit les attestations de l'entrepreneur
+  window.credigoGetAttestations = async function () {
+    if (!supabaseReady) return { error: 'Supabase non configuré.' };
+    var userId = currentAppUserId();
+    if (!userId) return { error: 'Utilisateur non synchronisé.' };
+    var res = await sb.from('execution_attestations')
+      .select('*').eq('app_user_id', userId).order('created_at', { ascending: false });
+    if (res.error) return { error: res.error.message };
+    return { attestations: res.data || [] };
+  };
+
+  // Ajoute une attestation (statut pending, à vérifier par le BO)
+  window.credigoAddAttestation = async function (att) {
+    if (!supabaseReady) return { error: 'Supabase non configuré.' };
+    var userId = currentAppUserId();
+    if (!userId) return { error: 'Utilisateur non synchronisé.' };
+    var payload = {
+      app_user_id: userId,
+      market_object: att.market_object || '',
+      market_amount: att.market_amount || null,
+      issuing_authority: att.issuing_authority || null,
+      issue_date: att.issue_date || null,
+      document_path: att.document_path || null,
+      document_name: att.document_name || null,
+      status: 'pending'
+    };
+    var res = await sb.from('execution_attestations').insert(payload).select().single();
+    if (res.error) return { error: res.error.message };
+    return { attestation: res.data };
+  };
+
+  // ════════════════════════════════════════════════════════════
   // KYC — upload de document vers Supabase Storage + ligne DB
   // ════════════════════════════════════════════════════════════
 
