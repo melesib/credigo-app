@@ -3441,16 +3441,69 @@ function clearAttForm(){ ['af-market','af-authority','af-amount'].forEach(functi
 function renderENotifs(){
   var wrap=document.getElementById('en-list');
   if(!wrap) return;
-  var html=credigoStatusBanner(), lastGrp='';
-  demoNotifs.forEach(function(n){
-    if(n.grp!==lastGrp){ html+='<div class="en-day">'+n.grp+'</div>'; lastGrp=n.grp; }
-    html+='<div class="en-notif'+(n.unread?' unread':'')+'"><div class="en-ic ic-'+n.ic+'"><i class="ti ti-'+n.icon+'"></i></div>'+
-      '<div style="flex:1;min-width:0"><div class="en-title">'+n.titre+'</div><div class="en-desc">'+n.desc+'</div>'+
-      '<div class="en-contract"><i class="ti ti-file-text"></i> '+n.contrat+'</div>'+
-      (n.action?'<span class="en-action">'+n.action+'</span>':'')+
-      (n.time?'<div class="en-time">'+n.time+'</div>':'')+'</div></div>';
+  // Bandeau de statut en haut, puis chargement des vraies notifications
+  wrap.innerHTML=credigoStatusBanner()+'<div class="ref-empty">Chargement…</div>';
+  if(window.CredigoDB && window.CredigoDB.ready && typeof window.credigoGetNotifications==='function'){
+    window.credigoGetNotifications().then(function(res){
+      if(res && res.notifications){ paintNotifs(res.notifications); }
+      else { paintNotifs([]); }
+    }).catch(function(){ paintNotifs([]); });
+  } else {
+    paintNotifs([]);
+  }
+}
+
+// Catégorie → icône et classe de couleur (convention : vert=argent, bleu=bonne nouvelle, jaune=action, violet=info)
+function notifVisual(cat){
+  if(cat==='money')   return {ic:'money', icon:'cash'};
+  if(cat==='success') return {ic:'check', icon:'circle-check'};
+  if(cat==='warning') return {ic:'todo',  icon:'alert-triangle'};
+  return {ic:'info', icon:'info-circle'};
+}
+function timeAgo(iso){
+  if(!iso) return '';
+  var d=new Date(iso), now=new Date(), diff=Math.floor((now-d)/1000);
+  if(diff<60) return 'À l\'instant';
+  if(diff<3600) return 'Il y a '+Math.floor(diff/60)+' min';
+  if(diff<86400) return 'Il y a '+Math.floor(diff/3600)+' h';
+  if(diff<172800) return 'Hier';
+  return d.toLocaleDateString('fr-FR',{day:'2-digit',month:'short'});
+}
+function paintNotifs(notifs){
+  var wrap=document.getElementById('en-list');
+  if(!wrap) return;
+  var html=credigoStatusBanner();
+  if(!notifs || notifs.length===0){
+    html+='<div class="ref-empty" style="margin-top:8px">Aucune notification pour le moment. Vous serez prévenu ici dès qu\'il y a du nouveau.</div>';
+    wrap.innerHTML=html;
+    _updateNotifBadge(0);
+    return;
+  }
+  var unreadCount=0;
+  notifs.forEach(function(n){
+    if(!n.is_read) unreadCount++;
+    var v=notifVisual(n.category);
+    var clickable = n.target_screen ? ' style="cursor:pointer" onclick="onNotifClick(\''+n.id+'\',\''+n.target_screen+'\')"' : ' onclick="onNotifClick(\''+n.id+'\',\'\')"';
+    html+='<div class="en-notif'+(!n.is_read?' unread':'')+'"'+clickable+'><div class="en-ic ic-'+v.ic+'"><i class="ti ti-'+v.icon+'"></i></div>'+
+      '<div style="flex:1;min-width:0"><div class="en-title">'+(n.title||'')+'</div>'+
+      (n.body?'<div class="en-desc">'+n.body+'</div>':'')+
+      '<div class="en-time">'+timeAgo(n.created_at)+'</div></div></div>';
   });
   wrap.innerHTML=html;
+  _updateNotifBadge(unreadCount);
+}
+function _updateNotifBadge(count){
+  var badge=document.getElementById('notif-badge-e');
+  if(badge){
+    if(count>0){ badge.textContent=count>9?'9+':count; badge.style.display=''; }
+    else { badge.style.display='none'; }
+  }
+}
+function onNotifClick(notifId, screen){
+  // Marquer comme lu puis naviguer si un écran cible est défini
+  if(window.credigoMarkNotifRead){ window.credigoMarkNotifRead(notifId).catch(function(){}); }
+  if(screen){ goSc(screen,'e',null); }
+  else { renderENotifs(); }
 }
 
 // ── Modal "Qui voit mes informations" ──
@@ -7093,6 +7146,11 @@ function authEnterApp(user) {
   // Pré-remplir le formulaire de profil avec les données Google/email disponibles
   if (typeof loadProfileForms === 'function') loadProfileForms();
   if (typeof updateSwitchVisibility === 'function') updateSwitchVisibility();
+
+  // Charger le compteur de notifications non lues (badge sidebar)
+  if (window.CredigoDB && window.CredigoDB.ready && typeof window.credigoCountUnread === 'function') {
+    window.credigoCountUnread().then(function(r){ if(typeof _updateNotifBadge==='function') _updateNotifBadge(r.count||0); }).catch(function(){});
+  }
 
   // Rafraîchir le statut KYC depuis Supabase
   // Forcer le refresh depuis Supabase avec l'email de l'utilisateur

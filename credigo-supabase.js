@@ -367,6 +367,56 @@
   };
 
   // ════════════════════════════════════════════════════════════
+  // NOTIFICATIONS
+  // ════════════════════════════════════════════════════════════
+
+  // Lit les notifications de l'utilisateur (les plus récentes d'abord)
+  window.credigoGetNotifications = async function () {
+    if (!supabaseReady) return { error: 'Supabase non configuré.' };
+    var userId = currentAppUserId();
+    if (!userId) return { error: 'Utilisateur non synchronisé.' };
+    var res = await sb.from('notifications')
+      .select('*').eq('app_user_id', userId)
+      .order('created_at', { ascending: false }).limit(50);
+    if (res.error) return { error: res.error.message };
+    return { notifications: res.data || [] };
+  };
+
+  // Compte les notifications non lues
+  window.credigoCountUnread = async function () {
+    if (!supabaseReady) return { count: 0 };
+    var userId = currentAppUserId();
+    if (!userId) return { count: 0 };
+    var res = await sb.from('notifications')
+      .select('id', { count: 'exact', head: true })
+      .eq('app_user_id', userId).eq('is_read', false);
+    if (res.error) return { count: 0 };
+    return { count: res.count || 0 };
+  };
+
+  // Marque une notification comme lue
+  window.credigoMarkNotifRead = async function (notifId) {
+    if (!supabaseReady) return { error: 'Supabase non configuré.' };
+    var res = await sb.from('notifications')
+      .update({ is_read: true, read_at: new Date().toISOString() })
+      .eq('id', notifId);
+    if (res.error) return { error: res.error.message };
+    return { success: true };
+  };
+
+  // Marque toutes les notifications comme lues
+  window.credigoMarkAllNotifsRead = async function () {
+    if (!supabaseReady) return { error: 'Supabase non configuré.' };
+    var userId = currentAppUserId();
+    if (!userId) return { error: 'Utilisateur non synchronisé.' };
+    var res = await sb.from('notifications')
+      .update({ is_read: true, read_at: new Date().toISOString() })
+      .eq('app_user_id', userId).eq('is_read', false);
+    if (res.error) return { error: res.error.message };
+    return { success: true };
+  };
+
+  // ════════════════════════════════════════════════════════════
   // KYC — upload de document vers Supabase Storage + ligne DB
   // ════════════════════════════════════════════════════════════
 
