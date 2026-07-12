@@ -3020,7 +3020,12 @@ function switchTo(p) {
 function goSc(id, portal, el) {
   showScreen(id);
   document.querySelectorAll((portal === 'e' ? '#sb-e' : '#sb-f') + ' .slink').forEach(l => l.classList.remove('on'));
-  el.classList.add('on');
+  if (el) { el.classList.add('on'); }
+  else {
+    // Pas d'élément fourni (navigation programmatique) : activer le lien correspondant
+    var link = document.querySelector((portal === 'e' ? '#sb-e' : '#sb-f') + ' .slink[onclick*="' + id + '"]');
+    if (link) link.classList.add('on');
+  }
   closeSidebar();
 }
 
