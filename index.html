@@ -586,6 +586,11 @@ textarea{resize:vertical;min-height:70px}
 .ref-count{background:#EEE8FF;color:#6C3FE8;font-size:12px;font-weight:800;padding:2px 9px;border-radius:20px;margin-left:auto}
 .ref-sub{font-size:12.5px;color:#6B7280;margin-bottom:12px}
 .ref-card{background:#fff;border-radius:13px;padding:14px;border:1.5px solid #EDECEF;margin-bottom:10px}
+.ref-card-refused{border-color:#FECACA;background:#FEF6F6}
+.ref-refused{margin-top:10px;padding:11px;background:#FEE2E2;border-radius:10px}
+.ref-refused-t{font-size:12px;font-weight:800;color:#991B1B;display:flex;align-items:center;gap:6px}
+.ref-refused-r{font-size:12.5px;color:#7F1D1D;margin-top:5px;line-height:1.45}
+.ref-refused-i{font-size:11.5px;color:#B91C1C;margin-top:7px;font-style:italic}
 .ref-card-top{display:flex;align-items:flex-start;justify-content:space-between;gap:10px}
 .ref-card-name{font-size:14px;font-weight:800}
 .ref-card-org{font-size:12px;color:#6B7280;margin-top:1px}
@@ -3295,17 +3300,30 @@ function renderEReferences(){
 }
 function statusPill(st){
   if(st==='proved') return '<span class="ref-status rs-proved">Vérifiée ✓</span>';
-  if(st==='false')  return '<span class="ref-status rs-false">Non valide</span>';
+  if(st==='false')  return '<span class="ref-status rs-false">Refusée</span>';
   return '<span class="ref-status rs-pending">En vérification</span>';
+}
+// Bloc "raison du refus" affiché sous une pièce refusée
+function refusalBlock(note, kind){
+  var reason = note ? note : "Cette information n'a pas pu être vérifiée.";
+  var invite = kind==='reference'
+    ? "Soumettez une nouvelle référence pour rétablir votre fiabilité."
+    : "Soumettez une nouvelle attestation pour rétablir votre fiabilité.";
+  return '<div class="ref-refused">'+
+    '<div class="ref-refused-t"><i class="ti ti-alert-triangle"></i> Refusée par nos équipes</div>'+
+    '<div class="ref-refused-r">'+reason+'</div>'+
+    '<div class="ref-refused-i">'+invite+'</div></div>';
 }
 function paintRefs(refs){
   var wrap=document.getElementById('ref-list'); if(!wrap) return;
   var cnt=document.getElementById('ref-count'); if(cnt) cnt.textContent=refs.length;
   if(refs.length===0){ wrap.innerHTML='<div class="ref-empty">Aucune référence pour l\'instant. Ajoutez-en pour gagner des points.</div>'; return; }
   wrap.innerHTML=refs.map(function(r){
-    return '<div class="ref-card"><div class="ref-card-top"><div><div class="ref-card-name">'+(r.contact_name||'—')+'</div>'+
+    var refused = r.status==='false';
+    return '<div class="ref-card'+(refused?' ref-card-refused':'')+'"><div class="ref-card-top"><div><div class="ref-card-name">'+(r.contact_name||'—')+'</div>'+
       (r.organization?'<div class="ref-card-org">'+r.organization+'</div>':'')+'</div>'+statusPill(r.status)+'</div>'+
-      (r.market_object?'<div class="ref-card-market"><i class="ti ti-briefcase"></i> '+r.market_object+'</div>':'')+'</div>';
+      (r.market_object?'<div class="ref-card-market"><i class="ti ti-briefcase"></i> '+r.market_object+'</div>':'')+
+      (refused?refusalBlock(r.verification_note,'reference'):'')+'</div>';
   }).join('');
 }
 function paintAtts(atts){
@@ -3313,8 +3331,10 @@ function paintAtts(atts){
   var cnt=document.getElementById('att-count'); if(cnt) cnt.textContent=atts.length;
   if(atts.length===0){ wrap.innerHTML='<div class="ref-empty">Aucune attestation pour l\'instant. Ajoutez-en pour gagner plus de points.</div>'; return; }
   wrap.innerHTML=atts.map(function(a){
-    return '<div class="ref-card"><div class="ref-card-top"><div><div class="ref-card-name">'+(a.market_object||'—')+'</div>'+
-      (a.issuing_authority?'<div class="ref-card-org">'+a.issuing_authority+'</div>':'')+'</div>'+statusPill(a.status)+'</div></div>';
+    var refused = a.status==='false';
+    return '<div class="ref-card'+(refused?' ref-card-refused':'')+'"><div class="ref-card-top"><div><div class="ref-card-name">'+(a.market_object||'—')+'</div>'+
+      (a.issuing_authority?'<div class="ref-card-org">'+a.issuing_authority+'</div>':'')+'</div>'+statusPill(a.status)+'</div>'+
+      (refused?refusalBlock(a.verification_note,'attestation'):'')+'</div>';
   }).join('');
 }
 // Modals
