@@ -339,6 +339,33 @@
     return { attestation: res.data };
   };
 
+  // Upload d'un fichier attestation vers le bucket "attestations"
+  // Accepte PDF, Word, Excel, images, etc. Chemin préfixé par app_user_id.
+  window.credigoUploadAttestationFile = async function (file) {
+    if (!supabaseReady) return { error: 'Supabase non configuré.' };
+    var userId = currentAppUserId();
+    if (!userId) return { error: 'Utilisateur non synchronisé.' };
+    // Limite de taille : 10 Mo
+    if (file.size > 10 * 1024 * 1024) {
+      return { error: 'Le fichier dépasse 10 Mo. Choisissez un fichier plus léger.' };
+    }
+    try {
+      var parts = (file.name || 'document').split('.');
+      var ext = parts.length > 1 ? parts.pop().toLowerCase() : 'bin';
+      var safeName = 'attestation_' + Date.now() + '.' + ext;
+      var path = userId + '/' + safeName;
+      var up = await sb.storage.from('attestations').upload(path, file, {
+        cacheControl: '3600',
+        upsert: false,
+        contentType: file.type || 'application/octet-stream'
+      });
+      if (up.error) return { error: up.error.message };
+      return { path: path, name: file.name };
+    } catch (e) {
+      return { error: e.message || 'Échec de l\'envoi du fichier.' };
+    }
+  };
+
   // ════════════════════════════════════════════════════════════
   // KYC — upload de document vers Supabase Storage + ligne DB
   // ════════════════════════════════════════════════════════════

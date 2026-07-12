@@ -1346,7 +1346,8 @@ textarea{resize:vertical;min-height:70px}
     <div class="ref-attach" onclick="document.getElementById('af-file').click()">
       <i class="ti ti-file-upload" style="font-size:32px;color:#6C3FE8"></i>
       <div class="ref-attach-t" id="af-file-label">Joindre le document</div>
-      <input type="file" id="af-file" style="display:none" accept="image/*,.pdf" onchange="afFilePicked(this)">
+      <div style="font-size:11px;color:#9CA3AF;margin-top:4px">PDF, Word, Excel, image… (max 10 Mo)</div>
+      <input type="file" id="af-file" style="display:none" accept="image/*,.pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.txt,.odt,.ods" onchange="afFilePicked(this)">
     </div>
     <div class="ref-modal-actions">
       <button class="btn-s" onclick="closeAttForm()">Annuler</button>
@@ -3340,13 +3341,27 @@ function clearRefForm(){ ['rf-name','rf-org','rf-phone','rf-market'].forEach(fun
 function submitAtt(){
   var market=(document.getElementById('af-market')||{}).value||'';
   if(!market.trim()){ toast('Indiquez le marché attesté.'); return; }
+  if(!(window.CredigoDB && window.CredigoDB.ready && typeof window.credigoAddAttestation==='function')){ toast('Connexion requise pour enregistrer.'); return; }
   var att={ market_object:market, issuing_authority:(document.getElementById('af-authority')||{}).value||'', market_amount:parseFloat((document.getElementById('af-amount')||{}).value)||null };
-  if(window.CredigoDB && window.CredigoDB.ready && typeof window.credigoAddAttestation==='function'){
+  var fileInput=document.getElementById('af-file');
+  var file=(fileInput && fileInput.files && fileInput.files[0]) ? fileInput.files[0] : null;
+
+  function saveAttestation(){
     window.credigoAddAttestation(att).then(function(res){
       if(res && res.attestation){ toast('Attestation envoyée ! Elle sera vérifiée par nos équipes.'); closeAttForm(); clearAttForm(); renderEReferences(); }
       else { toast('Erreur : '+((res&&res.error)||'réessayez')); }
     });
-  } else { toast('Connexion requise pour enregistrer.'); }
+  }
+
+  if(file && typeof window.credigoUploadAttestationFile==='function'){
+    toast('Envoi du document…');
+    window.credigoUploadAttestationFile(file).then(function(up){
+      if(up && up.path){ att.document_path=up.path; att.document_name=up.name; saveAttestation(); }
+      else { toast('Le document n\'a pas pu être envoyé : '+((up&&up.error)||'réessayez')); }
+    });
+  } else {
+    saveAttestation();
+  }
 }
 function clearAttForm(){ ['af-market','af-authority','af-amount'].forEach(function(id){ var el=document.getElementById(id); if(el) el.value=''; }); var l=document.getElementById('af-file-label'); if(l) l.textContent='Joindre le document'; }
 
