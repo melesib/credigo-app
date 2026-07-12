@@ -6484,51 +6484,85 @@ const NOTIFS = [
 let notifPanelOpen = false;
 let currentPortal = 'e';
 
+var _bellNotifs = [];
 function getPortalNotifs() {
   return NOTIFS.filter(function(n) { return n.portal === currentPortal; });
 }
 
 function getUnreadCount() {
-  return getPortalNotifs().filter(function(n) { return n.unread; }).length;
+  return _bellNotifs.filter(function(n) { return !n.is_read; }).length;
+}
+
+// Rafraîchit les notifications de la cloche depuis Supabase
+function refreshBellNotifs(cb) {
+  if (window.CredigoDB && window.CredigoDB.ready && typeof window.credigoGetNotifications === 'function') {
+    window.credigoGetNotifications().then(function(res) {
+      _bellNotifs = (res && res.notifications) ? res.notifications : [];
+      updateNotifBadge();
+      if (cb) cb();
+    }).catch(function() { _bellNotifs = []; updateNotifBadge(); if (cb) cb(); });
+  } else {
+    _bellNotifs = []; updateNotifBadge(); if (cb) cb();
+  }
 }
 
 function updateNotifBadge() {
-  var badge = document.getElementById('notif-badge');
   var count = getUnreadCount();
+  var badge = document.getElementById('notif-badge');
   if (badge) {
     badge.textContent = count > 9 ? '9+' : String(count);
     badge.style.display = count > 0 ? 'flex' : 'none';
   }
+  // Synchroniser aussi le badge de la sidebar
+  if (typeof _updateNotifBadge === 'function') _updateNotifBadge(count);
 }
 
 function renderNotifs() {
   var list = document.getElementById('notif-list');
   if (!list) return;
-  var notifs = getPortalNotifs();
+  var notifs = _bellNotifs;
   if (notifs.length === 0) {
     list.innerHTML = '<div style="text-align:center;padding:32px 16px;color:#9CA3AF"><i class="ti ti-bell-off" style="font-size:32px;display:block;margin-bottom:8px"></i><div style="font-size:13px;font-weight:600">Aucune notification</div></div>';
     return;
   }
   list.innerHTML = '';
   notifs.forEach(function(n) {
+    var v = (typeof notifVisual === 'function') ? notifVisual(n.category) : {ic:'info', icon:'info-circle'};
+    var bgMap = {money:'#DCFCE7', check:'#DBEAFE', todo:'#FEF3C7', info:'#EEE8FF'};
+    var colorMap = {money:'#16A34A', check:'#2563EB', todo:'#D97706', info:'#6C3FE8'};
     var div = document.createElement('div');
-    div.className = 'notif-item' + (n.unread ? ' unread' : '');
+    div.className = 'notif-item' + (!n.is_read ? ' unread' : '');
     div.innerHTML =
-      '<div class="notif-icon" style="background:' + n.bg + '">' +
-        '<i class="ti ' + n.icon + '" style="color:' + n.color + ';font-size:16px"></i>' +
+      '<div class="notif-icon" style="background:' + (bgMap[v.ic]||'#EEE8FF') + '">' +
+        '<i class="ti ti-' + v.icon + '" style="color:' + (colorMap[v.ic]||'#6C3FE8') + ';font-size:16px"></i>' +
       '</div>' +
       '<div class="notif-body">' +
-        '<div class="notif-title">' + n.title + '</div>' +
-        '<div class="notif-sub">' + n.sub + '</div>' +
-        '<div class="notif-time">' + n.time + '</div>' +
+        '<div class="notif-title">' + (n.title||'') + '</div>' +
+        (n.body ? '<div class="notif-sub">' + n.body + '</div>' : '') +
+        '<div class="notif-time">' + ((typeof timeAgo==='function') ? timeAgo(n.created_at) : '') + '</div>' +
       '</div>' +
-      (n.unread ? '<div class="notif-dot"></div>' : '');
-    div.onclick = function() { markRead(n.id); };
+      (!n.is_read ? '<div class="notif-dot"></div>' : '');
+    div.onclick = function() { bellNotifClick(n); };
     list.appendChild(div);
   });
 }
 
-function markRead(id) {
+// Clic sur une notification de la cloche : marquer lu, naviguer si écran cible
+function bellNotifClick(n) {
+  if (!n.is_read && window.credigoMarkNotifRead) {
+    window.credigoMarkNotifRead(n.id).catch(function(){});
+    n.is_read = true;
+    updateNotifBadge();
+  }
+  if (n.target_screen) {
+    toggleNotifPanel();
+    goSc(n.target_screen, 'e', null);
+  } else {
+    renderNotifs();
+  }
+}
+
+function _oldMarkRead(id) {
   var notif = NOTIFS.find(function(n) { return n.id === id; });
   if (notif) notif.unread = false;
   renderNotifs();
@@ -6536,9 +6570,13 @@ function markRead(id) {
 }
 
 function markAllRead() {
-  getPortalNotifs().forEach(function(n) { n.unread = false; });
-  renderNotifs();
-  updateNotifBadge();
+  if (window.credigoMarkAllNotifsRead) {
+    window.credigoMarkAllNotifsRead().then(function() {
+      _bellNotifs.forEach(function(n) { n.is_read = true; });
+      renderNotifs();
+      updateNotifBadge();
+    }).catch(function(){});
+  }
 }
 
 function toggleNotifPanel() {
@@ -6549,7 +6587,7 @@ function toggleNotifPanel() {
   if(notifPanelOpen){
     panel.classList.add('open');
     if(btn) btn.classList.add('active');
-    renderNotifs();
+    refreshBellNotifs(renderNotifs);
   } else {
     panel.classList.remove('open');
     if(btn) btn.classList.remove('active');
@@ -7147,10 +7185,8 @@ function authEnterApp(user) {
   if (typeof loadProfileForms === 'function') loadProfileForms();
   if (typeof updateSwitchVisibility === 'function') updateSwitchVisibility();
 
-  // Charger le compteur de notifications non lues (badge sidebar)
-  if (window.CredigoDB && window.CredigoDB.ready && typeof window.credigoCountUnread === 'function') {
-    window.credigoCountUnread().then(function(r){ if(typeof _updateNotifBadge==='function') _updateNotifBadge(r.count||0); }).catch(function(){});
-  }
+  // Charger les notifications (met à jour les badges cloche + sidebar)
+  if (typeof refreshBellNotifs === 'function') { refreshBellNotifs(); }
 
   // Rafraîchir le statut KYC depuis Supabase
   // Forcer le refresh depuis Supabase avec l'email de l'utilisateur
