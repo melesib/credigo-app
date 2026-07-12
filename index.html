@@ -586,6 +586,10 @@ textarea{resize:vertical;min-height:70px}
 .ref-count{background:#EEE8FF;color:#6C3FE8;font-size:12px;font-weight:800;padding:2px 9px;border-radius:20px;margin-left:auto}
 .ref-sub{font-size:12.5px;color:#6B7280;margin-bottom:12px}
 .ref-card{background:#fff;border-radius:13px;padding:14px;border:1.5px solid #EDECEF;margin-bottom:10px}
+.pts-badge{font-size:11px;font-weight:800;padding:3px 9px;border-radius:20px;white-space:nowrap}
+.pts-plus{background:#DCFCE7;color:#166534}
+.pts-minus{background:#FEE2E2;color:#991B1B}
+.pts-wait{background:#F3F4F6;color:#6B7280}
 .ref-card-refused{border-color:#FECACA;background:#FEF6F6}
 .ref-refused{margin-top:10px;padding:11px;background:#FEE2E2;border-radius:10px}
 .ref-refused-t{font-size:12px;font-weight:800;color:#991B1B;display:flex;align-items:center;gap:6px}
@@ -725,6 +729,13 @@ textarea{resize:vertical;min-height:70px}
 .es-next{background:#F5F3FF;border-radius:11px;padding:11px 13px;font-size:12px;color:#4C1D95;display:flex;align-items:center;gap:8px}
 .es-next i{font-size:17px;color:#6C3FE8}
 .es-tips-title{font-size:14px;font-weight:800;margin:16px 0 12px;display:flex;align-items:center;gap:7px}
+.sb-box{background:#fff;border:1.5px solid #EDECEF;border-radius:13px;padding:6px 14px;margin-bottom:4px}
+.sb-row{display:flex;justify-content:space-between;align-items:center;padding:9px 0;border-bottom:1px solid #F3F4F6}
+.sb-row:last-child{border-bottom:none}
+.sb-label{font-size:13px;color:#374151}
+.sb-val{font-size:13px;font-weight:800}
+.sb-plus{color:#166534}
+.sb-minus{color:#991B1B}
 .es-tips-title i{color:#F59E0B}
 .es-tip{background:#fff;border-radius:13px;padding:14px;border:1.5px solid #EDECEF;margin-bottom:10px;display:flex;gap:12px;align-items:center}
 .es-tic{width:36px;height:36px;border-radius:9px;flex-shrink:0;display:flex;align-items:center;justify-content:center}
@@ -1302,6 +1313,8 @@ textarea{resize:vertical;min-height:70px}
     </div>
     <div class="es-next" id="es-next"><i class="ti ti-trophy"></i><div>Continuez à construire votre fiabilité.</div></div>
   </div>
+  <div class="es-tips-title"><i class="ti ti-list-details"></i> Détail de votre score</div>
+  <div id="es-breakdown"></div>
   <div class="es-tips-title"><i class="ti ti-bulb"></i> Comment gagner des points</div>
   <div id="es-tips"></div>
 </div>
@@ -3233,8 +3246,31 @@ function _paintScore(score, breakdown, raw){
       nextEl.style.display='flex';
     }
   }
+  // Détail des gains et pertes
+  renderScoreBreakdown(breakdown);
   // Astuces personnalisées selon ce qui manque
   renderScoreTips(breakdown, raw);
+}
+
+// Affiche le détail chiffré du score (gains et pertes)
+function renderScoreBreakdown(bd){
+  var wrap=document.getElementById('es-breakdown'); if(!wrap) return;
+  if(!bd){ wrap.innerHTML=''; return; }
+  var lines=[];
+  function line(label, val, isMalus){
+    if(val===0 || val===undefined || val===null) return;
+    var sign = val>0 ? '+' : '\u2212';
+    var cls = val>0 ? 'sb-plus' : 'sb-minus';
+    lines.push('<div class="sb-row"><span class="sb-label">'+label+'</span><span class="sb-val '+cls+'">'+sign+Math.abs(val)+' pts</span></div>');
+  }
+  line('Socle (profil + identité vérifiée)', bd.socle);
+  line('Références vérifiées', bd.references);
+  line('Attestations vérifiées', bd.attestations);
+  line('Contrats bien exécutés', bd.track_record);
+  line('Bonus de régularité', bd.loyalty_bonus);
+  if(bd.malus && bd.malus>0){ line('Incidents (retards, contournements…)', -bd.malus); }
+  if(lines.length===0){ wrap.innerHTML='<div class="ref-empty">Votre score se construira au fur et à mesure de vos preuves et de vos contrats.</div>'; return; }
+  wrap.innerHTML='<div class="sb-box">'+lines.join('')+'</div>';
 }
 
 // Astuces dynamiques : on met en avant les leviers non encore acquis
@@ -3314,33 +3350,49 @@ function refusalBlock(note, kind){
     '<div class="ref-refused-r">'+reason+'</div>'+
     '<div class="ref-refused-i">'+invite+'</div></div>';
 }
+var _refCount=0, _attCount=0;
+// Renvoie le badge de points selon le statut et le type
+function pointsBadge(status, kind){
+  var val = kind==='reference' ? 5 : 10;
+  if(status==='proved') return '<span class="pts-badge pts-plus">+'+val+' pts</span>';
+  if(status==='false')  return '<span class="pts-badge pts-minus">\u2212'+val+' pts</span>';
+  return '<span class="pts-badge pts-wait">'+val+' pts en jeu</span>';
+}
 function paintRefs(refs){
   var wrap=document.getElementById('ref-list'); if(!wrap) return;
+  _refCount = refs.length;
   var cnt=document.getElementById('ref-count'); if(cnt) cnt.textContent=refs.length;
   if(refs.length===0){ wrap.innerHTML='<div class="ref-empty">Aucune référence pour l\'instant. Ajoutez-en pour gagner des points.</div>'; return; }
   wrap.innerHTML=refs.map(function(r){
     var refused = r.status==='false';
     return '<div class="ref-card'+(refused?' ref-card-refused':'')+'"><div class="ref-card-top"><div><div class="ref-card-name">'+(r.contact_name||'—')+'</div>'+
-      (r.organization?'<div class="ref-card-org">'+r.organization+'</div>':'')+'</div>'+statusPill(r.status)+'</div>'+
+      (r.organization?'<div class="ref-card-org">'+r.organization+'</div>':'')+'</div><div style="display:flex;flex-direction:column;align-items:flex-end;gap:5px">'+statusPill(r.status)+pointsBadge(r.status,'reference')+'</div></div>'+
       (r.market_object?'<div class="ref-card-market"><i class="ti ti-briefcase"></i> '+r.market_object+'</div>':'')+
       (refused?refusalBlock(r.verification_note,'reference'):'')+'</div>';
   }).join('');
 }
 function paintAtts(atts){
   var wrap=document.getElementById('att-list'); if(!wrap) return;
+  _attCount = atts.length;
   var cnt=document.getElementById('att-count'); if(cnt) cnt.textContent=atts.length;
   if(atts.length===0){ wrap.innerHTML='<div class="ref-empty">Aucune attestation pour l\'instant. Ajoutez-en pour gagner plus de points.</div>'; return; }
   wrap.innerHTML=atts.map(function(a){
     var refused = a.status==='false';
     return '<div class="ref-card'+(refused?' ref-card-refused':'')+'"><div class="ref-card-top"><div><div class="ref-card-name">'+(a.market_object||'—')+'</div>'+
-      (a.issuing_authority?'<div class="ref-card-org">'+a.issuing_authority+'</div>':'')+'</div>'+statusPill(a.status)+'</div>'+
+      (a.issuing_authority?'<div class="ref-card-org">'+a.issuing_authority+'</div>':'')+'</div><div style="display:flex;flex-direction:column;align-items:flex-end;gap:5px">'+statusPill(a.status)+pointsBadge(a.status,'attestation')+'</div></div>'+
       (refused?refusalBlock(a.verification_note,'attestation'):'')+'</div>';
   }).join('');
 }
-// Modals
-function openRefForm(){ var m=document.getElementById('ref-modal'); if(m) m.classList.add('on'); }
+// Modals — blocage à 5 soumissions maximum
+function openRefForm(){
+  if(_refCount>=5){ toast('Vous avez atteint le maximum de 5 références. Seules les 3 meilleures comptent pour votre score.'); return; }
+  var m=document.getElementById('ref-modal'); if(m) m.classList.add('on');
+}
 function closeRefForm(){ var m=document.getElementById('ref-modal'); if(m) m.classList.remove('on'); }
-function openAttForm(){ var m=document.getElementById('att-modal'); if(m) m.classList.add('on'); }
+function openAttForm(){
+  if(_attCount>=5){ toast('Vous avez atteint le maximum de 5 attestations. Seules les 3 meilleures comptent pour votre score.'); return; }
+  var m=document.getElementById('att-modal'); if(m) m.classList.add('on');
+}
 function closeAttForm(){ var m=document.getElementById('att-modal'); if(m) m.classList.remove('on'); }
 function afFilePicked(input){ var l=document.getElementById('af-file-label'); if(l && input.files && input.files[0]) l.textContent=input.files[0].name; }
 
