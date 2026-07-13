@@ -1273,9 +1273,9 @@ textarea{resize:vertical;min-height:70px}
     </div>
     <div class="wiz-callout green" style="margin-top:12px"><svg viewBox="0 0 32 32" fill="none"><circle cx="16" cy="16" r="13" fill="#C6F0D8"/><path d="M10 16l4 4 8-8" stroke="#0A6E3B" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/></svg><div>C'est votre client qui rembourse. <b>Vous ne remboursez rien.</b></div></div>
 
-    <div class="wiz-consent on" onclick="this.classList.toggle('on')"><div class="wco-box"><i class="ti ti-check"></i></div><div class="wco-txt">J'autorise Credigo à partager mes informations avec les personnes et organismes nécessaires pour étudier et gérer ma demande.<span class="wco-small">Votre client, la banque, les organismes de crédit et les autorités si la loi l'exige.</span><span class="wco-link" onclick="event.stopPropagation();openWhoSees()"><i class="ti ti-eye"></i> Qui voit mes informations ?</span></div></div>
-    <div class="wiz-consent on" onclick="this.classList.toggle('on')"><div class="wco-box"><i class="ti ti-check"></i></div><div class="wco-txt">Je m'engage à recevoir le paiement <b>uniquement sur le compte indiqué</b>. Si mon client me paie directement, je préviens Credigo.</div></div>
-    <div class="wiz-consent on" onclick="this.classList.toggle('on')"><div class="wco-box"><i class="ti ti-check"></i></div><div class="wco-txt">Je confirme que les informations données sont <b>vraies</b>.</div></div>
+    <div class="wiz-consent" id="wc-1" onclick="toggleConsent(this)"><div class="wco-box"><i class="ti ti-check"></i></div><div class="wco-txt">J'autorise Credigo à partager mes informations avec les personnes et organismes nécessaires pour étudier et gérer ma demande.<span class="wco-small">Votre client, la banque, les organismes de crédit et les autorités si la loi l'exige.</span><span class="wco-link" onclick="event.stopPropagation();openWhoSees()"><i class="ti ti-eye"></i> Qui voit mes informations ?</span></div></div>
+    <div class="wiz-consent" id="wc-2" onclick="toggleConsent(this)"><div class="wco-box"><i class="ti ti-check"></i></div><div class="wco-txt">Je m'engage à recevoir le paiement <b>uniquement sur le compte indiqué</b>. Si mon client me paie directement, je préviens Credigo.</div></div>
+    <div class="wiz-consent" id="wc-3" onclick="toggleConsent(this)"><div class="wco-box"><i class="ti ti-check"></i></div><div class="wco-txt">Je confirme que les informations données sont <b>vraies</b>.</div></div>
   </div>
 
   <div class="wiz-foot">
@@ -3694,7 +3694,29 @@ function wizRenderStep(){
   var backic=document.getElementById('wiz-back-ic'); if(backic) backic.className='ti ti-'+(wizStep===1?'x':'arrow-left');
   var next=document.getElementById('wiz-next');
   if(next){ next.innerHTML = wizStep===total ? '<i class="ti ti-send"></i> Envoyer ma demande' : 'Continuer <i class="ti ti-arrow-right"></i>'; if(wizStep===total) next.classList.add('btn-send'); else next.classList.remove('btn-send'); }
-  if(wizStep===total) wizFillEstimate();
+  if(wizStep===total){ wizFillEstimate(); updateConsentGate(); }
+}
+// Vérifie que les 3 consentements sont cochés ; sinon désactive le bouton d'envoi
+function allConsentsChecked(){
+  return ['wc-1','wc-2','wc-3'].every(function(id){
+    var el=document.getElementById(id);
+    return el && el.classList.contains('on');
+  });
+}
+function updateConsentGate(){
+  var next=document.getElementById('wiz-next');
+  if(!next) return;
+  var total=wizCurrentPages().length;
+  // Le verrou ne s'applique qu'à la dernière étape (l'envoi)
+  if(wizStep!==total){ next.disabled=false; next.style.opacity=''; next.style.pointerEvents=''; return; }
+  var ok=allConsentsChecked();
+  next.disabled=!ok;
+  next.style.opacity = ok ? '' : '0.5';
+  next.style.pointerEvents = ok ? '' : 'none';
+}
+function toggleConsent(el){
+  el.classList.toggle('on');
+  updateConsentGate();
 }
 function wizNext(){
   var total=wizCurrentPages().length;
@@ -3713,6 +3735,11 @@ function wizFillEstimate(){
   var er=document.getElementById('est-recu'); if(er) er.textContent=fmtF(m-frais);
 }
 function wizSubmit(){
+  // Sécurité : les trois consentements doivent être cochés
+  if(typeof allConsentsChecked==='function' && !allConsentsChecked()){
+    toast('Veuillez cocher toutes les cases de consentement avant d\'envoyer.');
+    return;
+  }
   // Collecter les valeurs du wizard
   var objet=(document.getElementById('f-objet')||{}).value||'';
   var montant=parseFloat((document.getElementById('f-montant')||{}).value)||0;
