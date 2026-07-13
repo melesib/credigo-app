@@ -467,6 +467,30 @@
   };
 
   // Lit la liste des banques partenaires actives (pour le wizard)
+  // Lit les paramètres de tarification et calcule le taux selon le score du client
+  window.credigoGetRate = async function () {
+    if (!supabaseReady) return { rate: 3.0 };
+    var userId = currentAppUserId();
+    var ps = await sb.from('pricing_settings').select('*').eq('id', 1).single();
+    if (ps.error || !ps.data) return { rate: 3.0 };
+    var s = ps.data;
+    var score = 55;
+    if (userId) {
+      var us = await sb.from('app_users').select('reliability_score').eq('id', userId).single();
+      if (!us.error && us.data && typeof us.data.reliability_score === 'number') score = us.data.reliability_score;
+    }
+    var rate;
+    if (score >= s.pivot_score) {
+      rate = (100 - s.pivot_score) === 0 ? s.base_rate
+        : s.base_rate - s.score_discount * (score - s.pivot_score) / (100 - s.pivot_score);
+    } else {
+      rate = s.pivot_score === 0 ? s.base_rate
+        : s.base_rate + s.score_penalty * (s.pivot_score - score) / s.pivot_score;
+    }
+    rate = Math.max(s.min_rate, Math.min(s.max_rate, rate));
+    return { rate: Math.round(rate * 100) / 100, score: score };
+  };
+
   window.credigoGetBanques = async function () {
     if (!supabaseReady) return { banques: [] };
     var res = await sb.from('banques_partenaires')

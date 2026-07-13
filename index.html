@@ -2986,7 +2986,7 @@ function showScreen(id) {
 }
 function renderScreen(id) {
   if (id === 'e-home') renderEHome();
-  if (id === 'e-submit') { wizReset(); loadPartnerDonneurs(); loadBanques(); }
+  if (id === 'e-submit') { _cachedRate=null; wizReset(); loadPartnerDonneurs(); loadBanques(); }
   if (id === 'e-list') renderEList();
   if (id === 'e-score') renderEScore();
   if (id === 'e-references') renderEReferences();
@@ -3746,12 +3746,24 @@ function wizBack(){
   if(wizStep>1){ wizStep--; wizRenderStep(); }
   else { goSc('e-home','e',document.querySelector('#sb-e .slink[onclick*=e-home]')); }
 }
+var _cachedRate=null;
 function wizFillEstimate(){
   var m=parseFloat(document.getElementById('f-montant').value)||10000000;
-  var frais=Math.round(m*0.05);
-  var em=document.getElementById('est-montant'); if(em) em.textContent=fmtF(m);
-  var ef=document.getElementById('est-frais'); if(ef) ef.textContent='− '+fmtF(frais);
-  var er=document.getElementById('est-recu'); if(er) er.textContent=fmtF(m-frais);
+  function paint(ratePct){
+    var frais=Math.round(m*ratePct/100);
+    var em=document.getElementById('est-montant'); if(em) em.textContent=fmtF(m);
+    var ef=document.getElementById('est-frais'); if(ef) ef.textContent='− '+fmtF(frais);
+    var er=document.getElementById('est-recu'); if(er) er.textContent=fmtF(m-frais);
+  }
+  if(_cachedRate!==null){ paint(_cachedRate); return; }
+  // Valeur provisoire pendant le chargement
+  paint(3);
+  if(window.CredigoDB && window.CredigoDB.ready && typeof window.credigoGetRate==='function'){
+    window.credigoGetRate().then(function(res){
+      _cachedRate = (res && res.rate) ? res.rate : 3;
+      paint(_cachedRate);
+    }).catch(function(){});
+  }
 }
 function wizSubmit(){
   // Sécurité : les trois consentements doivent être cochés
@@ -3777,7 +3789,8 @@ function wizSubmit(){
   }
 
   // Estimations (frais indicatifs ~3%)
-  var frais=Math.round(montant*0.03);
+  var rateUsed = (_cachedRate!==null) ? _cachedRate : 3;
+  var frais=Math.round(montant*rateUsed/100);
   var payout=montant-frais;
 
   var req={
