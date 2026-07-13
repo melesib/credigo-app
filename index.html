@@ -1252,11 +1252,7 @@ textarea{resize:vertical;min-height:70px}
       <div class="wr2-opt on" onclick="wizPickAccount(true,this)">Oui, j'ai un compte</div>
       <div class="wr2-opt" onclick="wizPickAccount(false,this)">Non, ouvrez-m'en un</div>
     </div>
-    <div id="f-banks">
-      <div class="wiz-bank on" onclick="wizPickBank('Banque Atlantique',this)"><div class="wb-logo" style="background:#E30613">BA</div><div class="wb-info"><div class="n">Banque Atlantique</div><div class="s"><i class="ti ti-bolt"></i> Argent reçu tout de suite</div></div><div class="wb-radio"></div></div>
-      <div class="wiz-bank" onclick="wizPickBank('Ecobank',this)"><div class="wb-logo" style="background:#0066B3">EC</div><div class="wb-info"><div class="n">Ecobank</div><div class="s"><i class="ti ti-bolt"></i> Argent reçu tout de suite</div></div><div class="wb-radio"></div></div>
-      <div class="wiz-bank" onclick="wizPickBank('Coris Bank',this)"><div class="wb-logo" style="background:#F58220">CO</div><div class="wb-info"><div class="n">Coris Bank</div><div class="s"><i class="ti ti-bolt"></i> Argent reçu tout de suite</div></div><div class="wb-radio"></div></div>
-    </div>
+    <div id="f-banks"><div class="ref-empty" style="padding:16px">Chargement des banques…</div></div>
     <div class="wiz-field" id="f-account-wrap" style="margin-top:14px"><label>Votre numéro de compte</label><input type="text" placeholder="Le compte où on envoie l'argent"></div>
     <div id="f-open-account" class="wiz-callout blue" style="display:none"><svg viewBox="0 0 32 32" fill="none"><circle cx="16" cy="16" r="13" fill="#CFE4FF"/><path d="M16 10v7M16 21h.02" stroke="#1E40AF" stroke-width="2.5" stroke-linecap="round"/></svg><div>On ouvre le compte pour vous. Ça prend juste quelques jours de plus.</div></div>
   </div>
@@ -2990,7 +2986,7 @@ function showScreen(id) {
 }
 function renderScreen(id) {
   if (id === 'e-home') renderEHome();
-  if (id === 'e-submit') { wizReset(); loadPartnerDonneurs(); }
+  if (id === 'e-submit') { wizReset(); loadPartnerDonneurs(); loadBanques(); }
   if (id === 'e-list') renderEList();
   if (id === 'e-score') renderEScore();
   if (id === 'e-references') renderEReferences();
@@ -3647,12 +3643,32 @@ function wizPickAccount(has,el){
   if(open) open.style.display=has?'none':'flex';
 }
 var wizBank='';
+var wizBankId='';
 var wizDocFile=null;
 function fDocPicked(input){
   if(input.files && input.files[0]){
     wizDocFile=input.files[0];
     var l=document.getElementById('f-doc-label');
     if(l) l.textContent=input.files[0].name;
+  }
+}
+function loadBanques(){
+  var wrap=document.getElementById('f-banks');
+  if(!wrap) return;
+  if(window.CredigoDB && window.CredigoDB.ready && typeof window.credigoGetBanques==='function'){
+    window.credigoGetBanques().then(function(res){
+      var banques=(res && res.banques)?res.banques:[];
+      if(banques.length===0){ wrap.innerHTML='<div class="ref-empty" style="padding:16px">Aucune banque disponible pour le moment.</div>'; return; }
+      wizBank=''; wizBankId='';
+      wrap.innerHTML=banques.map(function(b,i){
+        var initiales=(b.short_name||b.name||'?').substring(0,2).toUpperCase();
+        var logo = b.logo_url
+          ? '<div class="wb-logo" style="background:#fff;border:1px solid #EDECEF;overflow:hidden"><img src="'+b.logo_url+'" alt="'+(b.short_name||b.name)+'" style="width:100%;height:100%;object-fit:contain" onerror="this.parentNode.textContent=\''+initiales+'\'"></div>'
+          : '<div class="wb-logo" style="background:#6C3FE8">'+initiales+'</div>';
+        return '<div class="wiz-bank" onclick="wizPickBank(\''+(b.name.replace(/'/g,"\\'"))+'\',this,\''+b.id+'\')">'+logo+
+          '<div class="wb-info"><div class="n">'+b.name+'</div><div class="s"><i class="ti ti-bolt"></i> Argent reçu tout de suite</div></div><div class="wb-radio"></div></div>';
+      }).join('');
+    }).catch(function(){ wrap.innerHTML='<div class="ref-empty" style="padding:16px">Impossible de charger les banques.</div>'; });
   }
 }
 function loadPartnerDonneurs(){
@@ -3673,8 +3689,9 @@ function loadPartnerDonneurs(){
     }).catch(function(){});
   }
 }
-function wizPickBank(name,el){
+function wizPickBank(name,el,id){
   wizBank=name;
+  wizBankId=id||'';
   document.querySelectorAll('#wp-5 .wiz-bank').forEach(function(b){b.classList.remove('on');});
   el.classList.add('on');
 }
@@ -3744,6 +3761,7 @@ function wizSubmit(){
   var objet=(document.getElementById('f-objet')||{}).value||'';
   var montant=parseFloat((document.getElementById('f-montant')||{}).value)||0;
   if(!objet.trim() || !montant){ toast('Indiquez au moins l\'objet et le montant du marché.'); return; }
+  if(!wizBank){ toast('Veuillez choisir votre banque pour recevoir le paiement.'); return; }
 
   // Donneur d'ordre : partenaire (select) ou saisie libre
   var clientSel=document.getElementById('f-client');

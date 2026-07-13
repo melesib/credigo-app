@@ -466,6 +466,17 @@
     return { requests: res.data || [] };
   };
 
+  // Lit la liste des banques partenaires actives (pour le wizard)
+  window.credigoGetBanques = async function () {
+    if (!supabaseReady) return { banques: [] };
+    var res = await sb.from('banques_partenaires')
+      .select('id, name, short_name, logo_url')
+      .eq('is_active', true)
+      .order('ordre', { ascending: true });
+    if (res.error) return { banques: [] };
+    return { banques: res.data || [] };
+  };
+
   // Lit la liste des donneurs d'ordre partenaires (pour le wizard)
   window.credigoGetPartnerDonneurs = async function () {
     if (!supabaseReady) return { donneurs: [] };
