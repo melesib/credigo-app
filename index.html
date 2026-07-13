@@ -3662,8 +3662,10 @@ function loadBanques(){
       wizBank=''; wizBankId='';
       wrap.innerHTML=banques.map(function(b,i){
         var initiales=(b.short_name||b.name||'?').substring(0,2).toUpperCase();
+        var fit = (b.logo_fit==='cover') ? 'cover' : 'contain';
+        var pad = (fit==='contain') ? 'padding:4px;' : 'padding:0;';
         var logo = b.logo_url
-          ? '<div class="wb-logo" style="background:#fff;border:1px solid #EDECEF;overflow:hidden"><img src="'+b.logo_url+'" alt="'+(b.short_name||b.name)+'" style="width:100%;height:100%;object-fit:contain" onerror="this.parentNode.textContent=\''+initiales+'\'"></div>'
+          ? '<div class="wb-logo" style="background:#fff;border:1px solid #EDECEF;overflow:hidden;'+pad+'box-sizing:border-box"><img src="'+b.logo_url+'" alt="'+(b.short_name||b.name)+'" style="width:100%;height:100%;object-fit:'+fit+';display:block" onerror="this.parentNode.style.padding=\'0\';this.parentNode.style.background=\'#6C3FE8\';this.parentNode.style.color=\'#fff\';this.parentNode.textContent=\''+initiales+'\'"></div>'
           : '<div class="wb-logo" style="background:#6C3FE8">'+initiales+'</div>';
         return '<div class="wiz-bank" onclick="wizPickBank(\''+(b.name.replace(/'/g,"\\'"))+'\',this,\''+b.id+'\')">'+logo+
           '<div class="wb-info"><div class="n">'+b.name+'</div><div class="s"><i class="ti ti-bolt"></i> Argent reçu tout de suite</div></div><div class="wb-radio"></div></div>';

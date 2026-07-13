@@ -470,7 +470,7 @@
   window.credigoGetBanques = async function () {
     if (!supabaseReady) return { banques: [] };
     var res = await sb.from('banques_partenaires')
-      .select('id, name, short_name, logo_url')
+      .select('id, name, short_name, logo_url, logo_fit')
       .eq('is_active', true)
       .order('ordre', { ascending: true });
     if (res.error) return { banques: [] };
