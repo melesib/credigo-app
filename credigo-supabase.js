@@ -417,8 +417,103 @@
   };
 
   // ════════════════════════════════════════════════════════════
-  // KYC — upload de document vers Supabase Storage + ligne DB
+  // CONTRATS / DEMANDES DE FINANCEMENT
   // ════════════════════════════════════════════════════════════
+
+  // Crée une demande de financement
+  window.credigoCreateRequest = async function (req) {
+    if (!supabaseReady) return { error: 'Supabase non configuré.' };
+    var userId = currentAppUserId();
+    if (!userId) return { error: 'Utilisateur non synchronisé.' };
+    var payload = {
+      app_user_id: userId,
+      type: req.type || 'commande',
+      market_object: req.market_object || '',
+      market_amount: req.market_amount || 0,
+      reference: req.reference || null,
+      date_start: req.date_start || null,
+      date_end: req.date_end || null,
+      date_payment: req.date_payment || null,
+      donneur_ordre_name: req.donneur_ordre_name || null,
+      bank_partner: req.bank_partner || null,
+      estimated_fees: req.estimated_fees || null,
+      estimated_payout: req.estimated_payout || null,
+      domiciliation_consent: req.domiciliation_consent ? true : false,
+      domiciliation_consent_at: req.domiciliation_consent ? new Date().toISOString() : null,
+      status: 'submitted'
+    };
+    var res = await sb.from('financing_requests').insert(payload).select().single();
+    if (res.error) return { error: res.error.message };
+    // Journaliser l'événement de soumission (best-effort, non bloquant)
+    try {
+      await sb.from('request_events').insert({
+        request_id: res.data.id, event_type: 'submitted',
+        to_status: 'submitted', actor_type: 'entrepreneur', actor_id: userId
+      });
+    } catch (e) { /* non bloquant */ }
+    return { request: res.data };
+  };
+
+  // Lit les demandes de l'utilisateur (les plus récentes d'abord)
+  window.credigoGetRequests = async function () {
+    if (!supabaseReady) return { error: 'Supabase non configuré.' };
+    var userId = currentAppUserId();
+    if (!userId) return { error: 'Utilisateur non synchronisé.' };
+    var res = await sb.from('financing_requests')
+      .select('*').eq('app_user_id', userId)
+      .order('created_at', { ascending: false });
+    if (res.error) return { error: res.error.message };
+    return { requests: res.data || [] };
+  };
+
+  // Lit la liste des donneurs d'ordre partenaires (pour le wizard)
+  window.credigoGetPartnerDonneurs = async function () {
+    if (!supabaseReady) return { donneurs: [] };
+    var res = await sb.from('donneurs_ordre')
+      .select('id, name, is_partner, is_public')
+      .eq('is_partner', true)
+      .order('name', { ascending: true });
+    if (res.error) return { donneurs: [] };
+    return { donneurs: res.data || [] };
+  };
+
+  // Lit une demande précise avec son journal d'événements
+  window.credigoGetRequestDetail = async function (requestId) {
+    if (!supabaseReady) return { error: 'Supabase non configuré.' };
+    var res = await sb.from('financing_requests').select('*').eq('id', requestId).single();
+    if (res.error) return { error: res.error.message };
+    var ev = await sb.from('request_events').select('*').eq('request_id', requestId).order('created_at', { ascending: true });
+    return { request: res.data, events: (ev.data || []) };
+  };
+
+  // Upload d'un document de demande vers le bucket "attestations" (réutilisé)
+  // puis enregistrement dans request_documents.
+  window.credigoUploadRequestDoc = async function (requestId, file, docType) {
+    if (!supabaseReady) return { error: 'Supabase non configuré.' };
+    var userId = currentAppUserId();
+    if (!userId) return { error: 'Utilisateur non synchronisé.' };
+    if (file.size > 10 * 1024 * 1024) return { error: 'Le fichier dépasse 10 Mo.' };
+    try {
+      var parts = (file.name || 'document').split('.');
+      var ext = parts.length > 1 ? parts.pop().toLowerCase() : 'bin';
+      var path = userId + '/requests/' + requestId + '_' + Date.now() + '.' + ext;
+      var up = await sb.storage.from('attestations').upload(path, file, {
+        cacheControl: '3600', upsert: false,
+        contentType: file.type || 'application/octet-stream'
+      });
+      if (up.error) return { error: up.error.message };
+      var ins = await sb.from('request_documents').insert({
+        request_id: requestId,
+        document_path: path,
+        document_name: file.name,
+        doc_type: docType || 'autre'
+      }).select().single();
+      if (ins.error) return { error: ins.error.message };
+      return { document: ins.data };
+    } catch (e) {
+      return { error: e.message || 'Échec de l\'envoi du fichier.' };
+    }
+  };
 
   /**
    * Upload un fichier KYC. `file` est un objet File (input type=file).

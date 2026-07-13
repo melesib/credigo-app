@@ -1217,10 +1217,6 @@ textarea{resize:vertical;min-height:70px}
     <div class="wiz-field"><label>Votre client</label>
       <select id="f-client" onchange="wizClientChange(this)">
         <option value="">— Choisir —</option>
-        <option>Ministère de l'Éducation</option>
-        <option>SODECI</option>
-        <option>Groupe CFAO</option>
-        <option>Orange Côte d'Ivoire</option>
         <option value="autre">Mon client n'est pas dans la liste</option>
       </select>
     </div>
@@ -1236,7 +1232,8 @@ textarea{resize:vertical;min-height:70px}
     <svg class="wiz-illus" viewBox="0 0 80 80" fill="none"><path d="M44 24L26 42a8 8 0 0011 11l18-18a12 12 0 10-17-17L20 34" stroke="#6C3FE8" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" fill="#EEE8FF"/></svg>
     <div class="wiz-q">Joignez vos papiers</div>
     <div class="wiz-sub">Le contrat, le bon de commande, la facture…</div>
-    <div class="wiz-attach"><svg viewBox="0 0 48 48" fill="none"><rect x="10" y="6" width="28" height="36" rx="3" fill="#EEE8FF" stroke="#6C3FE8" stroke-width="2"/><path d="M24 16v14M18 22l6-6 6 6" stroke="#6C3FE8" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/></svg><div class="wa-t">Appuyez pour ajouter une photo</div><div class="wa-d">Vous pouvez utiliser l'appareil photo</div></div>
+    <div class="wiz-attach" onclick="document.getElementById('f-doc-file').click()"><svg viewBox="0 0 48 48" fill="none"><rect x="10" y="6" width="28" height="36" rx="3" fill="#EEE8FF" stroke="#6C3FE8" stroke-width="2"/><path d="M24 16v14M18 22l6-6 6 6" stroke="#6C3FE8" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/></svg><div class="wa-t" id="f-doc-label">Appuyez pour ajouter un document</div><div class="wa-d">Photo, PDF, Word, Excel…</div></div>
+    <input type="file" id="f-doc-file" style="display:none" accept="image/*,.pdf,.doc,.docx,.xls,.xlsx" onchange="fDocPicked(this)">
     <!-- FNE : affacturage seulement -->
     <div id="f-fne-wrap" class="wiz-fne" style="display:none">
       <div class="wiz-fne-head"><i class="ti ti-qrcode" style="color:#0A6E3B"></i> Facture normalisée (FNE) <span class="opt-tag">Facultatif</span></div>
@@ -2993,7 +2990,7 @@ function showScreen(id) {
 }
 function renderScreen(id) {
   if (id === 'e-home') renderEHome();
-  if (id === 'e-submit') wizReset();
+  if (id === 'e-submit') { wizReset(); loadPartnerDonneurs(); }
   if (id === 'e-list') renderEList();
   if (id === 'e-score') renderEScore();
   if (id === 'e-references') renderEReferences();
@@ -3650,6 +3647,32 @@ function wizPickAccount(has,el){
   if(open) open.style.display=has?'none':'flex';
 }
 var wizBank='';
+var wizDocFile=null;
+function fDocPicked(input){
+  if(input.files && input.files[0]){
+    wizDocFile=input.files[0];
+    var l=document.getElementById('f-doc-label');
+    if(l) l.textContent=input.files[0].name;
+  }
+}
+function loadPartnerDonneurs(){
+  var sel=document.getElementById('f-client');
+  if(!sel) return;
+  if(window.CredigoDB && window.CredigoDB.ready && typeof window.credigoGetPartnerDonneurs==='function'){
+    window.credigoGetPartnerDonneurs().then(function(res){
+      var donneurs=(res && res.donneurs)?res.donneurs:[];
+      // Retirer les anciennes options partenaires (garder "Choisir" et "autre")
+      Array.prototype.slice.call(sel.querySelectorAll('option.partner-opt')).forEach(function(o){ o.remove(); });
+      var autreOpt=sel.querySelector('option[value="autre"]');
+      donneurs.forEach(function(d){
+        var opt=document.createElement('option');
+        opt.className='partner-opt';
+        opt.value=d.name; opt.textContent=d.name;
+        sel.insertBefore(opt, autreOpt);
+      });
+    }).catch(function(){});
+  }
+}
 function wizPickBank(name,el){
   wizBank=name;
   document.querySelectorAll('#wp-5 .wiz-bank').forEach(function(b){b.classList.remove('on');});
@@ -3731,13 +3754,27 @@ function wizSubmit(){
   toast('Envoi de votre demande…');
   window.credigoCreateRequest(req).then(function(res){
     if(res && res.request){
-      toast('Votre demande a été envoyée ! Nos équipes vont l\'examiner.');
-      if(typeof wizReset==='function') wizReset();
-      goSc('e-list','e',document.querySelector('#sb-e .slink[onclick*=e-list]'));
+      // Si un document a été joint, l'uploader
+      if(wizDocFile && typeof window.credigoUploadRequestDoc==='function'){
+        var docType = (req.type==='affacturage') ? 'facture' : 'bon_commande';
+        window.credigoUploadRequestDoc(res.request.id, wizDocFile, docType).then(function(){
+          finishSubmit();
+        }).catch(function(){ finishSubmit(); });
+      } else {
+        finishSubmit();
+      }
     } else {
       toast('Erreur : '+((res&&res.error)||'réessayez'));
     }
   }).catch(function(e){ toast('Erreur lors de l\'envoi.'); });
+
+  function finishSubmit(){
+    toast('Votre demande a été envoyée ! Nos équipes vont l\'examiner.');
+    wizDocFile=null;
+    var lbl=document.getElementById('f-doc-label'); if(lbl) lbl.textContent='Appuyez pour ajouter un document';
+    if(typeof wizReset==='function') wizReset();
+    goSc('e-list','e',document.querySelector('#sb-e .slink[onclick*=e-list]'));
+  }
 }
 
 
