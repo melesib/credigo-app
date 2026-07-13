@@ -586,6 +586,9 @@ textarea{resize:vertical;min-height:70px}
 .ref-count{background:#EEE8FF;color:#6C3FE8;font-size:12px;font-weight:800;padding:2px 9px;border-radius:20px;margin-left:auto}
 .ref-sub{font-size:12.5px;color:#6B7280;margin-bottom:12px}
 .ref-card{background:#fff;border-radius:13px;padding:14px;border:1.5px solid #EDECEF;margin-bottom:10px}
+.ed-row{display:flex;justify-content:space-between;align-items:center;padding:9px 0;border-bottom:1px solid #F3F4F6;font-size:13.5px;color:#374151}
+.ed-row:last-child{border-bottom:none}
+.ed-row span{color:#6B7280}
 .pts-badge{font-size:11px;font-weight:800;padding:3px 9px;border-radius:20px;white-space:nowrap}
 .pts-plus{background:#DCFCE7;color:#166534}
 .pts-minus{background:#FEE2E2;color:#991B1B}
@@ -1223,8 +1226,8 @@ textarea{resize:vertical;min-height:70px}
     </div>
     <div id="f-client-partner" class="wiz-callout green"><svg viewBox="0 0 32 32" fill="none"><circle cx="16" cy="16" r="13" fill="#C6F0D8"/><path d="M10 16l4 4 8-8" stroke="#0A6E3B" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/></svg><div>Ce client est déjà notre partenaire. Votre demande ira plus vite.</div></div>
     <div id="f-client-manual" style="display:none">
-      <div class="wiz-field"><label>Nom du client</label><input type="text" placeholder="Raison sociale"></div>
-      <div class="wiz-field"><label>Contact chez le client</label><input type="text" placeholder="Nom et téléphone"></div>
+      <div class="wiz-field"><label>Nom du client</label><input type="text" id="f-client-name" placeholder="Raison sociale"></div>
+      <div class="wiz-field"><label>Contact chez le client</label><input type="text" id="f-client-contact" placeholder="Nom et téléphone"></div>
     </div>
   </div>
 
@@ -3112,24 +3115,69 @@ function credigoStatusBanner(){
 function goToProfileFromInvite(){ showScreen(authUser.role==='e'?'e-profile':'f-profile'); }
 function goToKycFromInvite(){ showScreen(authUser.role==='e'?'e-kyc':'f-kyc-upload'); }
 
+// Traduit un statut Supabase en libellé + style d'affichage
+function reqStatusInfo(status){
+  var map={
+    draft:{label:'Brouillon',cls:'check',etape:'Demande non finalisée',prog:5},
+    submitted:{label:'Envoyée',cls:'check',etape:'En attente d\'examen',prog:15},
+    under_review:{label:'En vérification',cls:'check',etape:'Nos équipes examinent votre marché',prog:30},
+    awaiting_donneur:{label:'Vérification client',cls:'check',etape:'Confirmation en cours chez votre client',prog:45},
+    confirmed:{label:'Client confirmé',cls:'run',etape:'Votre client a confirmé le marché',prog:60},
+    approved:{label:'Approuvée',cls:'run',etape:'Demande approuvée pour financement',prog:70},
+    funding:{label:'Financement',cls:'run',etape:'Décaissement en cours',prog:80},
+    executing:{label:'En cours',cls:'run',etape:'En attente du paiement de votre client',prog:88},
+    settled:{label:'Soldé',cls:'done',etape:'Ce marché est réglé',prog:100},
+    rejected:{label:'Refusée',cls:'check',etape:'Demande non retenue',prog:0},
+    cancelled:{label:'Annulée',cls:'check',etape:'Demande annulée',prog:0}
+  };
+  return map[status]||map.submitted;
+}
+// Transforme une demande Supabase en objet carte
+function reqToCard(r){
+  var si=reqStatusInfo(r.status);
+  return {
+    id:r.id, objet:r.market_object||'Demande', client:r.donneur_ordre_name||'Client à préciser',
+    statut:si.cls, statutLabel:si.label, etape:si.etape, progress:si.prog,
+    montant:r.market_amount||0, recu:(r.status==='settled'?r.market_amount:0),
+    _real:r
+  };
+}
+var _realRequests=[];
 function renderEHome(){
   var nameEl=document.getElementById('eh-user-name');
   if(nameEl && authUser){ nameEl.textContent = (authUser.firstName||authUser.first_name||'')+' '+(authUser.lastName||authUser.last_name||'') || 'Bienvenue'; }
-  var totRecu=0, totEncours=0;
-  demoContrats.forEach(function(c){ totRecu+=c.recu; if(c.statut!=='done') totEncours+=(c.montant-c.recu); });
-  var r=document.getElementById('eh-recu'); if(r) r.textContent=fmtM(totRecu);
-  var e=document.getElementById('eh-encours'); if(e) e.textContent=fmtM(totEncours);
   // todo / invitation contextuelle
   var todo=document.getElementById('eh-todo-wrap');
   if(todo){
     var invite=credigoStatusBanner();
-    if(invite){ todo.innerHTML=invite; }
-    else { todo.innerHTML='<div class="eh-todo" onclick="goSc(\'e-notifs\',\'e\',document.querySelector(\'#sb-e .slink[onclick*=e-notifs]\'))"><i class="ti ti-alert-circle" style="font-size:26px;color:#D97706"></i><div><div class="at">1 chose à faire</div><div class="ad">Ajoutez une photo du contrat "Réfection école"</div></div><i class="ti ti-chevron-right" style="margin-left:auto;color:#92660E"></i></div>'; }
+    todo.innerHTML = invite || '';
   }
-  // contrats
   var wrap=document.getElementById('eh-contracts');
-  if(wrap){ wrap.innerHTML=demoContrats.map(ehContractCard).join(''); }
-  applyFinanceLockUI();
+  if(wrap) wrap.innerHTML='<div class="ref-empty">Chargement…</div>';
+  _loadRequests(function(reqs){
+    var totRecu=0, totEncours=0;
+    reqs.forEach(function(r){
+      var amt=r.market_amount||0;
+      if(r.status==='settled') totRecu+=amt;
+      else if(r.status!=='rejected' && r.status!=='cancelled') totEncours+=amt;
+    });
+    var rc=document.getElementById('eh-recu'); if(rc) rc.textContent=fmtM(totRecu);
+    var ec=document.getElementById('eh-encours'); if(ec) ec.textContent=fmtM(totEncours);
+    if(wrap){
+      if(reqs.length===0){ wrap.innerHTML='<div class="ref-empty">Vous n\'avez pas encore de demande. Touchez « Nouvelle demande » pour commencer.</div>'; }
+      else { wrap.innerHTML=reqs.slice(0,3).map(function(r){return ehContractCard(reqToCard(r));}).join(''); }
+    }
+    applyFinanceLockUI();
+  });
+}
+// Charge les demandes (avec cache léger)
+function _loadRequests(cb){
+  if(window.CredigoDB && window.CredigoDB.ready && typeof window.credigoGetRequests==='function'){
+    window.credigoGetRequests().then(function(res){
+      _realRequests=(res && res.requests)?res.requests:[];
+      cb(_realRequests);
+    }).catch(function(){ cb([]); });
+  } else { cb([]); }
 }
 function ehContractCard(c){
   var amtLabel = c.statut==='done'?'remboursés':(c.recu>0?'reçus':'demandés');
@@ -3145,11 +3193,60 @@ function ehContractCard(c){
 // ── Mes demandes ──
 function renderEList(){
   var wrap=document.getElementById('el-contracts');
-  if(wrap){ wrap.innerHTML=demoContrats.map(ehContractCard).join(''); }
+  if(!wrap) return;
+  wrap.innerHTML='<div class="ref-empty">Chargement…</div>';
+  _loadRequests(function(reqs){
+    if(reqs.length===0){ wrap.innerHTML='<div class="ref-empty">Aucune demande pour l\'instant. Touchez « Nouvelle demande » pour créer votre première demande de financement.</div>'; return; }
+    wrap.innerHTML=reqs.map(function(r){return ehContractCard(reqToCard(r));}).join('');
+  });
+}
+
+// Affiche le détail d'une vraie demande de financement
+function openRealContrat(r){
+  var si=reqStatusInfo(r.status);
+  var isAff=r.type==='affacturage';
+  function euro(n){ return fmtF(n||0); }
+  function dateFr(d){ if(!d) return '—'; try{ return new Date(d).toLocaleDateString('fr-FR',{day:'2-digit',month:'long',year:'numeric'}); }catch(e){ return d; } }
+
+  var html='<div class="ed-hero st-'+si.cls+'" style="background:linear-gradient(135deg,#6C3FE8,#8B5CF6);border-radius:18px;padding:20px;color:#fff;margin-bottom:16px">'+
+    '<div style="font-size:12px;opacity:.85;text-transform:uppercase;letter-spacing:.05em">'+(isAff?'Affacturage':'Financement de commande')+'</div>'+
+    '<div style="font-size:20px;font-weight:800;margin:4px 0">'+(r.market_object||'Demande')+'</div>'+
+    '<div style="font-size:13px;opacity:.9">'+(r.donneur_ordre_name||'Client à préciser')+'</div>'+
+    '<div style="margin-top:14px;display:inline-block;background:rgba(255,255,255,.2);padding:6px 12px;border-radius:20px;font-size:13px;font-weight:700">'+si.label+'</div>'+
+  '</div>';
+
+  // Barre de progression
+  html+='<div class="card" style="margin-bottom:14px"><div class="card-title"><i class="ti ti-route" style="color:#6C3FE8"></i> Où en est votre demande</div>'+
+    '<div class="eh-track" style="margin:10px 0"><i style="width:'+si.prog+'%"></i></div>'+
+    '<div style="font-size:13px;color:#374151">'+si.etape+'</div></div>';
+
+  // Détails du marché
+  html+='<div class="card" style="margin-bottom:14px"><div class="card-title"><i class="ti ti-file-text" style="color:#6C3FE8"></i> Votre marché</div>'+
+    '<div class="ed-row"><span>Montant du marché</span><b>'+euro(r.market_amount)+'</b></div>'+
+    (r.reference?'<div class="ed-row"><span>Référence</span><b>'+r.reference+'</b></div>':'')+
+    (r.date_start?'<div class="ed-row"><span>Début</span><b>'+dateFr(r.date_start)+'</b></div>':'')+
+    (r.date_end?'<div class="ed-row"><span>Fin prévue</span><b>'+dateFr(r.date_end)+'</b></div>':'')+
+    (r.date_payment?'<div class="ed-row"><span>Paiement attendu</span><b>'+dateFr(r.date_payment)+'</b></div>':'')+
+    (r.bank_partner?'<div class="ed-row"><span>Banque</span><b>'+r.bank_partner+'</b></div>':'')+
+  '</div>';
+
+  // Estimation
+  if(r.estimated_payout){
+    html+='<div class="card" style="margin-bottom:14px"><div class="card-title"><i class="ti ti-calculator" style="color:#0A6E3B"></i> Estimation</div>'+
+      '<div class="ed-row"><span>Frais estimés</span><b>'+euro(r.estimated_fees)+'</b></div>'+
+      '<div class="ed-row"><span>Vous recevriez</span><b style="color:#0A6E3B">'+euro(r.estimated_payout)+'</b></div>'+
+      '<div style="font-size:11px;color:#9CA3AF;margin-top:6px">Estimation indicative, sujette à l\'examen de votre dossier.</div></div>';
+  }
+
+  document.getElementById('ed-content').innerHTML=html;
+  showScreen('e-detail');
 }
 
 // ── Détail contrat ──
 function openContrat(id){
+  // Chercher d'abord dans les vraies demandes chargées
+  var real=_realRequests.find(function(x){return x.id===id;});
+  if(real){ openRealContrat(real); return; }
   var c=demoContrats.find(function(x){return x.id===id;});
   if(!c) return;
   var isAff = c.type==='affacturage';
@@ -3552,7 +3649,9 @@ function wizPickAccount(has,el){
   if(acc) acc.style.display=has?'block':'none';
   if(open) open.style.display=has?'none':'flex';
 }
+var wizBank='';
 function wizPickBank(name,el){
+  wizBank=name;
   document.querySelectorAll('#wp-5 .wiz-bank').forEach(function(b){b.classList.remove('on');});
   el.classList.add('on');
 }
@@ -3591,8 +3690,54 @@ function wizFillEstimate(){
   var er=document.getElementById('est-recu'); if(er) er.textContent=fmtF(m-frais);
 }
 function wizSubmit(){
-  alert('Votre demande a été envoyée ! (démo — la connexion Supabase sera branchée)');
-  goSc('e-home','e',document.querySelector('#sb-e .slink[onclick*=e-home]'));
+  // Collecter les valeurs du wizard
+  var objet=(document.getElementById('f-objet')||{}).value||'';
+  var montant=parseFloat((document.getElementById('f-montant')||{}).value)||0;
+  if(!objet.trim() || !montant){ toast('Indiquez au moins l\'objet et le montant du marché.'); return; }
+
+  // Donneur d'ordre : partenaire (select) ou saisie libre
+  var clientSel=document.getElementById('f-client');
+  var donneurName='';
+  if(clientSel){
+    if(clientSel.value==='autre'){
+      donneurName=(document.getElementById('f-client-name')||{}).value||'';
+    } else {
+      donneurName=clientSel.value||'';
+    }
+  }
+
+  // Estimations (frais indicatifs ~3%)
+  var frais=Math.round(montant*0.03);
+  var payout=montant-frais;
+
+  var req={
+    type: (typeof wizType!=='undefined'?wizType:'commande'),
+    market_object: objet,
+    market_amount: montant,
+    reference: (document.getElementById('f-ref')||{}).value||null,
+    date_start: (document.getElementById('f-date-debut')||{}).value||null,
+    date_end: (document.getElementById('f-date-fin')||{}).value||null,
+    date_payment: (document.getElementById('f-date-paie')||{}).value||null,
+    donneur_ordre_name: donneurName||null,
+    bank_partner: (typeof wizBank!=='undefined'?wizBank:'')||null,
+    estimated_fees: frais,
+    estimated_payout: payout,
+    domiciliation_consent: true  // le consentement est intégré au parcours de soumission
+  };
+
+  if(!(window.CredigoDB && window.CredigoDB.ready && typeof window.credigoCreateRequest==='function')){
+    toast('Connexion requise pour envoyer votre demande.'); return;
+  }
+  toast('Envoi de votre demande…');
+  window.credigoCreateRequest(req).then(function(res){
+    if(res && res.request){
+      toast('Votre demande a été envoyée ! Nos équipes vont l\'examiner.');
+      if(typeof wizReset==='function') wizReset();
+      goSc('e-list','e',document.querySelector('#sb-e .slink[onclick*=e-list]'));
+    } else {
+      toast('Erreur : '+((res&&res.error)||'réessayez'));
+    }
+  }).catch(function(e){ toast('Erreur lors de l\'envoi.'); });
 }
 
 
