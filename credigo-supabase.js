@@ -436,6 +436,8 @@
       date_payment: req.date_payment || null,
       donneur_ordre_name: req.donneur_ordre_name || null,
       bank_partner: req.bank_partner || null,
+      bank_account_number: req.bank_account_number || null,
+      needs_account_opening: req.needs_account_opening ? true : false,
       estimated_fees: req.estimated_fees || null,
       estimated_payout: req.estimated_payout || null,
       domiciliation_consent: req.domiciliation_consent ? true : false,
@@ -468,6 +470,29 @@
 
   // Lit la liste des banques partenaires actives (pour le wizard)
   // Lit les paramètres de tarification et calcule le taux selon le score du client
+  // Crée une notification "profil complété" une seule fois (anti-doublon)
+  window.credigoNotifyProfileComplete = async function () {
+    if (!supabaseReady) return;
+    var userId = currentAppUserId();
+    if (!userId) return;
+    try {
+      // Vérifier qu'on n'a pas déjà notifié
+      var existing = await sb.from('notifications')
+        .select('id', { count: 'exact', head: true })
+        .eq('app_user_id', userId)
+        .eq('related_type', 'profile_complete');
+      if (existing.count && existing.count > 0) return;
+      await sb.from('notifications').insert({
+        app_user_id: userId,
+        title: 'Profil complété ✓',
+        body: 'Votre profil est complet. Prochaine étape : la vérification de votre identité (KYC).',
+        category: 'success',
+        target_screen: 'e-profile',
+        related_type: 'profile_complete'
+      });
+    } catch (e) { /* non bloquant */ }
+  };
+
   window.credigoGetRate = async function () {
     if (!supabaseReady) return { rate: 3.0 };
     var userId = currentAppUserId();

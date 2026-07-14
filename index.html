@@ -1103,7 +1103,7 @@ textarea{resize:vertical;min-height:70px}
   <div class="s-sec">Activité</div>
   <div class="slink on" onclick="goSc('e-home','e',this)"><i class="ti ti-home"></i><span class="lbl">Accueil</span></div>
   <div class="slink" onclick="goSc('e-submit','e',this)"><i class="ti ti-circle-plus"></i><span class="lbl">Nouvelle demande</span></div>
-  <div class="slink" onclick="goSc('e-list','e',this)"><i class="ti ti-list-check"></i><span class="lbl">Mes demandes</span><span class="sbadge">4</span></div>
+  <div class="slink" onclick="goSc('e-list','e',this)"><i class="ti ti-list-check"></i><span class="lbl">Mes demandes</span><span id="list-badge-e" class="sbadge" style="display:none">0</span></div>
   <div class="slink" onclick="goSc('e-notifs','e',this)"><i class="ti ti-bell"></i><span class="lbl">Notifications</span><span id="notif-badge-e" class="sbadge" style="background:#EF4444">3</span></div>
   <div class="s-sec">Mon activité</div>
   <div class="slink" onclick="goSc('e-score','e',this)"><i class="ti ti-star"></i><span class="lbl">Mon score</span></div>
@@ -1247,14 +1247,18 @@ textarea{resize:vertical;min-height:70px}
   <div class="wiz-page" id="wp-5">
     <svg class="wiz-illus" viewBox="0 0 80 80" fill="none"><rect x="12" y="28" width="56" height="38" rx="5" fill="#EEE8FF" stroke="#6C3FE8" stroke-width="3"/><path d="M12 38h56" stroke="#6C3FE8" stroke-width="3"/><path d="M40 12L17 28h46L40 12z" fill="#DDD0FF" stroke="#6C3FE8" stroke-width="3" stroke-linejoin="round"/><circle cx="40" cy="53" r="6" fill="#6C3FE8"/></svg>
     <div class="wiz-q">Où recevoir l'argent ?</div>
-    <div class="wiz-sub">Avez-vous un compte dans une de ces banques ?</div>
-    <div class="wiz-radio2">
-      <div class="wr2-opt on" onclick="wizPickAccount(true,this)">Oui, j'ai un compte</div>
-      <div class="wr2-opt" onclick="wizPickAccount(false,this)">Non, ouvrez-m'en un</div>
-    </div>
+    <div class="wiz-sub">Choisissez d'abord votre banque partenaire.</div>
     <div id="f-banks"><div class="ref-empty" style="padding:16px">Chargement des banques…</div></div>
-    <div class="wiz-field" id="f-account-wrap" style="margin-top:14px"><label>Votre numéro de compte</label><input type="text" placeholder="Le compte où on envoie l'argent"></div>
-    <div id="f-open-account" class="wiz-callout blue" style="display:none"><svg viewBox="0 0 32 32" fill="none"><circle cx="16" cy="16" r="13" fill="#CFE4FF"/><path d="M16 10v7M16 21h.02" stroke="#1E40AF" stroke-width="2.5" stroke-linecap="round"/></svg><div>On ouvre le compte pour vous. Ça prend juste quelques jours de plus.</div></div>
+    <!-- Bloc compte : n'apparaît qu'APRÈS avoir choisi une banque -->
+    <div id="f-account-section" style="display:none;margin-top:16px">
+      <div class="wiz-sub" id="f-account-q">Avez-vous un compte dans cette banque ?</div>
+      <div class="wiz-radio2">
+        <div class="wr2-opt on" onclick="wizPickAccount(true,this)">Oui, j'ai un compte</div>
+        <div class="wr2-opt" onclick="wizPickAccount(false,this)">Non, ouvrez-m'en un</div>
+      </div>
+      <div class="wiz-field" id="f-account-wrap" style="margin-top:14px"><label>Votre numéro de compte</label><input type="text" id="f-account-number" placeholder="Le numéro de votre compte dans cette banque"></div>
+      <div id="f-open-account" class="wiz-callout blue" style="display:none"><svg viewBox="0 0 32 32" fill="none"><circle cx="16" cy="16" r="13" fill="#CFE4FF"/><path d="M16 10v7M16 21h.02" stroke="#1E40AF" stroke-width="2.5" stroke-linecap="round"/></svg><div>Pas de souci : nous vous aidons à ouvrir un compte dans cette banque pour recevoir votre paiement. Cela prend quelques jours de plus.</div></div>
+    </div>
   </div>
 
   <!-- Étape 6 : Récap + consentements -->
@@ -3168,9 +3172,18 @@ function _loadRequests(cb){
   if(window.CredigoDB && window.CredigoDB.ready && typeof window.credigoGetRequests==='function'){
     window.credigoGetRequests().then(function(res){
       _realRequests=(res && res.requests)?res.requests:[];
+      _updateListBadge();
       cb(_realRequests);
     }).catch(function(){ cb([]); });
   } else { cb([]); }
+}
+function _updateListBadge(){
+  var badge=document.getElementById('list-badge-e');
+  if(!badge) return;
+  // Compter les demandes actives (ni soldées, ni rejetées, ni annulées)
+  var actives=_realRequests.filter(function(r){ return ['settled','rejected','cancelled'].indexOf(r.status)===-1; }).length;
+  if(actives>0){ badge.textContent=actives>9?'9+':actives; badge.style.display=''; }
+  else { badge.style.display='none'; }
 }
 function ehContractCard(c){
   var amtLabel = c.statut==='done'?'remboursés':(c.recu>0?'reçus':'demandés');
@@ -3611,7 +3624,12 @@ function closeWhoSees(){ var ov=document.getElementById('who-overlay'); if(ov) o
 // ═══ WIZARD nouvelle demande ═══
 var wizStep=1, wizType='commande', wizHasAccount=true;
 var wizFlow=['1','2','dates','3','4','5','6']; // ordre des pages
-function wizReset(){ wizStep=1; wizType='commande'; wizHasAccount=true; wizRenderStep(); }
+function wizReset(){
+  wizStep=1; wizType='commande'; wizHasAccount=true; wizBank=''; wizBankId='';
+  var section=document.getElementById('f-account-section'); if(section) section.style.display='none';
+  var accNum=document.getElementById('f-account-number'); if(accNum) accNum.value='';
+  wizRenderStep();
+}
 function wizPickType(t,el){
   wizType=t;
   document.querySelectorAll('#wp-1 .wiz-choice').forEach(function(c){c.classList.remove('on');});
@@ -3696,6 +3714,11 @@ function wizPickBank(name,el,id){
   wizBankId=id||'';
   document.querySelectorAll('#wp-5 .wiz-bank').forEach(function(b){b.classList.remove('on');});
   el.classList.add('on');
+  // Révéler la section compte, liée à la banque choisie
+  var section=document.getElementById('f-account-section');
+  if(section) section.style.display='block';
+  var q=document.getElementById('f-account-q');
+  if(q) q.textContent='Avez-vous un compte chez '+name+' ?';
 }
 function wizCurrentPages(){
   // affacturage saute la page dates exec mais garde date paie ; on garde 'dates' toujours (adaptée)
@@ -3803,6 +3826,8 @@ function wizSubmit(){
     date_payment: (document.getElementById('f-date-paie')||{}).value||null,
     donneur_ordre_name: donneurName||null,
     bank_partner: (typeof wizBank!=='undefined'?wizBank:'')||null,
+    bank_account_number: (typeof wizHasAccount!=='undefined' && wizHasAccount) ? ((document.getElementById('f-account-number')||{}).value||null) : null,
+    needs_account_opening: (typeof wizHasAccount!=='undefined') ? !wizHasAccount : false,
     estimated_fees: frais,
     estimated_payout: payout,
     domiciliation_consent: true  // le consentement est intégré au parcours de soumission
@@ -7932,6 +7957,7 @@ function saveEProfile() {
     authUser.initials = (fields.prenom[0] + fields.nom[0]).toUpperCase();
     authUser.profileComplete = true;
     authSaveSession(authUser);
+    if (window.credigoNotifyProfileComplete) window.credigoNotifyProfileComplete();
     var nameEl = document.getElementById('e-profile-name');
     if (nameEl) nameEl.textContent = authUser.name;
     var avE = document.getElementById('e-avatar-circle');
@@ -7995,6 +8021,7 @@ function saveFProfile() {
     authUser.initials = (fields.prenom[0] + fields.nom[0]).toUpperCase();
     authUser.profileComplete = true;
     authSaveSession(authUser);
+    if (window.credigoNotifyProfileComplete) window.credigoNotifyProfileComplete();
     var nameElF = document.getElementById('f-profile-name');
     if (nameElF) nameElF.textContent = authUser.name;
     var avF = document.getElementById('f-avatar-circle');
