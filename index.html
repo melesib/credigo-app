@@ -8129,6 +8129,32 @@ function applyKycLockMode(screenId) {
       row.style.border = '';
       row.style.padding = '';
     }
+
+    // Mettre à jour le badge de statut du document selon le statut KYC global
+    var badge = row.querySelector('.kyc-status-badge');
+    if (badge) {
+      var hasUpload = row.querySelector('.kyc-preview') && row.querySelector('.kyc-preview').style.display !== 'none';
+      if (status === 'approved') {
+        badge.className = 'kyc-status-badge uploaded';
+        badge.textContent = 'Validé ✓';
+        row.classList.add('uploaded');
+        row.style.opacity = '1';
+      } else if (status === 'pending_review') {
+        badge.className = 'kyc-status-badge uploaded';
+        badge.textContent = 'En vérification';
+        row.style.opacity = '1';
+      } else if (status === 'rejected') {
+        var wasRejected = docType && rejectedDocs[docType];
+        if (isActive || wasRejected) {
+          badge.className = 'kyc-status-badge error';
+          badge.textContent = 'À resoumettre';
+        } else {
+          // Ce document n'a pas été rejeté → il était valide
+          badge.className = 'kyc-status-badge uploaded';
+          badge.textContent = 'Validé ✓';
+        }
+      }
+    }
   });
 
   // Désactiver les boutons de navigation entre étapes si pas en mode résoumission
