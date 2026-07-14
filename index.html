@@ -587,6 +587,13 @@ textarea{resize:vertical;min-height:70px}
 .ref-sub{font-size:12.5px;color:#6B7280;margin-bottom:12px}
 .ref-card{background:#fff;border-radius:13px;padding:14px;border:1.5px solid #EDECEF;margin-bottom:10px}
 .ed-row{display:flex;justify-content:space-between;align-items:center;padding:9px 0;border-bottom:1px solid #F3F4F6;font-size:13.5px;color:#374151}
+/* Sélecteur de priorité — cases SVG, s'adapte à tout écran (Fold/Flip inclus) */
+.prio-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(84px,1fr));gap:7px;margin-top:2px}
+.prio-opt{display:flex;align-items:center;gap:6px;padding:9px 8px;border-radius:9px;border:1.5px solid #E5E7EB;background:#F9FAFB;cursor:pointer;min-width:0;transition:border-color .15s,background .15s}
+.prio-opt input{position:absolute;opacity:0;width:0;height:0;pointer-events:none}
+.prio-box{flex:0 0 18px;width:18px;height:18px;display:block}
+.prio-lbl{font-size:12px;font-weight:600;color:#374151;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+@media (max-width:340px){.prio-lbl{font-size:11px}.prio-opt{padding:8px 6px;gap:5px}}
 .ed-row:last-child{border-bottom:none}
 .ed-row span{color:#6B7280}
 .pts-badge{font-size:11px;font-weight:800;padding:3px 9px;border-radius:20px;white-space:nowrap}
@@ -1265,6 +1272,10 @@ textarea{resize:vertical;min-height:70px}
   <div class="wiz-page" id="wp-6">
     <svg class="wiz-illus" viewBox="0 0 80 80" fill="none"><path d="M40 8l24 10v14c0 15-10 26-24 32-14-6-24-17-24-32V18L40 8z" fill="#EEE8FF" stroke="#6C3FE8" stroke-width="3"/><path d="M30 40l7 7 14-14" stroke="#6C3FE8" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/></svg>
     <div class="wiz-q">Ce que vous recevez</div>
+    <div id="f-low-score-warn" class="wiz-callout" style="display:none;background:#FEF3C7;border:1.5px solid #FDE68A;margin-bottom:14px">
+      <svg viewBox="0 0 32 32" fill="none"><circle cx="16" cy="16" r="13" fill="#FDE68A"/><path d="M16 9v8M16 21h.02" stroke="#92400E" stroke-width="2.5" stroke-linecap="round"/></svg>
+      <div id="f-low-score-txt" style="color:#78350F"></div>
+    </div>
     <div class="wiz-sub">Voici l'estimation</div>
     <div class="wiz-est">
       <div class="we-row"><span class="k">Valeur du marché</span><span id="est-montant">—</span></div>
@@ -2466,18 +2477,21 @@ textarea{resize:vertical;min-height:70px}
       </div>
       <div class="fg">
         <label>Priorité</label>
-        <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-top:2px">
-          <label style="display:flex;align-items:center;gap:7px;padding:9px 12px;border-radius:9px;border:1.5px solid #E5E7EB;cursor:pointer;background:#F9FAFB" id="prio-e-normale">
-            <input type="radio" name="support-prio-e" value="normale" checked onchange="setPrio('e','normale')" style="accent-color:#6B7280">
-            <span style="font-size:12px;font-weight:600;color:#374151">Normale</span>
+        <div class="prio-grid">
+          <label class="prio-opt" id="prio-e-normale">
+            <input type="radio" name="support-prio-e" value="normale" checked onchange="setPrio('e','normale')">
+            <svg class="prio-box" viewBox="0 0 20 20" fill="none" aria-hidden="true"><circle cx="10" cy="10" r="8.25" fill="#fff" stroke="#D1D5DB" stroke-width="1.5"/><circle class="prio-dot" cx="10" cy="10" r="4.5" fill="#6B7280" opacity="0"/></svg>
+            <span class="prio-lbl">Normale</span>
           </label>
-          <label style="display:flex;align-items:center;gap:7px;padding:9px 12px;border-radius:9px;border:1.5px solid #E5E7EB;cursor:pointer;background:#F9FAFB" id="prio-e-urgente">
-            <input type="radio" name="support-prio-e" value="urgente" onchange="setPrio('e','urgente')" style="accent-color:#D97706">
-            <span style="font-size:12px;font-weight:600;color:#374151">Urgente</span>
+          <label class="prio-opt" id="prio-e-urgente">
+            <input type="radio" name="support-prio-e" value="urgente" onchange="setPrio('e','urgente')">
+            <svg class="prio-box" viewBox="0 0 20 20" fill="none" aria-hidden="true"><circle cx="10" cy="10" r="8.25" fill="#fff" stroke="#D1D5DB" stroke-width="1.5"/><circle class="prio-dot" cx="10" cy="10" r="4.5" fill="#D97706" opacity="0"/></svg>
+            <span class="prio-lbl">Urgente</span>
           </label>
-          <label style="display:flex;align-items:center;gap:7px;padding:9px 12px;border-radius:9px;border:1.5px solid #E5E7EB;cursor:pointer;background:#F9FAFB" id="prio-e-critique">
-            <input type="radio" name="support-prio-e" value="critique" onchange="setPrio('e','critique')" style="accent-color:#DC2626">
-            <span style="font-size:12px;font-weight:600;color:#374151">Critique</span>
+          <label class="prio-opt" id="prio-e-critique">
+            <input type="radio" name="support-prio-e" value="critique" onchange="setPrio('e','critique')">
+            <svg class="prio-box" viewBox="0 0 20 20" fill="none" aria-hidden="true"><circle cx="10" cy="10" r="8.25" fill="#fff" stroke="#D1D5DB" stroke-width="1.5"/><circle class="prio-dot" cx="10" cy="10" r="4.5" fill="#DC2626" opacity="0"/></svg>
+            <span class="prio-lbl">Critique</span>
           </label>
         </div>
       </div>
@@ -2559,18 +2573,21 @@ textarea{resize:vertical;min-height:70px}
       </div>
       <div class="fg">
         <label>Priorité</label>
-        <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-top:2px">
-          <label style="display:flex;align-items:center;gap:7px;padding:9px 12px;border-radius:9px;border:1.5px solid #E5E7EB;cursor:pointer;background:#F9FAFB" id="prio-f-normale">
-            <input type="radio" name="support-prio-f" value="normale" checked onchange="setPrio('f','normale')" style="accent-color:#6B7280">
-            <span style="font-size:12px;font-weight:600;color:#374151">Normale</span>
+        <div class="prio-grid">
+          <label class="prio-opt" id="prio-f-normale">
+            <input type="radio" name="support-prio-f" value="normale" checked onchange="setPrio('f','normale')">
+            <svg class="prio-box" viewBox="0 0 20 20" fill="none" aria-hidden="true"><circle cx="10" cy="10" r="8.25" fill="#fff" stroke="#D1D5DB" stroke-width="1.5"/><circle class="prio-dot" cx="10" cy="10" r="4.5" fill="#6B7280" opacity="0"/></svg>
+            <span class="prio-lbl">Normale</span>
           </label>
-          <label style="display:flex;align-items:center;gap:7px;padding:9px 12px;border-radius:9px;border:1.5px solid #E5E7EB;cursor:pointer;background:#F9FAFB" id="prio-f-urgente">
-            <input type="radio" name="support-prio-f" value="urgente" onchange="setPrio('f','urgente')" style="accent-color:#D97706">
-            <span style="font-size:12px;font-weight:600;color:#374151">Urgente</span>
+          <label class="prio-opt" id="prio-f-urgente">
+            <input type="radio" name="support-prio-f" value="urgente" onchange="setPrio('f','urgente')">
+            <svg class="prio-box" viewBox="0 0 20 20" fill="none" aria-hidden="true"><circle cx="10" cy="10" r="8.25" fill="#fff" stroke="#D1D5DB" stroke-width="1.5"/><circle class="prio-dot" cx="10" cy="10" r="4.5" fill="#D97706" opacity="0"/></svg>
+            <span class="prio-lbl">Urgente</span>
           </label>
-          <label style="display:flex;align-items:center;gap:7px;padding:9px 12px;border-radius:9px;border:1.5px solid #E5E7EB;cursor:pointer;background:#F9FAFB" id="prio-f-critique">
-            <input type="radio" name="support-prio-f" value="critique" onchange="setPrio('f','critique')" style="accent-color:#DC2626">
-            <span style="font-size:12px;font-weight:600;color:#374151">Critique</span>
+          <label class="prio-opt" id="prio-f-critique">
+            <input type="radio" name="support-prio-f" value="critique" onchange="setPrio('f','critique')">
+            <svg class="prio-box" viewBox="0 0 20 20" fill="none" aria-hidden="true"><circle cx="10" cy="10" r="8.25" fill="#fff" stroke="#D1D5DB" stroke-width="1.5"/><circle class="prio-dot" cx="10" cy="10" r="4.5" fill="#DC2626" opacity="0"/></svg>
+            <span class="prio-lbl">Critique</span>
           </label>
         </div>
       </div>
@@ -2991,6 +3008,7 @@ function showScreen(id) {
 function renderScreen(id) {
   if (id === 'e-home') renderEHome();
   if (id === 'e-submit') { _cachedRate=null; wizReset(); loadPartnerDonneurs(); loadBanques(); }
+  if (id === 'e-support' || id === 'f-support') initPrioBoxes();
   if (id === 'e-list') renderEList();
   if (id === 'e-score') renderEScore();
   if (id === 'e-references') renderEReferences();
@@ -3785,8 +3803,28 @@ function wizFillEstimate(){
     window.credigoGetRate().then(function(res){
       _cachedRate = (res && res.rate) ? res.rate : 3;
       paint(_cachedRate);
+      if(res && typeof res.score==='number') showLowScoreWarning(res.score);
     }).catch(function(){});
   }
+}
+// Avertit l'entrepreneur si son score est bas (< 30) — informatif, non bloquant
+function showLowScoreWarning(score){
+  var box=document.getElementById('f-low-score-warn');
+  var txt=document.getElementById('f-low-score-txt');
+  if(!box||!txt) return;
+  if(score>=30){ box.style.display='none'; return; }
+  // Message adapté à la situation réelle
+  var msg='<b>Votre score de fiabilité est bas ('+score+'/100).</b> Vous pouvez envoyer votre demande, mais elle fera l\'objet d\'une vérification approfondie avant d\'être confirmée. ';
+  var manque=[];
+  if(authUser && !authUser.profileComplete) manque.push('compléter votre profil');
+  if(authUser && authUser.kycStatus!=='approved') manque.push('faire vérifier votre identité (KYC)');
+  if(manque.length>0){
+    msg+='Pour améliorer votre score : '+manque.join(' et ')+'.';
+  } else {
+    msg+='Pour le remonter, ajoutez des preuves de vos références et attestations vérifiables dans « Mes preuves ».';
+  }
+  txt.innerHTML=msg;
+  box.style.display='';
 }
 function wizSubmit(){
   // Sécurité : les trois consentements doivent être cochés
@@ -5156,19 +5194,31 @@ const DEMO_TICKETS = [
 ];
 
 function setPrio(portal, val) {
+  const colors  = { normale:'#6B7280', urgente:'#D97706', critique:'#DC2626' };
+  const bgs     = { normale:'#F3F4F6', urgente:'#FEF9EC', critique:'#FEF2F2' };
+  const borders = { normale:'#9CA3AF', urgente:'#FDE68A', critique:'#FCA5A5' };
   ['normale','urgente','critique'].forEach(function(p) {
     const el = document.getElementById('prio-' + portal + '-' + p);
     if (!el) return;
-    if (p === val) {
-      const colors = { normale:'#6B7280', urgente:'#D97706', critique:'#DC2626' };
-      const bgs    = { normale:'#F9FAFB', urgente:'#FEF9EC', critique:'#FEF2F2' };
-      const borders= { normale:'#E5E7EB', urgente:'#FDE68A', critique:'#FCA5A5' };
-      el.style.borderColor = borders[p];
-      el.style.background  = bgs[p];
-    } else {
-      el.style.borderColor = '#E5E7EB';
-      el.style.background  = '#F9FAFB';
-    }
+    const on = (p === val);
+    el.style.borderColor = on ? borders[p] : '#E5E7EB';
+    el.style.background  = on ? bgs[p]     : '#F9FAFB';
+    // Case SVG : point visible + anneau coloré quand sélectionné
+    const dot = el.querySelector('.prio-dot');
+    if (dot) dot.setAttribute('opacity', on ? '1' : '0');
+    const ring = el.querySelector('.prio-box circle');
+    if (ring) ring.setAttribute('stroke', on ? colors[p] : '#D1D5DB');
+    // Garde l'input (lu à la soumission) cohérent avec l'affichage
+    const inp = el.querySelector('input');
+    if (inp) inp.checked = on;
+  });
+}
+// Initialise l'affichage des cases de priorité (par défaut : Normale)
+function initPrioBoxes() {
+  ['e','f'].forEach(function(portal) {
+    if (!document.getElementById('prio-' + portal + '-normale')) return;
+    const checked = document.querySelector('input[name="support-prio-' + portal + '"]:checked');
+    setPrio(portal, checked ? checked.value : 'normale');
   });
 }
 
