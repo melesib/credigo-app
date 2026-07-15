@@ -587,6 +587,18 @@ textarea{resize:vertical;min-height:70px}
 .ref-sub{font-size:12.5px;color:#6B7280;margin-bottom:12px}
 .ref-card{background:#fff;border-radius:13px;padding:14px;border:1.5px solid #EDECEF;margin-bottom:10px}
 .ed-row{display:flex;justify-content:space-between;align-items:center;padding:9px 0;border-bottom:1px solid #F3F4F6;font-size:13.5px;color:#374151}
+/* Récapitulatif « documents à renvoyer » — accès direct à la bonne étape */
+.kyc-resubmit-panel{background:#FEF2F2;border:1.5px solid #FECACA;border-radius:12px;padding:12px;margin-bottom:14px}
+.krp-head{display:flex;align-items:center;gap:8px;font-size:14px;font-weight:800;color:#991B1B;margin-bottom:10px}
+.krp-item{display:flex;align-items:center;gap:10px;background:#fff;border-radius:9px;padding:10px;margin-bottom:6px}
+.krp-item:last-child{margin-bottom:0}
+.krp-info{flex:1;min-width:0}
+.krp-name{font-size:13px;font-weight:700;color:#111827;line-height:1.3}
+.krp-reason{font-size:11.5px;color:#DC2626;margin-top:3px;line-height:1.35}
+.krp-step{font-size:10.5px;color:#9CA3AF;margin-top:3px;font-weight:600}
+.krp-go{flex:0 0 auto;background:#DC2626;color:#fff;border:none;border-radius:8px;padding:9px 13px;font-size:12.5px;font-weight:800;cursor:pointer;font-family:inherit;display:flex;align-items:center;gap:4px;white-space:nowrap}
+.krp-go.here{background:#9CA3AF}
+@media (max-width:340px){.krp-go{padding:8px 10px;font-size:11.5px}.krp-name{font-size:12.5px}}
 /* Sélecteur de priorité — cases SVG, s'adapte à tout écran (Fold/Flip inclus) */
 .prio-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(84px,1fr));gap:7px;margin-top:2px}
 .prio-opt{display:flex;align-items:center;gap:6px;padding:9px 8px;border-radius:9px;border:1.5px solid #E5E7EB;background:#F9FAFB;cursor:pointer;min-width:0;transition:border-color .15s,background .15s}
@@ -8151,6 +8163,7 @@ function applyKycLockMode(screenId) {
   }
 
   // Griser/activer chaque row de document
+  var resubmitItems = [];
   var rows = screen.querySelectorAll('.kyc-doc-row');
   rows.forEach(function(row) {
     var rowId = row.id;
@@ -8198,6 +8211,13 @@ function applyKycLockMode(screenId) {
         reasonTag.innerHTML = '<strong>Motif :</strong> ' + reason;
         if (docText) docText.appendChild(reasonTag);
       }
+      // Mémoriser ce document pour le récapitulatif du haut
+      resubmitItems.push({
+        rowId: rowId,
+        label: (docInfo && docInfo.label) ? docInfo.label : 'Document',
+        step: (docInfo && docInfo.step) ? docInfo.step : 1,
+        reason: reason
+      });
     } else {
       // Doc verrouillé : grisé, non cliquable
       row.style.opacity = '0.4';
@@ -8233,6 +8253,40 @@ function applyKycLockMode(screenId) {
       }
     }
   });
+
+  // ── Récapitulatif « documents à renvoyer » en haut, avec accès direct ──
+  // Sans lui, l'entrepreneur doit cliquer « Étape suivante » à l'aveugle pour
+  // découvrir quels documents sont à corriger (ils peuvent être à l'étape 3 ou 4).
+  var oldPanel = screen.querySelector('.kyc-resubmit-panel');
+  if (oldPanel) oldPanel.remove();
+  if (status === 'rejected' && resubmitItems.length > 0) {
+    var isEntrepreneur = (screenId === 'e-kyc');
+    var goFn = isEntrepreneur ? 'kycEGoStep' : 'kycFGoStep';
+    var curStep = isEntrepreneur ? kycEStep : kycFStep;
+    var panel = document.createElement('div');
+    panel.className = 'kyc-resubmit-panel';
+    var n = resubmitItems.length;
+    var html = '<div class="krp-head"><i class="ti ti-alert-circle" style="font-size:19px"></i>' +
+      '<span>' + (n === 1 ? '1 document à renvoyer' : n + ' documents à renvoyer') + '</span></div>';
+    resubmitItems.forEach(function(it) {
+      var here = (it.step === curStep);
+      html += '<div class="krp-item">' +
+        '<div class="krp-info">' +
+          '<div class="krp-name">' + it.label + '</div>' +
+          (it.reason ? '<div class="krp-reason">' + it.reason + '</div>' : '') +
+          '<div class="krp-step">Étape ' + it.step + '</div>' +
+        '</div>' +
+        '<button class="krp-go' + (here ? ' here' : '') + '" onclick="' + goFn + '(' + it.step + ')">' +
+          (here ? '<i class="ti ti-arrow-down"></i> Ici' : 'Voir <i class="ti ti-arrow-right"></i>') +
+        '</button>' +
+      '</div>';
+    });
+    panel.innerHTML = html;
+    var banner = screen.querySelector('.kyc-status-top-banner');
+    if (banner && banner.nextSibling) screen.insertBefore(panel, banner.nextSibling);
+    else if (banner) screen.appendChild(panel);
+    else screen.insertBefore(panel, screen.firstChild);
+  }
 
   // Désactiver les boutons de navigation entre étapes si pas en mode résoumission
   var navBtns = screen.querySelectorAll('.btn-p, .btn-s');
