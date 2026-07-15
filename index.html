@@ -7323,6 +7323,20 @@ function authGoogleLogin() {
 }
 function authGoogleSignup() { authGoogleLogin(); }
 
+/* ── Garde-fou : le sync a-t-il échoué ? ──
+   Sans ce contrôle, un échec réseau laisserait passer un utilisateur « vide »
+   (profil et KYC à zéro) : il croirait avoir tout perdu et resaisirait tout.
+   Dans le doute, on préfère renvoyer au login avec un message honnête. */
+function authSyncFailed(syncedUser) {
+  if (!syncedUser || !syncedUser.error) return false;
+  var isNetwork = (syncedUser.error === 'NETWORK_ERROR');
+  toast((isNetwork ? '\u23F3 ' : '\u274C ') +
+        (syncedUser.message || 'Acc\u00e8s refus\u00e9. Contactez support@credigo.ci'));
+  if (window.CredigoDB && window.CredigoDB.sb) window.CredigoDB.sb.auth.signOut();
+  authClearSession();
+  return true;
+}
+
 /* ── Appelé au retour de la redirection OAuth Google (voir credigo-supabase.js) ── */
 function authHandleSupabaseSession(supaUser) {
   var pendingRole = null;
@@ -7344,6 +7358,7 @@ function authHandleSupabaseSession(supaUser) {
   };
 
   window.credigoSyncUserToSupabase(user).then(function(syncedUser) {
+    if (authSyncFailed(syncedUser)) return;
     authSaveSession(syncedUser);
     authEnterApp(syncedUser);
   });
@@ -7369,15 +7384,8 @@ function authLoginEmail() {
         provider: 'email', authUserId: supaUser.id
       };
       window.credigoSyncUserToSupabase(user).then(function(syncedUser) {
-        // Vérifier si le compte est bloqué
-        if (syncedUser && (syncedUser.error === 'ACCOUNT_BLOCKED' || syncedUser.error === 'ACCOUNT_DELETED' || syncedUser.error === 'STAFF_EMAIL_BLOCKED')) {
-          toast('\u274C ' + (syncedUser.message || 'Acc\u00e8s refus\u00e9. Contactez support@credigo.ci'));
-          if (window.CredigoDB && window.CredigoDB.sb) {
-            window.CredigoDB.sb.auth.signOut();
-          }
-          authClearSession();
-          return;
-        }
+        // Couvre les comptes bloqués/supprimés/staff ET les échecs réseau
+        if (authSyncFailed(syncedUser)) return;
         if (syncedUser && syncedUser.isActive === false) {
           toast('\u274C Compte suspendu. Contactez support@credigo.ci');
           if (window.CredigoDB && window.CredigoDB.sb) {
@@ -7472,7 +7480,12 @@ function _realAuthSignupEmail() {
         authUserId: res.authUser ? res.authUser.id : null
       };
       window.credigoSyncUserToSupabase(user).then(function(syncedUser) {
-        if (syncedUser.dbUserId && tel) {
+        // À l'inscription, un échec réseau n'est pas bloquant : le compte
+        // d'authentification existe, la fiche sera créée à la prochaine
+        // connexion. On prévient simplement.
+        if (syncedUser && syncedUser.error === 'NETWORK_ERROR') {
+          toast('\u23F3 Connexion lente. Votre compte est cr\u00e9\u00e9 : validez votre email puis connectez-vous.');
+        } else if (syncedUser && syncedUser.dbUserId && tel) {
           window.credigoSaveProfile({ phone: tel, portal: authRole === 'e' ? 'entrepreneur' : 'financeur' });
         }
         var verifyEl = document.getElementById('verify-email-display');
@@ -8821,7 +8834,8 @@ window._completeOAuthLogin = function(supaUser, role) {
 
   if (window.CredigoDB && window.CredigoDB.ready) {
     window.credigoSyncUserToSupabase(user).then(function(syncedUser) {
-      if (syncedUser && (syncedUser.error === 'ACCOUNT_BLOCKED' || syncedUser.error === 'ACCOUNT_DELETED' || syncedUser.isActive === false)) {
+      if (authSyncFailed(syncedUser)) return;
+      if (syncedUser && syncedUser.isActive === false) {
         toast('\u274C ' + (syncedUser.message || 'Accès refus\u00e9. Contactez support@credigo.ci'));
         if (window.CredigoDB && window.CredigoDB.sb) window.CredigoDB.sb.auth.signOut();
         authClearSession();

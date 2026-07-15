@@ -122,6 +122,18 @@
         .eq('portal', portal)
         .maybeSingle();
 
+      // ⚠️ CRUCIAL — ne jamais confondre « aucun compte » et « lecture échouée ».
+      // Quand le réseau est lent, Supabase renvoie data:null AVEC une erreur.
+      // Sans ce test, on croirait à un nouveau compte et on tenterait d'en créer
+      // un : l'utilisateur verrait son profil et son KYC « disparaître » et devrait
+      // tout resaisir. Dans le doute, on refuse et on invite à réessayer.
+      if (existing.error) {
+        return {
+          error: 'NETWORK_ERROR',
+          message: 'La connexion est trop lente. Vos données sont intactes — vérifiez votre réseau et réessayez.'
+        };
+      }
+
       var dbUser;
       if (existing.data) {
         dbUser = existing.data;
@@ -143,6 +155,14 @@
           .eq('is_active', true)
           .limit(1)
           .maybeSingle();
+
+        // Même principe : si on n'a pas pu vérifier, on ne devine pas.
+        if (staffCheck.error) {
+          return {
+            error: 'NETWORK_ERROR',
+            message: 'La connexion est trop lente. Vérifiez votre réseau et réessayez.'
+          };
+        }
 
         if (staffCheck.data) {
           return { error: 'STAFF_EMAIL_BLOCKED', message: 'Cet email est r\u00e9serv\u00e9 au personnel Credigo. Utilisez un autre email pour cr\u00e9er un compte client.' };
@@ -187,7 +207,13 @@
       return user;
     } catch (err) {
       console.error('[Credigo] Échec sync utilisateur Supabase :', err.message);
-      return user;
+      // Ne JAMAIS renvoyer l'objet user tel quel ici : il porte les valeurs par
+      // défaut (profileComplete: false, kyc_status: 'not_started'), ce qui ferait
+      // croire à un compte neuf et inviterait l'utilisateur à tout resaisir.
+      return {
+        error: 'NETWORK_ERROR',
+        message: 'Connexion impossible pour le moment. Vos données sont intactes — réessayez dans un instant.'
+      };
     }
   };
 
