@@ -19,14 +19,69 @@
   var SUPABASE_URL = window.CREDIGO_SUPABASE_URL || '';
   var SUPABASE_ANON_KEY = window.CREDIGO_SUPABASE_ANON_KEY || '';
 
-  var supabaseReady = !!(SUPABASE_URL && SUPABASE_ANON_KEY && window.supabase);
-  var sb = supabaseReady ? window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY) : null;
+  // Deux situations très différentes à ne pas confondre :
+  //  • pas de clés  → app non configurée → mode démo légitime (développement)
+  //  • clés présentes mais librairie absente → LE SCRIPT N'A PAS CHARGÉ.
+  //    Ce n'est PAS un mode démo : c'est une panne. Laisser l'app continuer
+  //    ferait croire à l'utilisateur qu'il est connecté alors que rien n'est
+  //    lu ni enregistré — il verrait son profil et son KYC « vides » et
+  //    croirait avoir tout perdu. On l'arrête donc net, avec un message clair.
+  var isConfigured = !!(SUPABASE_URL && SUPABASE_ANON_KEY) &&
+                     SUPABASE_URL.indexOf('__') !== 0;   // placeholder non remplacé = non configuré
+  var isLibLoaded  = !!window.supabase;
 
-  if (!supabaseReady) {
+  var supabaseReady = isConfigured && isLibLoaded;
+  var sb = null;
+  if (supabaseReady) {
+    try {
+      sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+    } catch (e) {
+      // Clés invalides / injection ratée : sans ce filet, l'exception
+      // interromprait tout le script et l'app serait cassée sans message.
+      console.error('[Credigo] Création du client Supabase impossible :', e.message);
+      supabaseReady = false;
+      showLoadFailureScreen();
+    }
+  }
+
+  if (isConfigured && !isLibLoaded) {
+    console.error('[Credigo] La librairie Supabase n\'a pas pu être chargée — panne réseau probable.');
+    showLoadFailureScreen();
+  } else if (!isConfigured) {
     console.warn(
       '[Credigo] Supabase non configuré — l\'app fonctionne en mode démo local (localStorage). ' +
       'Voir SUPABASE_SETUP.md pour activer la persistance réelle.'
     );
+  }
+
+  // Écran bloquant en cas d'échec de chargement. Volontairement simple :
+  // pas de dépendance externe (les polices/icônes peuvent avoir échoué aussi).
+  function showLoadFailureScreen() {
+    function draw() {
+      if (document.getElementById('credigo-load-error')) return;
+      var o = document.createElement('div');
+      o.id = 'credigo-load-error';
+      o.style.cssText = 'position:fixed;inset:0;z-index:99999;background:#fff;display:flex;' +
+        'align-items:center;justify-content:center;padding:24px;' +
+        'font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif';
+      o.innerHTML =
+        '<div style="max-width:340px;text-align:center">' +
+          '<div style="width:64px;height:64px;border-radius:50%;background:#FEE2E2;margin:0 auto 18px;' +
+            'display:flex;align-items:center;justify-content:center;font-size:30px">\u26A0\uFE0F</div>' +
+          '<div style="font-size:19px;font-weight:800;color:#111827;margin-bottom:8px">' +
+            'Connexion impossible</div>' +
+          '<div style="font-size:14px;color:#6B7280;line-height:1.6;margin-bottom:22px">' +
+            'L\'application n\'a pas pu se charger enti\u00e8rement.<br>' +
+            '<b style="color:#374151">Vos donn\u00e9es sont intactes.</b><br>' +
+            'V\u00e9rifiez votre connexion internet et r\u00e9essayez.</div>' +
+          '<button onclick="location.reload()" style="width:100%;padding:14px;border:none;' +
+            'border-radius:12px;background:#6C3FE8;color:#fff;font-size:15px;font-weight:800;' +
+            'cursor:pointer;font-family:inherit">R\u00e9essayer</button>' +
+        '</div>';
+      document.body.appendChild(o);
+    }
+    if (document.body) draw();
+    else document.addEventListener('DOMContentLoaded', draw);
   }
 
   // Expose pour usage/debug

@@ -851,7 +851,10 @@ textarea{resize:vertical;min-height:70px}
   window.CREDIGO_SUPABASE_ANON_KEY = "__CREDIGO_SUPABASE_ANON_KEY__";
   window.CREDIGO_BACKOFFICE_URL = "https://credigo-backoffice.netlify.app";
 </script>
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
+<!-- Librairie Supabase hébergée localement : un CDN externe peut être lent ou
+     injoignable (réseau instable), ce qui ferait tomber l'app en mode démo et
+     donnerait l'illusion d'un compte vide. -->
+<script src="/supabase.min.js"></script>
 <script src="/credigo-supabase.js"></script>
 </head>
 <body>
