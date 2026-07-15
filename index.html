@@ -872,9 +872,9 @@ textarea{resize:vertical;min-height:70px}
     <div id="auth-step-role">
       <div style="padding:24px 24px 0;text-align:center">
         <div style="font-size:18px;font-weight:800;color:#111827;margin-bottom:6px">Bienvenue sur Credigo</div>
-        <div style="font-size:13px;color:#6B7280;margin-bottom:24px">Choisissez votre profil pour commencer</div>
+        <div id="role-subtitle" style="font-size:13px;color:#6B7280;margin-bottom:24px">Choisissez votre profil pour commencer</div>
       </div>
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;padding:0 24px 24px">
+      <div id="role-grid" style="display:grid;grid-template-columns:1fr 1fr;gap:12px;padding:0 24px 24px">
         <button onclick="authSelectRole('e')" id="role-btn-e"
           style="border:2px solid #E5E7EB;border-radius:14px;padding:20px 12px;background:#fff;cursor:pointer;text-align:center;transition:.2s;-webkit-tap-highlight-color:transparent">
           <div style="width:48px;height:48px;border-radius:14px;background:#EEE8FF;display:flex;align-items:center;justify-content:center;margin:0 auto 10px">
@@ -7219,8 +7219,39 @@ function authInit() {
   }
 }
 
+/* ── Réglages de fonctionnalités ──
+   Masque l'espace financeur quand il est coupé. Ce masquage est du confort :
+   la vraie protection est en base (aucun compte ni connexion financeur
+   possible, quoi qu'on tente). */
+var _financeurEnabled = false;
+function applyFeatureFlags() {
+  if (!(window.CredigoDB && window.CredigoDB.ready && typeof window.credigoIsFeatureEnabled === 'function')) return;
+  window.credigoIsFeatureEnabled('financeur').then(function(on) {
+    _financeurEnabled = on;
+    var btnF = document.getElementById('role-btn-f');
+    var grid = document.getElementById('role-grid');
+    var subtitle = document.getElementById('role-subtitle');
+    if (!on) {
+      if (btnF) btnF.style.display = 'none';
+      if (grid) grid.style.gridTemplateColumns = '1fr';
+      if (subtitle) subtitle.textContent = 'Créez votre compte pour commencer';
+    } else {
+      if (btnF) btnF.style.display = '';
+      if (grid) grid.style.gridTemplateColumns = '1fr 1fr';
+      if (subtitle) subtitle.textContent = 'Choisissez votre profil pour commencer';
+    }
+    // Le flag arrive de façon asynchrone : réappliquer ce qui en dépend
+    if (typeof updateSwitchVisibility === 'function') updateSwitchVisibility();
+  }).catch(function() {});
+}
+
 /* ── Sélection du rôle ── */
 function authSelectRole(role) {
+  // Garde-fou : ne jamais laisser choisir un rôle coupé
+  if (role === 'f' && !_financeurEnabled) {
+    toast('L\'espace financeur n\'est pas disponible pour le moment.');
+    return;
+  }
   authRole = role;
   var isE = role === 'e';
   // Style boutons rôle
@@ -8426,7 +8457,8 @@ function updateSwitchVisibility() {
   } catch(e) {}
 
   // Afficher le switch seulement si l'utilisateur a LES DEUX portails
-  swWrap.style.display = (hasE && hasF) ? 'flex' : 'none';
+  // ET si l'espace financeur est ouvert (sinon, rien vers quoi basculer)
+  swWrap.style.display = (hasE && hasF && _financeurEnabled) ? 'flex' : 'none';
 }
 
 /* ══ MISE À JOUR AUTH POUR GÉRER L'ONBOARDING ══
@@ -8944,6 +8976,7 @@ document.addEventListener('DOMContentLoaded', function() {
   window.authInit();
   if (typeof loadProfileForms === 'function') loadProfileForms();
   if (typeof updateSwitchVisibility === 'function') updateSwitchVisibility();
+  if (typeof applyFeatureFlags === 'function') applyFeatureFlags();
 });
 
 /* ── CGU & Partenaires ── */

@@ -161,7 +161,18 @@
           })
           .select('id, kyc_status, profile_complete')
           .single();
-        if (inserted.error) throw inserted.error;
+        if (inserted.error) {
+          // Refus du verrou en base : la fonctionnalité financeur est coupée.
+          // Couvre la création ET la connexion (le RLS masque le profil, donc
+          // l'app tente un insert, que le trigger refuse).
+          if ((inserted.error.message || '').indexOf('FINANCEUR_DISABLED') > -1) {
+            return {
+              error: 'FINANCEUR_DISABLED',
+              message: 'L\'espace financeur n\'est pas disponible pour le moment. Contactez support@credigo.ci pour en savoir plus.'
+            };
+          }
+          throw inserted.error;
+        }
         dbUser = inserted.data;
       }
 
@@ -491,6 +502,29 @@
         related_type: 'profile_complete'
       });
     } catch (e) { /* non bloquant */ }
+  };
+
+  // ════════════════════════════════════════════════════════════
+  // RÉGLAGES DE FONCTIONNALITÉS (interrupteurs)
+  // ════════════════════════════════════════════════════════════
+  // Sécurité : en cas de doute (pas de connexion, erreur de lecture), la
+  // fonctionnalité est considérée FERMÉE. Mieux vaut refuser à tort que
+  // d'ouvrir une fonctionnalité sous réserve juridique.
+  // Note : ce masquage sert le confort de l'utilisateur. La vraie protection
+  // est en base (trigger + RLS) et ne dépend pas de l'app.
+  var _flagCache = {};
+  window.credigoIsFeatureEnabled = async function (key) {
+    if (!supabaseReady) return false;
+    if (_flagCache[key] !== undefined) return _flagCache[key];
+    try {
+      var res = await sb.from('feature_flags').select('enabled').eq('key', key).maybeSingle();
+      if (res.error) return false;
+      var val = !!(res.data && res.data.enabled);
+      _flagCache[key] = val;
+      return val;
+    } catch (e) {
+      return false;
+    }
   };
 
   window.credigoGetRate = async function () {
