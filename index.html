@@ -1260,8 +1260,14 @@ textarea{resize:vertical;min-height:70px}
     <div id="f-fne-wrap" class="wiz-fne" style="display:none">
       <div class="wiz-fne-head"><i class="ti ti-qrcode" style="color:#0A6E3B"></i> Facture normalisée (FNE) <span class="opt-tag">Facultatif</span></div>
       <div class="wiz-hint" style="margin:6px 0 10px">Si votre facture a un QR code FNE, scannez-le : la vérification sera immédiate.</div>
-      <button class="btn-s" style="width:100%;justify-content:center;border-color:#7FCBBE;color:#0A6E3B"><i class="ti ti-qrcode"></i> Scanner le QR code FNE</button>
-      <div class="wiz-field" style="margin-top:10px;margin-bottom:0"><input type="text" placeholder="Ou saisir le numéro FNE"></div>
+      <button class="btn-s" onclick="startFneScan()" style="width:100%;justify-content:center;border-color:#7FCBBE;color:#0A6E3B"><i class="ti ti-qrcode"></i> Scanner le QR code FNE</button>
+      <div class="wiz-field" style="margin-top:10px;margin-bottom:0"><input type="text" id="f-fne-number" placeholder="Ou saisir le numéro FNE"></div>
+      <div id="f-fne-msg" style="display:none;font-size:12px;margin-top:8px;padding:8px 10px;border-radius:8px"></div>
+      <!-- Vue caméra, ouverte seulement pendant le scan -->
+      <div id="fne-scan-box" style="display:none;margin-top:10px">
+        <video id="fne-video" playsinline style="width:100%;border-radius:10px;background:#000"></video>
+        <button class="btn-s" onclick="stopFneScan()" style="width:100%;justify-content:center;margin-top:8px">Annuler le scan</button>
+      </div>
     </div>
   </div>
 
@@ -3022,6 +3028,7 @@ function showScreen(id) {
 }
 function renderScreen(id) {
   if (id === 'e-home') renderEHome();
+  if (typeof stopFneScan === 'function') stopFneScan();  // ne jamais laisser la caméra active
   if (id === 'e-submit') { _cachedRate=null; wizReset(); loadPartnerDonneurs(); loadBanques(); }
   if (id === 'e-support' || id === 'f-support') initPrioBoxes();
   if (id === 'e-list') renderEList();
@@ -3841,6 +3848,69 @@ function showLowScoreWarning(score){
   txt.innerHTML=msg;
   box.style.display='';
 }
+/* ── Scan du QR code FNE ──
+   Utilise le lecteur de codes intégré au navigateur (BarcodeDetector), présent
+   sur Chrome Android — le cas le plus courant sur le terrain ivoirien. Quand il
+   manque (iPhone notamment), on le dit franchement et on invite à saisir le
+   numéro à la main : mieux vaut une consigne claire qu'un bouton qui ne fait rien. */
+var _fneStream = null, _fneLoop = null;
+
+function fneMsg(text, ok) {
+  var el = document.getElementById('f-fne-msg');
+  if (!el) return;
+  el.textContent = text;
+  el.style.background = ok ? '#DCFCE7' : '#FEF3C7';
+  el.style.color = ok ? '#14532D' : '#78350F';
+  el.style.display = '';
+}
+
+function startFneScan() {
+  if (!('BarcodeDetector' in window)) {
+    fneMsg('Votre téléphone ne peut pas scanner ici. Saisissez le numéro FNE dans le champ ci-dessous.', false);
+    var f = document.getElementById('f-fne-number');
+    if (f) f.focus();
+    return;
+  }
+  var box = document.getElementById('fne-scan-box');
+  var video = document.getElementById('fne-video');
+  if (!box || !video) return;
+
+  navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } })
+    .then(function(stream) {
+      _fneStream = stream;
+      video.srcObject = stream;
+      video.play();
+      box.style.display = 'block';
+      fneMsg('Placez le QR code de la facture dans le cadre.', true);
+
+      var detector = new window.BarcodeDetector({ formats: ['qr_code'] });
+      _fneLoop = setInterval(function() {
+        detector.detect(video).then(function(codes) {
+          if (!codes || codes.length === 0) return;
+          var value = (codes[0].rawValue || '').trim();
+          if (!value) return;
+          var input = document.getElementById('f-fne-number');
+          if (input) input.value = value;
+          stopFneScan();
+          fneMsg('QR code lu ✓ Le numéro a été renseigné.', true);
+        }).catch(function() {});
+      }, 400);
+    })
+    .catch(function() {
+      fneMsg('Accès à la caméra refusé. Saisissez le numéro FNE à la main.', false);
+    });
+}
+
+function stopFneScan() {
+  if (_fneLoop) { clearInterval(_fneLoop); _fneLoop = null; }
+  if (_fneStream) {
+    _fneStream.getTracks().forEach(function(t) { t.stop(); });  // libère la caméra
+    _fneStream = null;
+  }
+  var box = document.getElementById('fne-scan-box');
+  if (box) box.style.display = 'none';
+}
+
 function wizSubmit(){
   // Sécurité : les trois consentements doivent être cochés
   if(typeof allConsentsChecked==='function' && !allConsentsChecked()){
@@ -3874,6 +3944,7 @@ function wizSubmit(){
     market_object: objet,
     market_amount: montant,
     reference: (document.getElementById('f-ref')||{}).value||null,
+    fne_number: ((document.getElementById('f-fne-number')||{}).value||'').trim()||null,
     date_start: (document.getElementById('f-date-debut')||{}).value||null,
     date_end: (document.getElementById('f-date-fin')||{}).value||null,
     date_payment: (document.getElementById('f-date-paie')||{}).value||null,

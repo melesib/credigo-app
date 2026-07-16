@@ -523,6 +523,7 @@
       market_object: req.market_object || '',
       market_amount: req.market_amount || 0,
       reference: req.reference || null,
+      fne_number: req.fne_number || null,
       date_start: req.date_start || null,
       date_end: req.date_end || null,
       date_payment: req.date_payment || null,
