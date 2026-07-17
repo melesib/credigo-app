@@ -539,13 +539,22 @@
     };
     var res = await sb.from('financing_requests').insert(payload).select().single();
     if (res.error) return { error: res.error.message };
-    // Journaliser l'événement de soumission (best-effort, non bloquant)
+    // Journaliser l'événement de soumission.
+    // Non bloquant : la demande est créée, c'est l'essentiel. Mais on trace
+    // l'échec — un try/catch ne suffit pas ici, car Supabase ne lève pas
+    // d'exception : il renvoie l'erreur dans l'objet. Sans ce test, une
+    // journalisation refusée passait totalement inaperçue.
     try {
-      await sb.from('request_events').insert({
+      var ev = await sb.from('request_events').insert({
         request_id: res.data.id, event_type: 'submitted',
         to_status: 'submitted', actor_type: 'entrepreneur', actor_id: userId
       });
-    } catch (e) { /* non bloquant */ }
+      if (ev && ev.error) {
+        console.warn('[Credigo] Journal de la demande non écrit :', ev.error.message);
+      }
+    } catch (e) {
+      console.warn('[Credigo] Journal de la demande non écrit :', e.message);
+    }
     return { request: res.data };
   };
 
