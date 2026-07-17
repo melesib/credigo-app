@@ -42,6 +42,10 @@
   .state h2{font-size:19px;font-weight:800;margin-bottom:8px}
   .state p{font-size:14.5px;color:#4B5563}
   .foot{font-size:11.5px;color:#9CA3AF;text-align:center;margin-top:20px;line-height:1.6}
+  .account-box{background:#F5F3FF;border:1.5px solid #DDD6FE;border-radius:12px;padding:14px;margin-bottom:14px}
+  .account-bank{font-size:12px;color:#6D28D9;font-weight:700;margin-bottom:4px}
+  .account-num{font-size:17px;font-weight:800;color:#4C1D95;letter-spacing:.5px;word-break:break-all}
+  .account-label{font-size:12px;color:#7C3AED;margin-top:4px}
   .hide{display:none}
 </style>
 </head>
@@ -83,10 +87,14 @@
       <button class="no" onclick="showContest()">Signaler un problème</button>
     </div>
 
-    <!-- Étape 2 : le compte de cantonnement -->
+    <!-- Étape 2 : où verser le paiement (on l'AFFICHE, on ne le demande pas) -->
     <div id="confirm-step" class="hide">
-      <div class="hint" id="account-hint"></div>
-      <input type="text" id="account" placeholder="Numéro du compte (facultatif)">
+      <div class="hint">En confirmant, vous vous engagez à verser le paiement sur le compte ci-dessous.</div>
+      <div class="account-box" id="account-box">
+        <div class="account-bank" id="acc-bank"></div>
+        <div class="account-num" id="acc-num"></div>
+        <div class="account-label" id="acc-label"></div>
+      </div>
       <button class="ok" onclick="send('confirmed')">Valider ma confirmation</button>
       <button class="ghost" onclick="back()">Retour</button>
     </div>
@@ -151,7 +159,12 @@
     fail('Service momentanément indisponible. Réessayez dans un instant.');
     return;
   }
-  sb = window.supabase.createClient(url, key);
+  // Aucune session ici : le donneur d'ordre n'a pas de compte. Sans ces options,
+  // le client tente de récupérer puis rafraîchir un jeton inexistant — et remonte
+  // une erreur « Refresh Token Not Found » sans objet.
+  sb = window.supabase.createClient(url, key, {
+    auth: { persistSession: false, autoRefreshToken: false, detectSessionInUrl: false }
+  });
 
   // Charger la sollicitation
   sb.rpc('get_solicitation', { p_token: token }).then(function (res) {
@@ -170,8 +183,11 @@
       return;
     }
 
-    // Le compteur du temps de réponse démarre ici
-    sb.rpc('track_solicitation_open', { p_token: token });
+    // Le compteur du temps de réponse démarre ici.
+    // Le .then() est INDISPENSABLE : une requête Supabase ne part que si on
+    // l'attend. Sans lui, l'appel est construit puis abandonné — silencieusement.
+    sb.rpc('track_solicitation_open', { p_token: token })
+      .then(function () {}, function () {});   // sans blocage : l'affichage prime
 
     var isAmount = data.type === 'confirm_amount';
     document.getElementById('title').textContent =
@@ -190,12 +206,20 @@
     if (dp) document.getElementById('f-paie').textContent = dp;
     else document.getElementById('r-paie').style.display = 'none';
 
-    // Le compte de cantonnement : c'est LUI qui le renseigne — il ne pourra
-    // pas dire qu'il ignorait où payer.
-    document.getElementById('account-hint').innerHTML =
-      'Le paiement devra être versé sur le compte de cantonnement'
-      + (data.bank_partner ? ' ouvert chez <b>' + data.bank_partner + '</b>' : '')
-      + '. Si vous le connaissez déjà, indiquez-le ci-dessous. Sinon, laissez vide : nous vous le communiquerons.';
+    // Le compte de cantonnement lui est AFFICHÉ, pas demandé : c'est à nous de
+    // lui dire où payer. Garde-fou : il l'a vu noir sur blanc avant de valider.
+    document.getElementById('acc-bank').textContent =
+      data.bank_partner ? 'Compte de cantonnement chez ' + data.bank_partner : 'Compte de cantonnement';
+    if (data.cantonnement_account) {
+      document.getElementById('acc-num').textContent = data.cantonnement_account;
+      document.getElementById('acc-label').textContent = data.cantonnement_label || 'CREDIGO';
+    } else {
+      // Compte non renseigné côté back-office : on ne bloque pas la confirmation,
+      // mais on est transparent.
+      document.getElementById('acc-num').textContent = 'Communiqué prochainement';
+      document.getElementById('acc-label').textContent =
+        'Nos équipes vous transmettront les coordonnées avant l\'échéance.';
+    }
 
     show('content');
   }).catch(function () { fail(); });
@@ -226,7 +250,6 @@
 
   window.send = function (response) {
     var note = (document.getElementById('note') || {}).value || null;
-    var account = (document.getElementById('account') || {}).value || null;
     if (response === 'contested' && (!note || !note.trim())) {
       alert('Merci de préciser ce qui ne va pas.');
       return;
@@ -236,7 +259,7 @@
       p_token: token,
       p_response: response,
       p_note: note && note.trim() ? note.trim() : null,
-      p_account: account && account.trim() ? account.trim() : null
+      p_account: null
     }).then(function (res) {
       if (res.error || (res.data && res.data.error)) {
         alert((res.data && res.data.error) || 'Une erreur est survenue. Réessayez.');
