@@ -8,3 +8,11 @@
     X-Frame-Options = "DENY"
     X-Content-Type-Options = "nosniff"
     Referrer-Policy = "strict-origin-when-cross-origin"
+
+# Le lien envoyé au donneur d'ordre : /c/<jeton> → la page de confirmation.
+# Page autonome et légère : il n'a pas de compte et arrive peut-être avec une
+# connexion lente — inutile de lui faire charger toute l'app.
+[[redirects]]
+  from = "/c/*"
+  to = "/confirmation.html"
+  status = 200
