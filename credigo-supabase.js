@@ -320,12 +320,33 @@
   // PROFIL — sauvegarde des champs du formulaire profil utilisateur
   // ════════════════════════════════════════════════════════════
 
+  // Empreinte de l'appareil : pas d'identification personnelle, juste de quoi
+  // distinguer deux appareils. Sert de preuve si l'utilisateur conteste avoir
+  // modifié son profil (« ce n'est pas moi »).
+  function deviceFingerprint() {
+    try {
+      var raw = [navigator.userAgent, navigator.language,
+                 screen.width + 'x' + screen.height,
+                 new Date().getTimezoneOffset(),
+                 navigator.hardwareConcurrency || ''].join('|');
+      var h = 0;
+      for (var i = 0; i < raw.length; i++) { h = ((h << 5) - h) + raw.charCodeAt(i); h |= 0; }
+      return 'fp_' + Math.abs(h).toString(36);
+    } catch (e) { return null; }
+  }
+
   window.credigoSaveProfile = async function (fields) {
     if (!supabaseReady) return { error: 'Supabase non configuré.' };
     var userId = currentAppUserId();
     if (!userId) return { error: 'Utilisateur non synchronisé.' };
 
-    var payload = Object.assign({}, fields, { updated_at: nowIso() });
+    // Le contexte part AVEC la modification : le trigger d'historique le lit
+    // dans la même opération. En deux requêtes séparées, il serait perdu.
+    var payload = Object.assign({}, fields, {
+      updated_at: nowIso(),
+      last_edit_fingerprint: deviceFingerprint(),
+      last_edit_agent: navigator.userAgent
+    });
     // Calcule si le profil est "complet" : tous les champs obligatoires
     // minimaux sont renseignés. Le détail exact des champs requis dépend
     // du portail ; ici un set raisonnable, ajustable.
