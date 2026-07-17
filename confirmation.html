@@ -46,6 +46,18 @@
   .account-bank{font-size:12px;color:#6D28D9;font-weight:700;margin-bottom:4px}
   .account-num{font-size:17px;font-weight:800;color:#4C1D95;letter-spacing:.5px;word-break:break-all}
   .account-label{font-size:12px;color:#7C3AED;margin-top:4px}
+  .sign-wrap{position:relative;margin-bottom:12px}
+  #sign-pad{width:100%;height:150px;border:1.5px dashed #C4B5FD;border-radius:10px;
+            background:#FEFEFF;touch-action:none;display:block}
+  .sign-clear{position:absolute;top:8px;right:8px;width:auto;margin:0;padding:5px 10px;
+              font-size:11.5px;background:#fff;border:1px solid #E5E7EB;color:#6B7280;border-radius:6px}
+  .legal{background:#FFFBEB;border:1.5px solid #FDE68A;border-radius:12px;padding:14px;margin:16px 0 4px}
+  .legal-t{font-size:13px;font-weight:800;color:#78350F;margin-bottom:8px}
+  .legal-l{margin:0 0 8px 16px;padding:0}
+  .legal-l li{font-size:12.8px;color:#78350F;line-height:1.55;margin-bottom:6px}
+  .legal-more{font-size:12px;color:#92400E;text-decoration:underline;cursor:pointer;font-weight:700}
+  .legal-full{margin-top:12px;padding-top:12px;border-top:1px solid #FDE68A;max-height:260px;overflow-y:auto}
+  .legal-full p{font-size:11.5px;color:#57534E;line-height:1.6;margin-bottom:9px}
   .hide{display:none}
 </style>
 </head>
@@ -94,6 +106,51 @@
         <div class="account-bank" id="acc-bank"></div>
         <div class="account-num" id="acc-num"></div>
         <div class="account-label" id="acc-label"></div>
+      </div>
+      <!-- Engagement — affiché AVANT la signature : il ne pourra pas dire
+           qu'il n'a pas lu. Les 3 points clés en clair, le détail dépliable. -->
+      <div class="legal">
+        <div class="legal-t">En signant, vous déclarez et vous engagez :</div>
+        <ul class="legal-l">
+          <li><b>Ce marché existe réellement</b> — vous avez vérifié son existence, son objet et son montant avant de confirmer.</li>
+          <li><b>Vous paierez sur le compte de cantonnement indiqué ci-dessus</b>, et sur aucun autre, même si votre prestataire vous demande le contraire.</li>
+          <li><b>Credigo financera sur la foi de cette confirmation</b> — vous en mesurez la portée.</li>
+        </ul>
+        <span class="legal-more" onclick="toggleLegal()" id="legal-toggle">Lire les conditions complètes ▾</span>
+        <div class="legal-full hide" id="legal-full">
+<p><b>1. Objet.</b> Les présentes conditions régissent la confirmation, par le donneur d'ordre signataire, d'un marché conclu avec l'entreprise désignée ci-dessus (le « Prestataire »), en vue de son financement par un partenaire financier via la plateforme Credigo.</p>
+
+<p><b>2. Déclaration de vérification.</b> Le signataire déclare avoir personnellement vérifié, préalablement à sa confirmation : l'existence et la validité du marché, son objet, son montant, ainsi que la qualité du Prestataire à l'exécuter. Il déclare disposer du pouvoir d'engager l'entité qu'il représente. Il reconnaît que Credigo et le partenaire financier se fondent exclusivement sur cette déclaration.</p>
+
+<p><b>3. Engagement de domiciliation irrévocable.</b> Le signataire s'engage irrévocablement à verser toute somme due au titre du marché sur le seul compte de cantonnement indiqué au moment de la signature, ouvert auprès de la banque partenaire désignée. Cet engagement demeure valable jusqu'à extinction complète de la créance. Toute instruction contraire du Prestataire est inopposable à Credigo et au partenaire financier.</p>
+
+<p><b>4. Paiement non libératoire.</b> Tout paiement effectué sur un compte autre que celui indiqué ne libère pas le signataire de son obligation. Il pourra être tenu de payer une seconde fois sur le compte de cantonnement, sans préjudice des dommages subis.</p>
+
+<p><b>5. Notification et opposabilité.</b> La présente confirmation vaut notification au signataire de la domiciliation de la créance. Le signataire renonce à contester avoir eu connaissance des coordonnées du compte de cantonnement, celles-ci lui ayant été communiquées à l'écran avant signature.</p>
+
+<p><b>6. Fausse déclaration.</b> Toute déclaration inexacte engage la responsabilité du signataire et de l'entité qu'il représente, sans préjudice des poursuites prévues par la loi. Le signataire reconnaît qu'une confirmation portant sur un marché inexistant ou dénaturé cause un préjudice direct à Credigo et au partenaire financier.</p>
+
+<p><b>7. Signature électronique et preuve.</b> Le signataire accepte que sa signature manuscrite apposée à l'écran, associée à son nom, sa qualité, la date et l'heure, son adresse IP et les caractéristiques techniques de son appareil, constitue son consentement. Il accepte que ces éléments, conservés par Credigo, fassent preuve entre les parties, et renonce à en contester la validité au seul motif de leur forme électronique.</p>
+
+<p><b>8. Modification et signalement.</b> Si le marché est inexact, contesté ou inexistant, le signataire s'engage à utiliser la fonction « Signaler un problème » plutôt qu'à confirmer. Aucun formalisme n'est exigé pour un signalement.</p>
+
+<p><b>9. Données personnelles.</b> Les données collectées (identité, signature, traces techniques) le sont aux seules fins de preuve et de gestion du financement. Elles sont conservées le temps nécessaire à ces finalités et aux obligations légales. Le signataire dispose d'un droit d'accès et de rectification auprès de Credigo.</p>
+
+<p><b>10. Droit applicable.</b> Les présentes sont régies par le droit ivoirien et, le cas échéant, par les Actes uniformes OHADA. Tout litige relève de la compétence des tribunaux d'Abidjan, à défaut de règlement amiable.</p>
+
+<p><b>11. Marchés publics.</b> Si le signataire agit pour une personne publique, la présente confirmation s'applique sous réserve des règles propres à la commande publique, notamment en matière de nantissement de créance et d'intervention du comptable public.</p>
+        </div>
+      </div>
+      <div class="hint" style="margin-top:16px">Qui confirme ce marché ?</div>
+      <input type="text" id="signer-name" placeholder="Votre nom et prénom *">
+      <input type="text" id="signer-role" placeholder="Votre fonction (ex. Directeur, Comptable)">
+      <div class="hint">Signez ci-dessous avec votre doigt ou la souris *</div>
+      <div class="sign-wrap">
+        <canvas id="sign-pad"></canvas>
+        <button type="button" class="sign-clear" onclick="clearSign()">Effacer</button>
+      </div>
+      <div style="font-size:11.5px;color:#6B7280;margin-bottom:10px;line-height:1.5">
+        En validant, vous acceptez les conditions ci-dessus et vous engagez à payer sur le compte indiqué.
       </div>
       <button class="ok" onclick="send('confirmed')">Valider ma confirmation</button>
       <button class="ghost" onclick="back()">Retour</button>
@@ -234,9 +291,65 @@
     show('done');
   }
 
+  // ── Signature ──
+  // Le clic seul est contestable (« ce n'est pas moi »). La signature, le nom
+  // du signataire et les traces techniques rendent la confirmation défendable.
+  var pad = null, ctx = null, drawing = false, hasSign = false;
+  function initSign() {
+    pad = document.getElementById('sign-pad');
+    if (!pad || ctx) return;
+    var r = pad.getBoundingClientRect();
+    var dpr = window.devicePixelRatio || 1;
+    pad.width = r.width * dpr; pad.height = r.height * dpr;
+    ctx = pad.getContext('2d');
+    ctx.scale(dpr, dpr);
+    ctx.lineWidth = 2.2; ctx.lineCap = 'round'; ctx.lineJoin = 'round';
+    ctx.strokeStyle = '#111827';
+
+    function pos(e) {
+      var b = pad.getBoundingClientRect();
+      var t = e.touches ? e.touches[0] : e;
+      return { x: t.clientX - b.left, y: t.clientY - b.top };
+    }
+    function start(e) { e.preventDefault(); drawing = true; hasSign = true;
+      var p = pos(e); ctx.beginPath(); ctx.moveTo(p.x, p.y); }
+    function move(e) { if (!drawing) return; e.preventDefault();
+      var p = pos(e); ctx.lineTo(p.x, p.y); ctx.stroke(); }
+    function end() { drawing = false; }
+    pad.addEventListener('mousedown', start); pad.addEventListener('mousemove', move);
+    window.addEventListener('mouseup', end);
+    pad.addEventListener('touchstart', start, { passive: false });
+    pad.addEventListener('touchmove', move, { passive: false });
+    pad.addEventListener('touchend', end);
+  }
+  window.toggleLegal = function () {
+    var f = document.getElementById('legal-full');
+    var t = document.getElementById('legal-toggle');
+    var open = f.classList.toggle('hide');
+    t.textContent = open ? 'Lire les conditions complètes ▾' : 'Masquer les conditions ▴';
+  };
+  window.clearSign = function () {
+    if (!ctx || !pad) return;
+    ctx.clearRect(0, 0, pad.width, pad.height);
+    hasSign = false;
+  };
+
+  // Empreinte simple de l'appareil : pas d'identification personnelle, juste de
+  // quoi distinguer deux appareils et étayer la trace.
+  function fingerprint() {
+    try {
+      var raw = [navigator.userAgent, navigator.language, screen.width + 'x' + screen.height,
+                 new Date().getTimezoneOffset(), navigator.hardwareConcurrency || ''].join('|');
+      var h = 0;
+      for (var i = 0; i < raw.length; i++) { h = ((h << 5) - h) + raw.charCodeAt(i); h |= 0; }
+      return 'fp_' + Math.abs(h).toString(36);
+    } catch (e) { return null; }
+  }
+
   window.showConfirm = function () {
     document.getElementById('choice').classList.add('hide');
     document.getElementById('confirm-step').classList.remove('hide');
+    setTimeout(initSign, 50);   // le canvas doit être visible pour être dimensionné
   };
   window.showContest = function () {
     document.getElementById('choice').classList.add('hide');
@@ -254,12 +367,27 @@
       alert('Merci de préciser ce qui ne va pas.');
       return;
     }
+    var signName = null, signRole = null, signature = null;
+    if (response === 'confirmed') {
+      signName = (document.getElementById('signer-name') || {}).value || '';
+      signRole = (document.getElementById('signer-role') || {}).value || '';
+      if (signName.trim().length < 3) { alert('Merci d\'indiquer votre nom.'); return; }
+      if (!hasSign) { alert('Merci de signer dans le cadre.'); return; }
+      signature = pad.toDataURL('image/png');
+    }
     document.querySelectorAll('button').forEach(function (b) { b.disabled = true; });
     sb.rpc('respond_solicitation', {
       p_token: token,
       p_response: response,
       p_note: note && note.trim() ? note.trim() : null,
-      p_account: null
+      p_account: null,
+      p_signature: signature,
+      p_signer_name: signName && signName.trim() ? signName.trim() : null,
+      p_signer_role: signRole && signRole.trim() ? signRole.trim() : null,
+      p_ip: window.__clientIp || null,
+      p_agent: navigator.userAgent,
+      p_fingerprint: fingerprint(),
+      p_legal_version: 'CGDO-2026-07'   // version des conditions affichées
     }).then(function (res) {
       if (res.error || (res.data && res.data.error)) {
         alert((res.data && res.data.error) || 'Une erreur est survenue. Réessayez.');
