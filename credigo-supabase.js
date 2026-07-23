@@ -363,6 +363,41 @@
     return { user: res.data };
   };
 
+  // ════════════════════════════════════════════════════════════
+  // VERROU DU PROFIL
+  // ════════════════════════════════════════════════════════════
+  // Dit si l'utilisateur a le droit de modifier ses informations, et pourquoi
+  // il ne l'a pas. Sert UNIQUEMENT à l'affichage (griser le formulaire,
+  // expliquer). Le vrai blocage est en base (triggers de la migration 0009) :
+  // il s'applique même si on contourne cet écran.
+  //
+  // Renvoie { locked, reason, canSubmitRequest } avec reason :
+  //   'contract'       → une demande de financement est en cours
+  //   'review_pending' → une modification attend la validation du staff
+  window.credigoGetProfileLock = async function () {
+    if (!supabaseReady) return { locked: false, reason: null, canSubmitRequest: true };
+    var userId = currentAppUserId();
+    if (!userId) return { locked: false, reason: null, canSubmitRequest: true };
+
+    var ACTIVE = ['submitted', 'under_review', 'awaiting_donneur', 'confirmed', 'approved'];
+    try {
+      var results = await Promise.all([
+        sb.from('financing_requests').select('id').eq('app_user_id', userId).in('status', ACTIVE).limit(1),
+        sb.from('profile_review_requests').select('id').eq('app_user_id', userId).eq('status', 'pending').limit(1)
+      ]);
+      var hasActive = !results[0].error && (results[0].data || []).length > 0;
+      var hasReview = !results[1].error && (results[1].data || []).length > 0;
+      return {
+        locked: hasActive,
+        reason: hasActive ? 'contract' : (hasReview ? 'review_pending' : null),
+        canSubmitRequest: !hasReview
+      };
+    } catch (e) {
+      // En cas de doute on n'invente pas de verrou : la base tranchera.
+      return { locked: false, reason: null, canSubmitRequest: true };
+    }
+  };
+
   // Relit le profil complet de l'utilisateur depuis Supabase
   window.credigoGetProfile = async function () {
     if (!supabaseReady) return { error: 'Supabase non configuré.' };

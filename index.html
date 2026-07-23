@@ -2177,6 +2177,8 @@ textarea{resize:vertical;min-height:70px}
 <div id="e-profile" class="screen">
   <div class="pg-title">Mon profil</div>
   <div class="pg-sub">Complétez votre profil pour activer votre compte</div>
+  <!-- Bandeau de verrouillage : rempli par applyProfileLock() -->
+  <div id="epf-lock-banner" style="display:none;padding:12px 14px;border-radius:12px;margin-bottom:14px;font-size:13.5px;line-height:1.55"></div>
   <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
     <div id="e-profile-progress" style="font-size:12px;font-weight:700;color:var(--violet)"></div>
     <button onclick="authLogout()" style="background:none;border:1.5px solid #E5E7EB;border-radius:8px;padding:6px 12px;font-size:11px;font-weight:700;color:#DC2626;cursor:pointer;display:flex;align-items:center;gap:5px;font-family:inherit"><i class="ti ti-logout" style="font-size:12px"></i> Déconnexion</button>
@@ -8004,6 +8006,8 @@ function _fillProfileForm(u) {
     updateEProfileProgress();
     // Si le profil est déjà complet, arriver en mode consultation (bouton "Modifier")
     if (u.profileComplete) { setEProfileViewMode(); } else { setEProfileEditMode(); }
+    // Vérifie si le profil est verrouillé (demande en cours / revue en attente)
+    refreshProfileLock();
   } else {
     var savedF = getSavedProfile('f');
     setVal('fpf-prenom', savedF.prenom || defaultPrenom);
@@ -8093,6 +8097,9 @@ function setEProfileViewMode() {
 
 // Passe le profil entrepreneur en mode édition (champs déverrouillés, bouton "Enregistrer")
 function setEProfileEditMode() {
+  // Un profil verrouillé ne s'ouvre pas : inutile de laisser l'utilisateur
+  // remplir un formulaire que la base refusera.
+  if (eProfileLocked) { applyProfileLock(); return; }
   EPF_FIELDS.forEach(function(id){
     var el = document.getElementById(id);
     if (el) { el.removeAttribute('readonly'); el.removeAttribute('disabled'); el.style.background = ''; el.style.cursor = ''; }
@@ -8102,6 +8109,66 @@ function setEProfileEditMode() {
     btn.innerHTML = '<i class="ti ti-device-floppy"></i> Enregistrer le profil';
     btn.setAttribute('onclick', 'saveEProfile()');
   }
+}
+
+/* ── Verrou du profil ──────────────────────────────────────────────
+   Le blocage réel est en base (migration 0009). Ici on ne fait que le
+   REFLÉTER : formulaire grisé + explication, pour que l'utilisateur ne
+   découvre pas le refus après avoir tout ressaisi. */
+var eProfileLocked = false;
+
+function renderProfileLockBanner(state) {
+  var el = document.getElementById('epf-lock-banner');
+  if (!el) return;
+  if (!state || (!state.locked && state.canSubmitRequest !== false)) {
+    el.style.display = 'none';
+    return;
+  }
+  if (state.reason === 'contract') {
+    el.style.background = '#FEF2F2';
+    el.style.border = '1.5px solid #FECACA';
+    el.style.color = '#7F1D1D';
+    el.innerHTML = '<b><i class="ti ti-lock"></i> Profil verrouillé — demande en cours.</b><br>' +
+      'Vos informations ne peuvent pas être modifiées tant qu\'une demande de financement est en cours. ' +
+      'Contactez le support si une correction est nécessaire.';
+  } else if (state.reason === 'review_pending') {
+    el.style.background = '#FFFBEB';
+    el.style.border = '1.5px solid #FDE68A';
+    el.style.color = '#92400E';
+    el.innerHTML = '<b><i class="ti ti-clock"></i> Modification en cours de validation.</b><br>' +
+      'Notre équipe vérifie les informations que vous avez modifiées. ' +
+      'Vous pourrez soumettre une nouvelle demande de financement dès qu\'elles seront validées.';
+  } else {
+    el.style.display = 'none';
+    return;
+  }
+  el.style.display = 'block';
+}
+
+// Grise le formulaire et neutralise le bouton quand le profil est verrouillé.
+function applyProfileLock() {
+  if (!eProfileLocked) return;
+  EPF_FIELDS.forEach(function(id){
+    var el = document.getElementById(id);
+    if (el) { el.setAttribute('readonly','readonly'); el.setAttribute('disabled','disabled'); el.style.background = '#F3F4F6'; el.style.cursor = 'not-allowed'; }
+  });
+  var btn = document.getElementById('epf-save-btn');
+  if (btn) {
+    btn.innerHTML = '<i class="ti ti-lock"></i> Profil verrouillé';
+    btn.setAttribute('onclick', "toast('Une demande de financement est en cours : vos informations ne peuvent pas être modifiées.')");
+    btn.style.opacity = '0.5';
+    btn.style.cursor = 'not-allowed';
+  }
+}
+
+// Interroge la base et applique le verrou. Appelé à l'ouverture du profil.
+function refreshProfileLock() {
+  if (!(window.CredigoDB && window.CredigoDB.ready) || typeof window.credigoGetProfileLock !== 'function') return;
+  window.credigoGetProfileLock().then(function(state){
+    eProfileLocked = !!(state && state.locked);
+    renderProfileLockBanner(state);
+    if (eProfileLocked) applyProfileLock();
+  }).catch(function(){ /* la base tranchera de toute façon */ });
 }
 
 function saveEProfile() {
@@ -8156,12 +8223,25 @@ function saveEProfile() {
       employee_count: parseInt(fields.effectif)||null, hq_address: fields.siege,
       portal: 'entrepreneur'
     }).then(function(res) {
-      if (res.error) console.warn('Supabase profile save:', res.error);
+      // Un refus de la base (profil verrouillé, contrat en cours…) doit se voir.
+      // Auparavant l'erreur partait dans la console pendant que l'écran
+      // affichait « enregistré avec succès » : l'utilisateur croyait ses
+      // modifications prises en compte alors qu'elles étaient rejetées.
+      if (res.error) {
+        console.warn('Supabase profile save:', res.error);
+        toast(res.error);
+        refreshProfileLock();
+        return;
+      }
+      toast('Profil enregistré avec succès !');
+      // Une modification d'identité ouvre une revue : on rafraîchit l'état.
+      refreshProfileLock();
     });
+  } else {
+    toast('Profil enregistré avec succès !');
   }
 
   var isComplete = updateEProfileProgress();
-  toast('Profil enregistré avec succès !');
 
   // Passer en mode consultation après enregistrement
   setEProfileViewMode();
