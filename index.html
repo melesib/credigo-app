@@ -1699,7 +1699,7 @@ textarea{resize:vertical;min-height:70px}
           <div class="kyc-doc-icon" style="background:#D1FAE5"><i class="ti ti-chart-bar" style="font-size:18px;color:#059669"></i></div>
           <div class="kyc-doc-text">
             <div class="kyc-doc-title">Bilans financiers (2 dernières années) *</div>
-            <div class="kyc-doc-sub">Certifiés par un expert-comptable agréé · PDF</div>
+            <div class="kyc-doc-sub">Certifiés par un expert-comptable agréé · PDF uniquement</div>
           </div>
         </div>
         <div class="kyc-doc-actions">
@@ -6531,8 +6531,67 @@ function handleKycUpload(input, rowId) {
   if (file.size > 10 * 1024 * 1024) {
     toast('\u274C Fichier trop volumineux. Maximum 10 MB.');
     input.value = '';
+    _kycUploadBusy[rowId] = false;   // sinon toute nouvelle tentative resterait bloquée
     return;
   }
+
+  /* ── Vérification RÉELLE du format ──────────────────────────────
+     L'attribut accept de l'input ne filtre que la fenêtre de sélection :
+     il se contourne (glisser-déposer, « Tous les fichiers »). On valide
+     donc le fichier lui-même, à partir des extensions déclarées par
+     l'input — la règle reste ainsi définie à UN seul endroit (le HTML).
+     Pour les documents PDF obligatoires (bilans, statuts, relevés,
+     contrats), on vérifie aussi la SIGNATURE du fichier (%PDF) : un
+     .docx renommé en .pdf serait illisible pour l'analyse. */
+  var allowed = (input.getAttribute('accept') || '')
+    .split(',').map(function(s){ return s.trim().toLowerCase(); }).filter(Boolean);
+  var fname = (file.name || '').toLowerCase();
+  var ext = fname.indexOf('.') >= 0 ? fname.slice(fname.lastIndexOf('.')) : '';
+  if (allowed.length && allowed.indexOf(ext) === -1) {
+    var pdfOnly = allowed.length === 1 && allowed[0] === '.pdf';
+    toast(pdfOnly
+      ? '\u274C Ce document doit \u00eatre au format PDF. Convertissez votre fichier en PDF puis r\u00e9essayez.'
+      : '\u274C Format non accept\u00e9. Formats autoris\u00e9s : ' + allowed.join(', '));
+    input.value = '';
+    _kycUploadBusy[rowId] = false;
+    return;
+  }
+  /* Signature binaire : le contenu doit correspondre à l'extension.
+     PDF → "%PDF"  ·  JPEG → FF D8 FF  ·  PNG → 89 50 4E 47.
+     Un fichier renommé (.docx → .pdf, capture d'écran → .pdf…) serait
+     illisible pour l'analyse : on le refuse avec une explication. */
+  var SIGNATURES = { '.pdf': 'pdf', '.jpg': 'jpeg', '.jpeg': 'jpeg', '.png': 'png' };
+  var attendu = SIGNATURES[ext];
+  if (attendu) {
+    var _origFile = file;
+    var reader = new FileReader();
+    reader.onload = function(ev) {
+      var h = new Uint8Array(ev.target.result);
+      var ok =
+        (attendu === 'pdf'  && h[0] === 0x25 && h[1] === 0x50 && h[2] === 0x44 && h[3] === 0x46) ||
+        (attendu === 'jpeg' && h[0] === 0xFF && h[1] === 0xD8 && h[2] === 0xFF) ||
+        (attendu === 'png'  && h[0] === 0x89 && h[1] === 0x50 && h[2] === 0x4E && h[3] === 0x47);
+      if (!ok) {
+        toast(attendu === 'pdf'
+          ? '\u274C Ce fichier n\u2019est pas un vrai PDF (extension renomm\u00e9e ?). Exportez-le en PDF depuis votre logiciel puis r\u00e9essayez.'
+          : '\u274C Ce fichier n\u2019est pas une vraie image ' + ext.toUpperCase().slice(1) + '. Reprenez la photo ou exportez le document \u00e0 nouveau.');
+        input.value = '';
+        _kycUploadBusy[rowId] = false;
+        return;
+      }
+      _kycDoUpload(input, rowId, _origFile);
+    };
+    reader.onerror = function() { _kycDoUpload(input, rowId, _origFile); };
+    reader.readAsArrayBuffer(file.slice(0, 8));
+    return;
+  }
+  _kycDoUpload(input, rowId, file);
+}
+
+// Suite de l'upload une fois le fichier validé (taille + format + signature)
+function _kycDoUpload(input, rowId, file) {
+  var docInfo = KYC_DOC_MAP[rowId];
+  if (!docInfo) { _kycUploadBusy[rowId] = false; return; }
 
   // Afficher l'état "upload en cours"
   var row = document.getElementById(rowId);
