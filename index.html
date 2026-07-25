@@ -1214,9 +1214,9 @@ textarea{resize:vertical;min-height:70px}
   <!-- Étape 2 : Le marché -->
   <div class="wiz-page" id="wp-2">
     <svg class="wiz-illus" viewBox="0 0 80 80" fill="none"><path d="M22 10h24l14 14v42a5 5 0 01-5 5H22a5 5 0 01-5-5V15a5 5 0 015-5z" fill="#EEE8FF" stroke="#6C3FE8" stroke-width="3"/><path d="M46 10v14h14" stroke="#6C3FE8" stroke-width="3" stroke-linejoin="round"/><path d="M27 38h26M27 48h26M27 58h16" stroke="#6C3FE8" stroke-width="3" stroke-linecap="round"/></svg>
-    <div class="wiz-q">Parlez-nous du marché</div>
+    <div class="wiz-q" id="market-q">Parlez-nous du marché</div>
     <div class="wiz-sub">En quelques mots</div>
-    <div class="wiz-field"><label>C'est quel travail ?</label><input type="text" id="f-objet" placeholder="Ex. Livrer des tables"></div>
+    <div class="wiz-field"><label id="f-objet-label">C'est quel travail ?</label><input type="text" id="f-objet" placeholder="Ex. Livrer des tables"></div>
     <div class="wiz-field"><label>Type de marché / compétence</label>
       <select id="f-competence" style="width:100%;padding:14px;border-radius:12px;border:1.5px solid #E5E7EB;font-size:16px;font-family:inherit;background:#fff">
         <option value="">— Choisir le domaine —</option>
@@ -1240,8 +1240,8 @@ textarea{resize:vertical;min-height:70px}
   <!-- Étape 3 : Le client -->
   <div class="wiz-page" id="wp-3">
     <svg class="wiz-illus" viewBox="0 0 80 80" fill="none"><circle cx="40" cy="30" r="14" fill="#EEE8FF" stroke="#6C3FE8" stroke-width="3"/><path d="M17 66c0-12 10-19 23-19s23 7 23 19" fill="#EEE8FF" stroke="#6C3FE8" stroke-width="3"/><circle cx="40" cy="30" r="5" fill="#6C3FE8"/></svg>
-    <div class="wiz-q">Qui doit vous payer ?</div>
-    <div class="wiz-sub">Choisissez dans la liste</div>
+    <div class="wiz-q" id="client-q">Qui doit vous payer ?</div>
+    <div class="wiz-sub" id="client-sub">Le donneur d’ordre du marché</div>
     <div class="wiz-field"><label>Votre client</label>
       <select id="f-client" onchange="wizClientChange(this)">
         <option value="">— Choisir —</option>
@@ -3782,7 +3782,7 @@ function closeWhoSees(){ var ov=document.getElementById('who-overlay'); if(ov) o
 
 // ═══ WIZARD nouvelle demande ═══
 var wizStep=1, wizType='commande', wizHasAccount=true;
-var wizFlow=['1','2','dates','3','4','5','6']; // ordre des pages
+var wizFlow=['1','3','2','dates','4','5','6']; // ordre : type → donneur d'ordre → marché → dates → pièces → banque → récap
 function wizReset(){
   wizStep=1; wizType='commande'; wizHasAccount=true; wizBank=''; wizBankId='';
   var section=document.getElementById('f-account-section'); if(section) section.style.display='none';
@@ -3798,6 +3798,9 @@ function wizReset(){
     selC.dataset.filled='1';
   }
   wizRenderStep();
+  // Réinitialise les libellés selon le type par défaut (commande).
+  var elCmd=document.querySelector('#wp-1 .wiz-choice');
+  if(elCmd && typeof wizPickType==='function') wizPickType('commande', elCmd);
 }
 function wizPickType(t,el){
   wizType=t;
@@ -3812,6 +3815,16 @@ function wizPickType(t,el){
   if(dq) dq.textContent = t==='affacturage'?'La date de paiement':'Les dates du marché';
   var fne=document.getElementById('f-fne-wrap');
   if(fne) fne.style.display = t==='affacturage'?'block':'none';
+  // Titre de l'étape « donneur d'ordre » selon le type
+  var clientQ=document.getElementById('client-q');
+  if(clientQ) clientQ.textContent = t==='affacturage'?'Qui vous doit de l\u2019argent ?':'Qui doit vous payer ?';
+  var clientSub=document.getElementById('client-sub');
+  if(clientSub) clientSub.textContent = t==='affacturage'?'Le client de la facture impayée':'Le donneur d\u2019ordre du marché';
+  // Titre de l'étape « marché » selon le type
+  var marketQ=document.getElementById('market-q');
+  if(marketQ) marketQ.textContent = t==='affacturage'?'Parlez-nous du travail fait':'Parlez-nous du marché';
+  var objetLabel=document.getElementById('f-objet-label');
+  if(objetLabel) objetLabel.textContent = t==='affacturage'?'C\u2019\u00e9tait quel travail ?':'C\u2019est quel travail ?';
 }
 function wizClientChange(sel){
   var partner=document.getElementById('f-client-partner');
