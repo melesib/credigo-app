@@ -1379,6 +1379,12 @@ textarea{resize:vertical;min-height:70px}
     <div class="wiz-field"><label>Organisation</label><input type="text" id="rf-org" placeholder="Ex. Ministère de l'Éducation"></div>
     <div class="wiz-field"><label>Téléphone du contact *</label><input type="tel" id="rf-phone" placeholder="Ex. 07 00 00 00 00"></div>
     <div class="wiz-field"><label>Le marché concerné</label><input type="text" id="rf-market" placeholder="Ex. Livraison de mobilier scolaire 2023"></div>
+    <div class="wiz-field"><label>Compétence / type de marché *</label>
+      <select id="rf-competence" style="width:100%;padding:12px;border-radius:10px;border:1.5px solid #E5E7EB;font-size:15px;font-family:inherit;background:#fff">
+        <option value="">— Choisir le domaine —</option>
+      </select>
+      <div style="font-size:11px;color:#9CA3AF;margin-top:4px">Cela nous aide à vous référencer dans votre spécialité.</div>
+    </div>
     <div class="ref-modal-actions">
       <button class="btn-s" onclick="closeRefForm()">Annuler</button>
       <button class="btn-p" onclick="submitRef()"><i class="ti ti-check"></i> Envoyer</button>
@@ -3536,6 +3542,7 @@ function paintRefs(refs){
     return '<div class="ref-card'+(refused?' ref-card-refused':'')+'"><div class="ref-card-top"><div><div class="ref-card-name">'+(r.contact_name||'—')+'</div>'+
       (r.organization?'<div class="ref-card-org">'+r.organization+'</div>':'')+'</div><div style="display:flex;flex-direction:column;align-items:flex-end;gap:5px">'+statusPill(r.status)+pointsBadge(r.status,'reference')+'</div></div>'+
       (r.market_object?'<div class="ref-card-market"><i class="ti ti-briefcase"></i> '+r.market_object+'</div>':'')+
+      (r.competence_label?'<div style="display:inline-flex;align-items:center;gap:5px;margin-top:6px;font-size:11.5px;font-weight:700;color:#6C3FE8;background:#F5F3FF;padding:3px 10px;border-radius:20px"><i class="ti ti-tag"></i> '+r.competence_label+'</div>':'')+
       (refused?refusalBlock(r.verification_note,'reference'):'')+'</div>';
   }).join('');
 }
@@ -3552,8 +3559,90 @@ function paintAtts(atts){
   }).join('');
 }
 // Modals — blocage à 5 soumissions maximum
+// ═══ Référentiel de compétences (miroir de src/lib/competences.js du BO) ═══
+// Inspiré des segments UNSPSC, réduit aux familles pertinentes en CI.
+var CREDIGO_COMPETENCES = [
+  { cle:'btp', label:'BTP & Construction', competences:[
+    {cle:'construction_gros_oeuvre',label:'Construction / gros œuvre'},
+    {cle:'renovation',label:'Rénovation / réhabilitation'},
+    {cle:'voirie_reseaux',label:'Voirie & réseaux (VRD)'},
+    {cle:'electricite_batiment',label:'Électricité bâtiment'},
+    {cle:'plomberie_sanitaire',label:'Plomberie & sanitaire'},
+    {cle:'peinture_finition',label:'Peinture & finitions'},
+    {cle:'menuiserie',label:'Menuiserie (bois, alu, métal)'},
+    {cle:'climatisation',label:'Climatisation & froid'},
+    {cle:'etancheite_toiture',label:'Étanchéité & toiture'},
+  ]},
+  { cle:'fournitures', label:'Fournitures & Équipements', competences:[
+    {cle:'fournitures_bureau',label:'Fournitures de bureau'},
+    {cle:'mobilier',label:'Mobilier & aménagement'},
+    {cle:'materiel_informatique',label:'Matériel informatique'},
+    {cle:'consommables_impression',label:'Consommables & impression'},
+    {cle:'equipement_industriel',label:'Équipement industriel'},
+    {cle:'materiel_medical',label:'Matériel médical'},
+    {cle:'quincaillerie',label:'Quincaillerie & outillage'},
+    {cle:'produits_entretien',label:"Produits d'entretien & hygiène"},
+  ]},
+  { cle:'services', label:'Services aux entreprises', competences:[
+    {cle:'nettoyage',label:'Nettoyage & propreté'},
+    {cle:'securite_gardiennage',label:'Sécurité & gardiennage'},
+    {cle:'restauration_traiteur',label:'Restauration & traiteur'},
+    {cle:'transport_logistique',label:'Transport & logistique'},
+    {cle:'maintenance',label:'Maintenance & entretien'},
+    {cle:'conseil_etudes',label:'Conseil & études'},
+    {cle:'formation',label:'Formation'},
+    {cle:'communication_evenementiel',label:'Communication & événementiel'},
+  ]},
+  { cle:'numerique', label:'Numérique & Télécom', competences:[
+    {cle:'developpement_logiciel',label:'Développement logiciel / web'},
+    {cle:'reseaux_telecom',label:'Réseaux & télécom'},
+    {cle:'installation_electronique',label:'Installation & électronique'},
+    {cle:'maintenance_informatique',label:'Maintenance informatique'},
+  ]},
+  { cle:'agro', label:'Agro & Agroalimentaire', competences:[
+    {cle:'production_agricole',label:'Production agricole'},
+    {cle:'transformation_agroalimentaire',label:'Transformation agroalimentaire'},
+    {cle:'intrants_agricoles',label:'Intrants & équipements agricoles'},
+    {cle:'elevage_peche',label:'Élevage & pêche'},
+  ]},
+  { cle:'energie', label:'Énergie & Environnement', competences:[
+    {cle:'solaire_energies',label:'Solaire & énergies renouvelables'},
+    {cle:'groupes_electrogenes',label:'Groupes électrogènes'},
+    {cle:'gestion_dechets',label:'Gestion des déchets'},
+    {cle:'eau_assainissement',label:'Eau & assainissement'},
+  ]},
+  { cle:'autre', label:'Autre', competences:[ {cle:'autre',label:'Autre compétence'} ]},
+];
+function competenceLabel(cle){
+  for(var i=0;i<CREDIGO_COMPETENCES.length;i++){
+    var fam=CREDIGO_COMPETENCES[i];
+    for(var j=0;j<fam.competences.length;j++){ if(fam.competences[j].cle===cle) return fam.competences[j].label; }
+  }
+  return cle||'';
+}
+function competenceFamille(cle){
+  for(var i=0;i<CREDIGO_COMPETENCES.length;i++){
+    var fam=CREDIGO_COMPETENCES[i];
+    for(var j=0;j<fam.competences.length;j++){ if(fam.competences[j].cle===cle) return fam.cle; }
+  }
+  return null;
+}
+function remplirSelectCompetences(){
+  var sel=document.getElementById('rf-competence');
+  if(!sel || sel.dataset.filled) return;
+  CREDIGO_COMPETENCES.forEach(function(fam){
+    var grp=document.createElement('optgroup'); grp.label=fam.label;
+    fam.competences.forEach(function(c){
+      var o=document.createElement('option'); o.value=c.cle; o.textContent=c.label; grp.appendChild(o);
+    });
+    sel.appendChild(grp);
+  });
+  sel.dataset.filled='1';
+}
+
 function openRefForm(){
   if(_refCount>=5){ toast('Vous avez atteint le maximum de 5 références. Seules les 3 meilleures comptent pour votre score.'); return; }
+  remplirSelectCompetences();
   var m=document.getElementById('ref-modal'); if(m) m.classList.add('on');
 }
 function closeRefForm(){ var m=document.getElementById('ref-modal'); if(m) m.classList.remove('on'); }
@@ -3567,8 +3656,12 @@ function afFilePicked(input){ var l=document.getElementById('af-file-label'); if
 function submitRef(){
   var name=(document.getElementById('rf-name')||{}).value||'';
   var phone=(document.getElementById('rf-phone')||{}).value||'';
+  var competence=(document.getElementById('rf-competence')||{}).value||'';
   if(!name.trim() || !phone.trim()){ toast('Indiquez au moins le nom et le téléphone du contact.'); return; }
-  var ref={ contact_name:name, organization:(document.getElementById('rf-org')||{}).value||'', contact_phone:phone, market_object:(document.getElementById('rf-market')||{}).value||'' };
+  if(!competence){ toast('Choisissez la compétence / le type de marché.'); return; }
+  var ref={ contact_name:name, organization:(document.getElementById('rf-org')||{}).value||'', contact_phone:phone,
+    market_object:(document.getElementById('rf-market')||{}).value||'',
+    competence:competence, competence_label:competenceLabel(competence), competence_famille:competenceFamille(competence) };
   if(window.CredigoDB && window.CredigoDB.ready && typeof window.credigoAddReference==='function'){
     window.credigoAddReference(ref).then(function(res){
       if(res && res.reference){ toast('Référence envoyée ! Elle sera vérifiée par nos équipes.'); closeRefForm(); clearRefForm(); renderEReferences(); }
@@ -3576,7 +3669,7 @@ function submitRef(){
     });
   } else { toast('Connexion requise pour enregistrer.'); }
 }
-function clearRefForm(){ ['rf-name','rf-org','rf-phone','rf-market'].forEach(function(id){ var el=document.getElementById(id); if(el) el.value=''; }); }
+function clearRefForm(){ ['rf-name','rf-org','rf-phone','rf-market'].forEach(function(id){ var el=document.getElementById(id); if(el) el.value=''; }); var c=document.getElementById('rf-competence'); if(c) c.value=''; }
 
 function submitAtt(){
   var market=(document.getElementById('af-market')||{}).value||'';

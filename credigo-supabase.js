@@ -449,6 +449,9 @@
       contact_email: ref.contact_email || null,
       market_object: ref.market_object || null,
       market_amount: ref.market_amount || null,
+      competence: ref.competence || null,
+      competence_label: ref.competence_label || null,
+      competence_famille: ref.competence_famille || null,
       status: 'pending'
     };
     var res = await sb.from('entrepreneur_references').insert(payload).select().single();
