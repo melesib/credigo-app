@@ -1300,7 +1300,7 @@ textarea{resize:vertical;min-height:70px}
     <div class="wiz-sub">Voici l'estimation</div>
     <div class="wiz-est">
       <div class="we-row"><span class="k">Valeur du marché</span><span id="est-montant">—</span></div>
-      <div class="we-row"><span class="k">Frais Credigo</span><span id="est-frais">—</span></div>
+      <div class="we-row"><span class="k" id="est-frais-lbl">Frais Credigo</span><span id="est-frais">—</span></div>
       <div class="we-row total"><span>Vous recevez</span><span id="est-recu">—</span></div>
     </div>
     <div class="wiz-callout green" style="margin-top:12px"><svg viewBox="0 0 32 32" fill="none"><circle cx="16" cy="16" r="13" fill="#C6F0D8"/><path d="M10 16l4 4 8-8" stroke="#0A6E3B" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/></svg><div>C'est votre client qui rembourse. <b>Vous ne remboursez rien.</b></div></div>
@@ -3730,14 +3730,94 @@ function fDocPicked(input){
     if(l) l.textContent=input.files[0].name;
   }
 }
+// ═══ TARIFICATION CLIENT : comparaison des banques ═══
+// Miroir léger du moteur back-office (pricing.js). Le client voit, pour
+// chaque banque, le coût total et le TEG — de quoi comparer et choisir.
+// Il ne voit PAS la répartition banque/Credigo : seul le total le concerne.
+var _pricingBaremes = {};   // id → barème public
+var _clientScore = null;
+
+function pricingNum(v){ return (v==null||v===''||isNaN(Number(v)))?0:Number(v); }
+
+// Calcule l'offre pour un barème donné (montant, durée en mois, score).
+function calculerOffreClient(b, montant, dureeMois, score){
+  var M=pricingNum(montant); if(!M) return null;
+  var D=Math.max(1,Math.round(pricingNum(dureeMois))); var annees=D/12;
+  var plafond=(b.statut==='sfd')?24:14;
+  // Taux d'intérêt ajusté par score + durée
+  var taux=pricingNum(b.taux_interet_annuel);
+  var aj=b.ajustement_score||{}; var pivot=pricingNum(aj.pivot)||55;
+  if(score!=null){
+    if(score>=pivot){ var den=100-pivot; taux-= den>0?pricingNum(aj.discount_max)*(score-pivot)/den:0; }
+    else { taux+= pivot>0?pricingNum(aj.penalty_max)*(pivot-score)/pivot:0; }
+  }
+  var ajD=b.ajustement_duree||{}; if(ajD[String(D)]!=null) taux+=pricingNum(ajD[String(D)]);
+  taux=Math.max(0,taux);
+  var interets=M*(taux/100)*annees;
+  var commBanque=M*(pricingNum(b.commission_banque_pct)/100)+pricingNum(b.commission_banque_fixe);
+  var commCredigo=M*(pricingNum(b.commission_credigo_pct)/100);
+  var fraisDossier=pricingNum(b.frais_dossier_fixe);
+  var assurance=M*(pricingNum(b.assurance_pct)/100);
+  var assiette=(b.taxe_sur==='interets_et_commissions')?(interets+commBanque+commCredigo+fraisDossier):(commBanque+commCredigo+fraisDossier);
+  var taxe=assiette*(pricingNum(b.taux_taxe)/100);
+  var coutTotal=interets+commBanque+commCredigo+fraisDossier+assurance+taxe;
+  var tegPeriode=(coutTotal/M)*100;
+  var teg=annees>0?tegPeriode/annees:tegPeriode;
+  return {
+    montant:M, dureeMois:D, tauxInteret:Math.round(taux*1000)/1000,
+    coutTotal:Math.round(coutTotal), montantARembourser:Math.round(M+coutTotal),
+    teg:Math.round(teg*100)/100, plafond:plafond, sousPlafond:teg<=plafond,
+    // Frais présentés au client SANS distinguer banque/Credigo (transparence
+    // sur le total, pas sur les marges internes).
+    fraisTotaux:Math.round(coutTotal),
+  };
+}
+
+// Charge les barèmes publics actifs (vue public_pricing, lisible par tous).
+function loadPricingBaremes(){
+  if(!(window.CredigoDB && window.CredigoDB.ready && window.CredigoDB.sb)) return Promise.resolve({});
+  return window.CredigoDB.sb.from('public_pricing').select('*').then(function(res){
+    var map={};
+    (res.data||[]).forEach(function(b){ map[b.id]=b; });
+    _pricingBaremes=map;
+    return map;
+  }).catch(function(){ return {}; });
+}
+
 function loadBanques(){
   var wrap=document.getElementById('f-banks');
   if(!wrap) return;
   if(window.CredigoDB && window.CredigoDB.ready && typeof window.credigoGetBanques==='function'){
-    window.credigoGetBanques().then(function(res){
+    // On charge en parallèle : les banques, les barèmes de prix, le score.
+    Promise.all([
+      window.credigoGetBanques(),
+      loadPricingBaremes(),
+      (typeof window.credigoGetRate==='function'? window.credigoGetRate().catch(function(){return null;}) : Promise.resolve(null))
+    ]).then(function(all){
+      var res=all[0]; var scoreRes=all[2];
+      if(scoreRes && typeof scoreRes.score==='number') _clientScore=scoreRes.score;
       var banques=(res && res.banques)?res.banques:[];
       if(banques.length===0){ wrap.innerHTML='<div class="ref-empty" style="padding:16px">Aucune banque disponible pour le moment.</div>'; return; }
       wizBank=''; wizBankId='';
+      // Associe un barème à chaque banque par le nom (rapprochement souple).
+      var listeBaremes=Object.keys(_pricingBaremes).map(function(k){return _pricingBaremes[k];});
+      function motCle(s){ return (s||'').toLowerCase().replace(/[^a-zàâäéèêëïîôùûüç0-9 ]/g,' ').split(/\s+/).filter(function(w){return w.length>2 && ['ci','sa','banque','bank','cote','ivoire','the','les','des'].indexOf(w)<0;})[0]||''; }
+      function baremePour(nom){
+        var n=(nom||'').toLowerCase();
+        // 1) sous-chaîne directe
+        var trouve=listeBaremes.filter(function(b){
+          var bn=(b.nom||'').toLowerCase();
+          return bn && (n.indexOf(bn)>=0 || bn.indexOf(n)>=0);
+        })[0];
+        // 2) même mot-clé principal (ex. « Ecobank » dans les deux noms)
+        if(!trouve){
+          var mc=motCle(nom);
+          if(mc) trouve=listeBaremes.filter(function(b){ return motCle(b.nom)===mc; })[0];
+        }
+        return trouve || listeBaremes[0] || null;   // défaut : premier barème actif
+      }
+      var montant=parseFloat((document.getElementById('f-montant')||{}).value)||1000000;
+      var duree=12;
       wrap.innerHTML=banques.map(function(b,i){
         var initiales=(b.short_name||b.name||'?').substring(0,2).toUpperCase();
         var fit = (b.logo_fit==='cover') ? 'cover' : 'contain';
@@ -3745,9 +3825,31 @@ function loadBanques(){
         var logo = b.logo_url
           ? '<div class="wb-logo" style="background:#fff;border:1px solid #EDECEF;overflow:hidden;'+pad+'box-sizing:border-box"><img src="'+b.logo_url+'" alt="'+(b.short_name||b.name)+'" style="width:100%;height:100%;object-fit:'+fit+';display:block" onerror="this.parentNode.style.padding=\'0\';this.parentNode.style.background=\'#6C3FE8\';this.parentNode.style.color=\'#fff\';this.parentNode.textContent=\''+initiales+'\'"></div>'
           : '<div class="wb-logo" style="background:#6C3FE8">'+initiales+'</div>';
-        return '<div class="wiz-bank" onclick="wizPickBank(\''+(b.name.replace(/'/g,"\\'"))+'\',this,\''+b.id+'\')">'+logo+
-          '<div class="wb-info"><div class="n">'+b.name+'</div><div class="s"><i class="ti ti-bolt"></i> Argent reçu tout de suite</div></div><div class="wb-radio"></div></div>';
+        // Détail tarifaire de cette banque, s'il existe un barème.
+        var bar=baremePour(b.name);
+        var tegLigne='<div class="s"><i class="ti ti-bolt"></i> Argent reçu tout de suite</div>';
+        if(bar){
+          var o=calculerOffreClient(bar, montant, duree, _clientScore);
+          if(o){
+            tegLigne='<div class="wb-teg" style="display:flex;gap:10px;align-items:center;margin-top:3px;flex-wrap:wrap">'
+              +'<span style="font-size:12px;font-weight:800;color:'+(o.sousPlafond?'#0A6E3B':'#B91C1C')+'">TEG '+o.teg.toFixed(2).replace('.',',')+' %</span>'
+              +'<span style="font-size:11px;color:#6B7280">Frais ~ '+fmtF(o.fraisTotaux)+'</span></div>';
+          }
+        }
+        return '<div class="wiz-bank" onclick="wizPickBank(\''+(b.name.replace(/'/g,"\\'"))+'\',this,\''+b.id+'\')" data-bank="'+encodeURIComponent(b.name)+'">'+logo+
+          '<div class="wb-info"><div class="n">'+b.name+'</div>'+tegLigne+'</div><div class="wb-radio"></div></div>';
       }).join('');
+      // Note de comparaison au-dessus de la liste
+      if(listeBaremes.length>0){
+        var note=document.getElementById('f-banks-compare-note');
+        if(!note){
+          note=document.createElement('div');
+          note.id='f-banks-compare-note';
+          note.style.cssText='font-size:12px;color:#1E3A8A;background:#EFF6FF;border:1px solid #BFDBFE;border-radius:9px;padding:9px 12px;margin-bottom:10px;line-height:1.5';
+          note.innerHTML='<i class="ti ti-scale" style="margin-right:5px"></i>Comparez le <b>TEG</b> de chaque banque : plus il est bas, moins le crédit vous coûte. Le taux tient compte de votre score.';
+          wrap.parentNode.insertBefore(note, wrap);
+        }
+      }
     }).catch(function(){ wrap.innerHTML='<div class="ref-empty" style="padding:16px">Impossible de charger les banques.</div>'; });
   }
 }
@@ -3772,6 +3874,16 @@ function loadPartnerDonneurs(){
 function wizPickBank(name,el,id){
   wizBank=name;
   wizBankId=id||'';
+  // Mémorise le barème de la banque choisie pour le récap.
+  var listeBaremes=Object.keys(_pricingBaremes).map(function(k){return _pricingBaremes[k];});
+  var n=(name||'').toLowerCase();
+  function mc(s){ return (s||'').toLowerCase().replace(/[^a-zàâäéèêëïîôùûüç0-9 ]/g,' ').split(/\s+/).filter(function(w){return w.length>2 && ['ci','sa','banque','bank','cote','ivoire','the','les','des'].indexOf(w)<0;})[0]||''; }
+  _wizBareme = listeBaremes.filter(function(b){
+    var bn=(b.nom||'').toLowerCase();
+    return bn && (n.indexOf(bn)>=0 || bn.indexOf(n)>=0);
+  })[0];
+  if(!_wizBareme){ var k=mc(name); if(k) _wizBareme=listeBaremes.filter(function(b){return mc(b.nom)===k;})[0]; }
+  _wizBareme = _wizBareme || listeBaremes[0] || null;
   document.querySelectorAll('#wp-5 .wiz-bank').forEach(function(b){b.classList.remove('on');});
   el.classList.add('on');
   // Révéler la section compte, liée à la banque choisie
@@ -3780,6 +3892,7 @@ function wizPickBank(name,el,id){
   var q=document.getElementById('f-account-q');
   if(q) q.textContent='Avez-vous un compte chez '+name+' ?';
 }
+var _wizBareme=null;
 function wizCurrentPages(){
   // affacturage saute la page dates exec mais garde date paie ; on garde 'dates' toujours (adaptée)
   return wizFlow;
@@ -3832,6 +3945,22 @@ function wizBack(){
 var _cachedRate=null;
 function wizFillEstimate(){
   var m=parseFloat(document.getElementById('f-montant').value)||10000000;
+  var duree=12;
+
+  // Si une banque a été choisie et a un barème, on affiche le vrai détail :
+  // TEG, coût, à rembourser — la transparence promise au client.
+  if(_wizBareme){
+    var o=calculerOffreClient(_wizBareme, m, duree, _clientScore);
+    if(o){
+      var em=document.getElementById('est-montant'); if(em) em.textContent=fmtF(o.montant);
+      var ef=document.getElementById('est-frais'); if(ef) ef.textContent='− '+fmtF(o.fraisTotaux);
+      var efl=document.getElementById('est-frais-lbl'); if(efl) efl.textContent='Coût total du crédit';
+      var er=document.getElementById('est-recu'); if(er) er.textContent=fmtF(o.montant-o.fraisTotaux);
+      renderRecapDetail(o);
+      return;
+    }
+  }
+  // Repli : ancien taux global si pas de barème par banque.
   function paint(ratePct){
     var frais=Math.round(m*ratePct/100);
     var em=document.getElementById('est-montant'); if(em) em.textContent=fmtF(m);
@@ -3839,7 +3968,6 @@ function wizFillEstimate(){
     var er=document.getElementById('est-recu'); if(er) er.textContent=fmtF(m-frais);
   }
   if(_cachedRate!==null){ paint(_cachedRate); return; }
-  // Valeur provisoire pendant le chargement
   paint(3);
   if(window.CredigoDB && window.CredigoDB.ready && typeof window.credigoGetRate==='function'){
     window.credigoGetRate().then(function(res){
@@ -3848,6 +3976,31 @@ function wizFillEstimate(){
       if(res && typeof res.score==='number') showLowScoreWarning(res.score);
     }).catch(function(){});
   }
+}
+
+// Détail transparent du crédit dans le récap : banque, TEG, coût total,
+// total à rembourser. Le TEG réunit tous les frais en un seul taux.
+function renderRecapDetail(o){
+  var host=document.getElementById('f-recap-detail');
+  if(!host){
+    var est=document.querySelector('#wp-6 .wiz-est');
+    if(!est) return;
+    host=document.createElement('div');
+    host.id='f-recap-detail';
+    host.style.cssText='margin-top:12px;background:#F9FAFB;border:1px solid #EDECEF;border-radius:11px;padding:13px 15px';
+    est.parentNode.insertBefore(host, est.nextSibling);
+  }
+  var couleur=o.sousPlafond?'#0A6E3B':'#B91C1C';
+  host.innerHTML=
+    '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">'
+      +'<span style="font-size:13px;font-weight:800;color:#111827"><i class="ti ti-building-bank" style="color:#6C3FE8;margin-right:5px"></i>'+(wizBank||'Banque')+'</span>'
+      +'<span style="font-size:14px;font-weight:800;color:'+couleur+'">TEG '+o.teg.toFixed(2).replace('.',',')+' %</span>'
+    +'</div>'
+    +'<div style="display:flex;justify-content:space-between;font-size:12.5px;color:#4B5563;padding:3px 0"><span>Coût total du crédit</span><span style="font-weight:700">'+fmtF(o.fraisTotaux)+'</span></div>'
+    +'<div style="display:flex;justify-content:space-between;font-size:12.5px;color:#4B5563;padding:3px 0"><span>Montant à rembourser par votre client</span><span style="font-weight:700">'+fmtF(o.montantARembourser)+'</span></div>'
+    +'<div style="display:flex;justify-content:space-between;font-size:12.5px;color:#4B5563;padding:3px 0;border-top:1px solid #EDECEF;margin-top:4px;padding-top:7px"><span>Durée</span><span style="font-weight:700">'+o.dureeMois+' mois</span></div>'
+    +'<div style="font-size:11px;color:#6B7280;margin-top:8px;line-height:1.5">Le <b>TEG</b> réunit tous les frais (intérêts et commissions) en un seul taux annuel. '
+      +(o.sousPlafond?'Il respecte le plafond BCEAO de '+o.plafond+' %.':'⚠ Ce taux dépasse le plafond réglementaire — contactez-nous.')+'</div>';
 }
 // Avertit l'entrepreneur si son score est bas (< 30) — informatif, non bloquant
 function showLowScoreWarning(score){
