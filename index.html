@@ -1711,6 +1711,24 @@ textarea{resize:vertical;min-height:70px}
         </div>
         <div class="kyc-preview" id="preview-kdoc-bilans" style="display:none"></div>
       </div>
+
+        <div class="kyc-doc-row" id="kdoc-releves">
+        <div class="kyc-doc-info">
+          <div class="kyc-doc-icon" style="background:#DBEAFE"><i class="ti ti-building-bank" style="font-size:18px;color:#2563EB"></i></div>
+          <div class="kyc-doc-text">
+            <div class="kyc-doc-title">Relevés bancaires ou mobile money (6 à 12 mois)</div>
+            <div class="kyc-doc-sub">Utile surtout si vous n'avez pas de bilan : ils montrent votre activité réelle · PDF, photo ou capture</div>
+          </div>
+        </div>
+        <div class="kyc-doc-actions">
+          <label class="kyc-upload-btn" style="background:#DBEAFE;color:#1E40AF;border-color:#93C5FD">
+            <i class="ti ti-upload"></i> Téléverser
+            <input type="file" accept=".pdf,.jpg,.jpeg,.png" onchange="handleKycUpload(this,'kdoc-releves')" style="display:none">
+          </label>
+          <span class="kyc-status-badge pending">En attente</span>
+        </div>
+        <div class="kyc-preview" id="preview-kdoc-releves" style="display:none"></div>
+      </div>
       </div>
     </div>
     <div class="btn-row">
@@ -5099,7 +5117,7 @@ function buildPDF(jsPDF, filename, docTitle, docLines, signatureDataUrl, formVal
 
 
 function updateEKycProgress() {
-  const eDocs = ['kdoc-cni','kdoc-selfie','kdoc-domicile','kdoc-rccm','kdoc-statuts','kdoc-fiscal','kdoc-bilans','kdoc-beneficiaire','kdoc-fonds','kdoc-ppe','kdoc-casier','kdoc-engagement','kdoc-cgu'];
+  const eDocs = ['kdoc-cni','kdoc-selfie','kdoc-domicile','kdoc-rccm','kdoc-statuts','kdoc-fiscal','kdoc-bilans','kdoc-releves','kdoc-beneficiaire','kdoc-fonds','kdoc-ppe','kdoc-casier','kdoc-engagement','kdoc-cgu'];
   const uploaded = eDocs.filter(d => kycUploaded[d]).length;
   const total = eDocs.length;
   const pct = Math.round(uploaded / total * 100);
@@ -6474,6 +6492,7 @@ var KYC_DOC_MAP = {
   'kdoc-statuts':      { type: 'statuts',        label: 'Statuts de la société',               step: 2 },
   'kdoc-fiscal':       { type: 'attestation_fiscal', label: 'Attestation fiscale',             step: 2 },
   'kdoc-bilans':       { type: 'bilans',         label: 'Bilans financiers',                   step: 2 },
+  'kdoc-releves':      { type: 'releve_bancaire_entrepreneur', label: 'Relevés bancaires / mobile money', step: 2 },
   'kdoc-beneficiaire': { type: 'beneficiaires',  label: 'Déclaration bénéficiaires effectifs', step: 3 },
   'kdoc-fonds':        { type: 'origine_fonds',  label: 'Déclaration origine des fonds',       step: 3 },
   'kdoc-ppe':          { type: 'ppe',            label: 'Déclaration PPE',                     step: 3 },
@@ -7105,7 +7124,7 @@ var kycFStep = 1;
 // Configs étapes
 var KYC_E_STEPS = {
   1: { rows:['kdoc-cni','kdoc-selfie','kdoc-domicile'],         total:3 },
-  2: { rows:['kdoc-rccm','kdoc-statuts','kdoc-fiscal','kdoc-bilans'], total:4 },
+  2: { rows:['kdoc-rccm','kdoc-statuts','kdoc-fiscal','kdoc-bilans','kdoc-releves'], total:4, optionnels:['kdoc-releves'] },
   3: { rows:['kdoc-beneficiaire','kdoc-fonds','kdoc-ppe','kdoc-casier'], total:4 },
   4: { rows:['kdoc-engagement','kdoc-cgu'],                     total:2 }
 };
@@ -7137,26 +7156,37 @@ function kycUpdateStepper(portal, step, total) {
 }
 
 function kycUpdateBadge(portal, step, config) {
-  var rows = config[step] ? config[step].rows : [];
-  var uploaded = rows.filter(function(id) {
-    return typeof kycUploaded !== 'undefined' && kycUploaded[id];
+  var cfg = config[step] || {};
+  var rows = cfg.rows || [];
+  var optionnels = cfg.optionnels || [];
+  // Le dénominateur est le nombre de documents REQUIS (total explicite si
+  // fourni, sinon toutes les lignes). Un optionnel fourni ne fait pas
+  // dépasser le compteur : on borne au total requis.
+  var total = (typeof cfg.total === 'number') ? cfg.total : rows.length;
+  var requisUploaded = rows.filter(function(id) {
+    return optionnels.indexOf(id) === -1 && typeof kycUploaded !== 'undefined' && kycUploaded[id];
   }).length;
-  var total = rows.length;
   var badge = document.getElementById('kyc-' + portal + '-badge-' + step);
-  if (badge) badge.textContent = uploaded + '/' + total;
+  if (badge) badge.textContent = Math.min(requisUploaded, total) + '/' + total;
 }
 
 function kycUpdateProgress(portal, config) {
-  var allRows = [];
-  Object.keys(config).forEach(function(s) { allRows = allRows.concat(config[s].rows); });
-  var uploaded = allRows.filter(function(id) {
+  // On ne compte QUE les documents requis : un optionnel non fourni ne doit
+  // pas empêcher d'atteindre 100 %, et un optionnel fourni ne gonfle pas
+  // artificiellement le total.
+  var requis = [];
+  Object.keys(config).forEach(function(s) {
+    var cfg = config[s]; var opt = cfg.optionnels || [];
+    (cfg.rows || []).forEach(function(id) { if (opt.indexOf(id) === -1) requis.push(id); });
+  });
+  var uploaded = requis.filter(function(id) {
     return typeof kycUploaded !== 'undefined' && kycUploaded[id];
   }).length;
-  var pct = Math.round(uploaded / allRows.length * 100);
+  var pct = requis.length ? Math.round(uploaded / requis.length * 100) : 0;
   var bar = document.getElementById('kyc-' + portal + '-progress-bar');
   var txt = document.getElementById('kyc-' + portal + '-progress-txt');
   if (bar) bar.style.width = pct + '%';
-  if (txt) txt.textContent = uploaded + ' / ' + allRows.length + ' documents';
+  if (txt) txt.textContent = uploaded + ' / ' + requis.length + ' documents';
 }
 
 function kycEGoStep(s) {
