@@ -3773,12 +3773,13 @@ function calculerOffreClient(b, montant, dureeMois, score){
   };
 }
 
-// Charge les barèmes publics actifs (vue public_pricing, lisible par tous).
+// Charge les barèmes publics rattachés à chaque banque (vue public_bank_pricing).
+// Le barème est lié à l'id de la banque : plus de rapprochement par nom.
 function loadPricingBaremes(){
   if(!(window.CredigoDB && window.CredigoDB.ready && window.CredigoDB.sb)) return Promise.resolve({});
-  return window.CredigoDB.sb.from('public_pricing').select('*').then(function(res){
+  return window.CredigoDB.sb.from('public_bank_pricing').select('*').then(function(res){
     var map={};
-    (res.data||[]).forEach(function(b){ map[b.id]=b; });
+    (res.data||[]).forEach(function(b){ map[b.id]=b; });   // clé = id de la banque
     _pricingBaremes=map;
     return map;
   }).catch(function(){ return {}; });
@@ -3799,23 +3800,8 @@ function loadBanques(){
       var banques=(res && res.banques)?res.banques:[];
       if(banques.length===0){ wrap.innerHTML='<div class="ref-empty" style="padding:16px">Aucune banque disponible pour le moment.</div>'; return; }
       wizBank=''; wizBankId='';
-      // Associe un barème à chaque banque par le nom (rapprochement souple).
-      var listeBaremes=Object.keys(_pricingBaremes).map(function(k){return _pricingBaremes[k];});
-      function motCle(s){ return (s||'').toLowerCase().replace(/[^a-zàâäéèêëïîôùûüç0-9 ]/g,' ').split(/\s+/).filter(function(w){return w.length>2 && ['ci','sa','banque','bank','cote','ivoire','the','les','des'].indexOf(w)<0;})[0]||''; }
-      function baremePour(nom){
-        var n=(nom||'').toLowerCase();
-        // 1) sous-chaîne directe
-        var trouve=listeBaremes.filter(function(b){
-          var bn=(b.nom||'').toLowerCase();
-          return bn && (n.indexOf(bn)>=0 || bn.indexOf(n)>=0);
-        })[0];
-        // 2) même mot-clé principal (ex. « Ecobank » dans les deux noms)
-        if(!trouve){
-          var mc=motCle(nom);
-          if(mc) trouve=listeBaremes.filter(function(b){ return motCle(b.nom)===mc; })[0];
-        }
-        return trouve || listeBaremes[0] || null;   // défaut : premier barème actif
-      }
+      // Le barème est rattaché à la banque par son id : lien direct et fiable.
+      function baremePour(bankId){ return _pricingBaremes[bankId] || null; }
       var montant=parseFloat((document.getElementById('f-montant')||{}).value)||1000000;
       var duree=12;
       wrap.innerHTML=banques.map(function(b,i){
@@ -3826,7 +3812,7 @@ function loadBanques(){
           ? '<div class="wb-logo" style="background:#fff;border:1px solid #EDECEF;overflow:hidden;'+pad+'box-sizing:border-box"><img src="'+b.logo_url+'" alt="'+(b.short_name||b.name)+'" style="width:100%;height:100%;object-fit:'+fit+';display:block" onerror="this.parentNode.style.padding=\'0\';this.parentNode.style.background=\'#6C3FE8\';this.parentNode.style.color=\'#fff\';this.parentNode.textContent=\''+initiales+'\'"></div>'
           : '<div class="wb-logo" style="background:#6C3FE8">'+initiales+'</div>';
         // Détail tarifaire de cette banque, s'il existe un barème.
-        var bar=baremePour(b.name);
+        var bar=baremePour(b.id);
         var tegLigne='<div class="s"><i class="ti ti-bolt"></i> Argent reçu tout de suite</div>';
         if(bar){
           var o=calculerOffreClient(bar, montant, duree, _clientScore);
@@ -3840,7 +3826,7 @@ function loadBanques(){
           '<div class="wb-info"><div class="n">'+b.name+'</div>'+tegLigne+'</div><div class="wb-radio"></div></div>';
       }).join('');
       // Note de comparaison au-dessus de la liste
-      if(listeBaremes.length>0){
+      if(Object.keys(_pricingBaremes).length>0){
         var note=document.getElementById('f-banks-compare-note');
         if(!note){
           note=document.createElement('div');
@@ -3874,16 +3860,8 @@ function loadPartnerDonneurs(){
 function wizPickBank(name,el,id){
   wizBank=name;
   wizBankId=id||'';
-  // Mémorise le barème de la banque choisie pour le récap.
-  var listeBaremes=Object.keys(_pricingBaremes).map(function(k){return _pricingBaremes[k];});
-  var n=(name||'').toLowerCase();
-  function mc(s){ return (s||'').toLowerCase().replace(/[^a-zàâäéèêëïîôùûüç0-9 ]/g,' ').split(/\s+/).filter(function(w){return w.length>2 && ['ci','sa','banque','bank','cote','ivoire','the','les','des'].indexOf(w)<0;})[0]||''; }
-  _wizBareme = listeBaremes.filter(function(b){
-    var bn=(b.nom||'').toLowerCase();
-    return bn && (n.indexOf(bn)>=0 || bn.indexOf(n)>=0);
-  })[0];
-  if(!_wizBareme){ var k=mc(name); if(k) _wizBareme=listeBaremes.filter(function(b){return mc(b.nom)===k;})[0]; }
-  _wizBareme = _wizBareme || listeBaremes[0] || null;
+  // Barème rattaché à la banque par son id : lien direct.
+  _wizBareme = _pricingBaremes[id] || null;
   document.querySelectorAll('#wp-5 .wiz-bank').forEach(function(b){b.classList.remove('on');});
   el.classList.add('on');
   // Révéler la section compte, liée à la banque choisie
