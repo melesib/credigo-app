@@ -1249,7 +1249,7 @@ textarea{resize:vertical;min-height:70px}
         <option value="autre">Mon client n'est pas dans la liste</option>
       </select>
     </div>
-    <div id="f-client-partner" class="wiz-callout green"><svg viewBox="0 0 32 32" fill="none"><circle cx="16" cy="16" r="13" fill="#C6F0D8"/><path d="M10 16l4 4 8-8" stroke="#0A6E3B" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/></svg><div>Ce client est déjà notre partenaire. Votre demande ira plus vite.</div></div>
+    <div id="f-client-partner" class="wiz-callout green" style="display:none"><svg viewBox="0 0 32 32" fill="none"><circle cx="16" cy="16" r="13" fill="#C6F0D8"/><path d="M10 16l4 4 8-8" stroke="#0A6E3B" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/></svg><div>Ce client est déjà notre partenaire. Votre demande ira plus vite.</div></div>
     <div id="f-client-manual" style="display:none">
       <div class="wiz-field"><label>Nom du client</label><input type="text" id="f-client-name" placeholder="Raison sociale"></div>
       <div class="wiz-field"><label>Contact chez le client</label><input type="text" id="f-client-contact" placeholder="Nom et téléphone"></div>
@@ -3792,6 +3792,9 @@ function wizReset(){
     selC.dataset.filled='1';
   }
   wizRenderStep();
+  // Réinitialise le choix du client et masque le message partenaire.
+  var selCl=document.getElementById('f-client');
+  if(selCl){ selCl.value=''; if(typeof wizClientChange==='function') wizClientChange(selCl); }
   // Réinitialise les libellés selon le type par défaut (commande).
   var elCmd=document.querySelector('#wp-1 .wiz-choice');
   if(elCmd && typeof wizPickType==='function') wizPickType('commande', elCmd);
