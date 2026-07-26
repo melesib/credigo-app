@@ -3870,7 +3870,13 @@ function calculerOffreClient(b, montant, dureeMois, score){
   var teg=annees>0?tegPeriode/annees:tegPeriode;
   return {
     montant:M, dureeMois:D, tauxInteret:Math.round(taux*1000)/1000,
-    coutTotal:Math.round(coutTotal), montantARembourser:Math.round(M+coutTotal),
+    coutTotal:Math.round(coutTotal),
+    // Dans le modèle Credigo, le client (donneur d'ordre) paie le MONTANT DU
+    // CONTRAT. Les frais sont supportés par l'entrepreneur via une avance
+    // réduite (il reçoit montant − frais). Le client ne paie pas les frais.
+    montantARembourser:M,
+    // Ce que touche réellement l'entrepreneur : le contrat moins les frais.
+    montantRecu:Math.round(M-coutTotal),
     teg:Math.round(teg*100)/100, plafond:plafond, sousPlafond:teg<=plafond,
     // Frais présentés au client SANS distinguer banque/Credigo (transparence
     // sur le total, pas sur les marges internes).
@@ -4171,8 +4177,8 @@ function renderRecapDetail(o){
         +'<span style="font-size:14px;font-weight:800;color:'+couleur+'">TEG '+o2.teg.toFixed(2).replace('.',',')+' %</span>'
       +'</div>'
       +'<div style="display:flex;justify-content:space-between;font-size:12.5px;color:#4B5563;padding:3px 0"><span>Coût total du crédit</span><span style="font-weight:700">'+fmtF(o2.fraisTotaux)+'</span></div>'
-      +'<div style="display:flex;justify-content:space-between;font-size:12.5px;color:#4B5563;padding:3px 0"><span>Vous recevez</span><span style="font-weight:700">'+fmtF(o2.montant-o2.fraisTotaux)+'</span></div>'
-      +'<div style="display:flex;justify-content:space-between;font-size:12.5px;color:#4B5563;padding:3px 0"><span>Remboursé par votre client</span><span style="font-weight:700">'+fmtF(o2.montantARembourser)+'</span></div>'
+      +'<div style="display:flex;justify-content:space-between;font-size:12.5px;color:#4B5563;padding:3px 0"><span>Vous recevez maintenant</span><span style="font-weight:700;color:#0A6E3B">'+fmtF(o2.montant-o2.fraisTotaux)+'</span></div>'
+      +'<div style="display:flex;justify-content:space-between;font-size:12.5px;color:#4B5563;padding:3px 0;border-top:1px solid #EDECEF;margin-top:4px;padding-top:7px"><span>Votre client paie (montant du marché)</span><span style="font-weight:700">'+fmtF(o2.montant)+'</span></div>'
       +(o2.sousPlafond?'':'<div style="font-size:11px;color:#B91C1C;margin-top:6px">⚠ Ce taux dépasse le plafond réglementaire — contactez-nous.</div>')
       +'</div>';
   }).join('');
