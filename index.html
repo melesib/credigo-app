@@ -716,6 +716,7 @@ textarea{resize:vertical;min-height:70px}
 .wb-info .s{font-size:11.5px;color:#16A34A;display:flex;align-items:center;gap:3px;margin-top:1px}
 .wb-radio{width:20px;height:20px;border-radius:50%;border:2.5px solid #D1D5DB;flex-shrink:0}
 .wiz-bank.on .wb-radio{border-color:#6C3FE8;background:#6C3FE8;box-shadow:inset 0 0 0 4px #fff}
+.wb-radio.wb-radio-num{display:flex;align-items:center;justify-content:center;color:#fff;font-size:12px;font-weight:800;box-shadow:none}
 .wiz-attach{border:2px dashed #C4B5FD;border-radius:14px;padding:22px 16px;text-align:center;background:#FaF9FF;cursor:pointer}
 .wiz-attach svg{width:48px;height:48px;margin-bottom:8px}
 .wa-t{font-size:14px;font-weight:700;color:#4C1D95}
@@ -1281,8 +1282,9 @@ textarea{resize:vertical;min-height:70px}
   <div class="wiz-page" id="wp-5">
     <svg class="wiz-illus" viewBox="0 0 80 80" fill="none"><rect x="12" y="28" width="56" height="38" rx="5" fill="#EEE8FF" stroke="#6C3FE8" stroke-width="3"/><path d="M12 38h56" stroke="#6C3FE8" stroke-width="3"/><path d="M40 12L17 28h46L40 12z" fill="#DDD0FF" stroke="#6C3FE8" stroke-width="3" stroke-linejoin="round"/><circle cx="40" cy="53" r="6" fill="#6C3FE8"/></svg>
     <div class="wiz-q">Où recevoir l'argent ?</div>
-    <div class="wiz-sub">Choisissez d'abord votre banque partenaire.</div>
+    <div class="wiz-sub">Choisissez jusqu'à 3 banques, par ordre de préférence. Nous soumettons votre dossier à ces banques ; la première qui l'accepte vous finance.</div>
     <div id="f-banks"><div class="ref-empty" style="padding:16px">Chargement des banques…</div></div>
+    <div id="f-banks-count" style="font-size:12px;font-weight:700;color:#0A6E3B;margin-top:8px"></div>
     <!-- Bloc compte : n'apparaît qu'APRÈS avoir choisi une banque -->
     <div id="f-account-section" style="display:none;margin-top:16px">
       <div class="wiz-sub" id="f-account-q">Avez-vous un compte dans cette banque ?</div>
@@ -3784,7 +3786,7 @@ function closeWhoSees(){ var ov=document.getElementById('who-overlay'); if(ov) o
 var wizStep=1, wizType='commande', wizHasAccount=true;
 var wizFlow=['1','3','2','dates','4','5','6']; // ordre : type → donneur d'ordre → marché → dates → pièces → banque → récap
 function wizReset(){
-  wizStep=1; wizType='commande'; wizHasAccount=true; wizBank=''; wizBankId='';
+  wizStep=1; wizType='commande'; wizHasAccount=true; wizBank=''; wizBankId=''; wizBanks=[]; _wizBareme=null;
   var section=document.getElementById('f-account-section'); if(section) section.style.display='none';
   var accNum=document.getElementById('f-account-number'); if(accNum) accNum.value='';
   // Remplir le menu de compétences (réutilise la taxonomie partagée).
@@ -3842,8 +3844,6 @@ function wizPickAccount(has,el){
   if(acc) acc.style.display=has?'block':'none';
   if(open) open.style.display=has?'none':'flex';
 }
-var wizBank='';
-var wizBankId='';
 var wizDocFile=null;
 function fDocPicked(input){
   if(input.files && input.files[0]){
@@ -3944,9 +3944,11 @@ function loadBanques(){
               +'<span style="font-size:11px;color:#6B7280">Frais ~ '+fmtF(o.fraisTotaux)+'</span></div>';
           }
         }
-        return '<div class="wiz-bank" onclick="wizPickBank(\''+(b.name.replace(/'/g,"\\'"))+'\',this,\''+b.id+'\')" data-bank="'+encodeURIComponent(b.name)+'">'+logo+
+        return '<div class="wiz-bank" onclick="wizPickBank(\''+(b.name.replace(/'/g,"\\'"))+'\',this,\''+b.id+'\')" data-bank="'+encodeURIComponent(b.name)+'" data-bank-id="'+b.id+'">'+logo+
           '<div class="wb-info"><div class="n">'+b.name+'</div>'+tegLigne+'</div><div class="wb-radio"></div></div>';
       }).join('');
+      // Réapplique l'état de sélection (rangs) après re-render.
+      if(typeof wizRenderBankSelection==='function') wizRenderBankSelection();
       // Note de comparaison au-dessus de la liste
       if(Object.keys(_pricingBaremes).length>0){
         var note=document.getElementById('f-banks-compare-note');
@@ -3979,18 +3981,48 @@ function loadPartnerDonneurs(){
     }).catch(function(){});
   }
 }
-function wizPickBank(name,el,id){
-  wizBank=name;
-  wizBankId=id||'';
-  // Barème rattaché à la banque par son id : lien direct.
-  _wizBareme = _pricingBaremes[id] || null;
-  document.querySelectorAll('#wp-5 .wiz-bank').forEach(function(b){b.classList.remove('on');});
-  el.classList.add('on');
-  // Révéler la section compte, liée à la banque choisie
-  var section=document.getElementById('f-account-section');
-  if(section) section.style.display='block';
-  var q=document.getElementById('f-account-q');
-  if(q) q.textContent='Avez-vous un compte chez '+name+' ?';
+// Sélection multi-banques ordonnée (jusqu'à 3, par préférence). La 1re
+// préférence pilote le compte et le récapitulatif ; les suivantes servent
+// de repli si la 1re n'accepte pas ou manque de liquidité.
+var wizBanks = [];   // [{ id, name }] dans l'ordre de préférence
+var wizBank = '';    // conservé = nom de la 1re préférence (compat récap/submit)
+var wizBankId = '';
+function wizPickBank(name, el, id){
+  var idx = wizBanks.findIndex(function(b){ return b.id === id; });
+  if(idx >= 0){
+    // Déjà sélectionnée → on la retire.
+    wizBanks.splice(idx, 1);
+  } else {
+    if(wizBanks.length >= 3){ toast('Vous pouvez choisir au maximum 3 banques.'); return; }
+    wizBanks.push({ id: id, name: name });
+  }
+  // La 1re préférence pilote le reste du parcours.
+  var first = wizBanks[0] || null;
+  wizBank = first ? first.name : '';
+  wizBankId = first ? first.id : '';
+  _wizBareme = first ? (_pricingBaremes[first.id] || null) : null;
+  wizRenderBankSelection();
+  // Section compte : liée à la 1re banque, visible dès qu'il y a une sélection.
+  var section = document.getElementById('f-account-section');
+  if(section) section.style.display = first ? 'block' : 'none';
+  var q = document.getElementById('f-account-q');
+  if(q && first) q.textContent = 'Avez-vous un compte chez ' + first.name + ' ?';
+}
+// Rafraîchit les pastilles de rang et l'état sélectionné sur chaque carte.
+function wizRenderBankSelection(){
+  document.querySelectorAll('#wp-5 .wiz-bank').forEach(function(card){
+    var id = card.getAttribute('data-bank-id');
+    var rang = wizBanks.findIndex(function(b){ return b.id === id; });
+    card.classList.toggle('on', rang >= 0);
+    var radio = card.querySelector('.wb-radio');
+    if(radio){
+      if(rang >= 0){ radio.textContent = (rang + 1); radio.classList.add('wb-radio-num'); }
+      else { radio.textContent = ''; radio.classList.remove('wb-radio-num'); }
+    }
+  });
+  // Rappel du nombre choisi.
+  var note = document.getElementById('f-banks-count');
+  if(note) note.textContent = wizBanks.length ? (wizBanks.length + ' banque' + (wizBanks.length>1?'s':'') + ' choisie' + (wizBanks.length>1?'s':'') + ' — la 1re est votre préférence') : '';
 }
 var _wizBareme=null;
 function wizCurrentPages(){
@@ -4194,7 +4226,7 @@ function wizSubmit(){
   var objet=(document.getElementById('f-objet')||{}).value||'';
   var montant=parseFloat((document.getElementById('f-montant')||{}).value)||0;
   if(!objet.trim() || !montant){ toast('Indiquez au moins l\'objet et le montant du marché.'); return; }
-  if(!wizBank){ toast('Veuillez choisir votre banque pour recevoir le paiement.'); return; }
+  if(!wizBanks.length){ toast("Veuillez choisir au moins une banque (jusqu'à 3, par préférence)."); return; }
 
   // Donneur d'ordre : partenaire (select) ou saisie libre
   var clientSel=document.getElementById('f-client');
@@ -4226,6 +4258,7 @@ function wizSubmit(){
     date_payment: (document.getElementById('f-date-paie')||{}).value||null,
     donneur_ordre_name: donneurName||null,
     bank_partner: (typeof wizBank!=='undefined'?wizBank:'')||null,
+    bank_choices: wizBanks.map(function(b, i){ return { rang: i+1, id: b.id, name: b.name }; }),
     bank_account_number: (typeof wizHasAccount!=='undefined' && wizHasAccount) ? ((document.getElementById('f-account-number')||{}).value||null) : null,
     needs_account_opening: (typeof wizHasAccount!=='undefined') ? !wizHasAccount : false,
     estimated_fees: frais,

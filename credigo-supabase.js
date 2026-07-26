@@ -591,6 +591,7 @@
       date_payment: req.date_payment || null,
       donneur_ordre_name: req.donneur_ordre_name || null,
       bank_partner: req.bank_partner || null,
+      bank_choices: Array.isArray(req.bank_choices) ? req.bank_choices : [],
       bank_account_number: req.bank_account_number || null,
       needs_account_opening: req.needs_account_opening ? true : false,
       estimated_fees: req.estimated_fees || null,
