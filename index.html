@@ -1998,33 +1998,48 @@ textarea{resize:vertical;min-height:70px}
       <div class="card-title">
         <div class="ci" style="background:#EEE8FF"><i class="ti ti-user" style="font-size:13px;color:#6C3FE8"></i></div>
         Étape 1 — Identité & Compte bancaire
-        <span id="kyc-f-badge-1" style="margin-left:auto;font-size:10px;font-weight:700;background:#EEE8FF;color:#6C3FE8;padding:3px 8px;border-radius:10px">0/4</span>
+        <span id="kyc-f-badge-1" style="margin-left:auto;font-size:10px;font-weight:700;background:#EEE8FF;color:#6C3FE8;padding:3px 8px;border-radius:10px">0/5</span>
       </div>
       <div class="kyc-doc-list">
-        <div class="kyc-doc-row" id="fkdoc-cni">
+        <div class="kyc-doc-row" id="fkdoc-cni-recto">
         <div class="kyc-doc-info">
           <div class="kyc-doc-icon" style="background:#EEE8FF"><i class="ti ti-id-badge" style="font-size:18px;color:#6C3FE8"></i></div>
           <div class="kyc-doc-text">
-            <div class="kyc-doc-title">Pièce d'identité nationale *</div>
-            <div class="kyc-doc-sub">CNI recto-verso ou Passeport · PDF ou image</div>
+            <div class="kyc-doc-title">Pièce d'identité — recto *</div>
+            <div class="kyc-doc-sub">Face avant de votre CNI ou Passeport · PDF ou image</div>
           </div>
         </div>
         <div class="kyc-doc-actions">
-          <label class="kyc-upload-btn"><i class="ti ti-upload"></i> Téléverser<input type="file" accept=".pdf,.jpg,.jpeg,.png" onchange="handleKycUpload(this,'fkdoc-cni')" style="display:none"></label>
+          <label class="kyc-upload-btn"><i class="ti ti-upload"></i> Téléverser<input type="file" accept=".pdf,.jpg,.jpeg,.png" onchange="handleKycUpload(this,'fkdoc-cni-recto')" style="display:none"></label>
           <span class="kyc-status-badge pending">En attente</span>
         </div>
-        <div class="kyc-preview" id="preview-fkdoc-cni" style="display:none"></div>
+        <div class="kyc-preview" id="preview-fkdoc-cni-recto" style="display:none"></div>
+      </div>
+        <div class="kyc-doc-row" id="fkdoc-cni-verso">
+        <div class="kyc-doc-info">
+          <div class="kyc-doc-icon" style="background:#EEE8FF"><i class="ti ti-id-badge-2" style="font-size:18px;color:#6C3FE8"></i></div>
+          <div class="kyc-doc-text">
+            <div class="kyc-doc-title">Pièce d'identité — verso *</div>
+            <div class="kyc-doc-sub">Face arrière de votre CNI · PDF ou image</div>
+          </div>
+        </div>
+        <div class="kyc-doc-actions">
+          <label class="kyc-upload-btn"><i class="ti ti-upload"></i> Téléverser<input type="file" accept=".pdf,.jpg,.jpeg,.png" onchange="handleKycUpload(this,'fkdoc-cni-verso')" style="display:none"></label>
+          <span class="kyc-status-badge pending">En attente</span>
+        </div>
+        <div class="kyc-preview" id="preview-fkdoc-cni-verso" style="display:none"></div>
       </div>
         <div class="kyc-doc-row" id="fkdoc-selfie">
         <div class="kyc-doc-info">
           <div class="kyc-doc-icon" style="background:#EEE8FF"><i class="ti ti-camera-selfie" style="font-size:18px;color:#6C3FE8"></i></div>
           <div class="kyc-doc-text">
-            <div class="kyc-doc-title">Selfie avec pièce d'identité *</div>
-            <div class="kyc-doc-sub">Photo tenant la CNI visible · JPG ou PNG</div>
+            <div class="kyc-doc-title">Selfie (votre visage) *</div>
+            <div class="kyc-doc-sub">Une photo nette de votre visage, sans lunettes ni chapeau · servira de photo de profil</div>
           </div>
         </div>
         <div class="kyc-doc-actions">
-          <label class="kyc-upload-btn"><i class="ti ti-upload"></i> Téléverser<input type="file" accept=".jpg,.jpeg,.png" onchange="handleKycUpload(this,'fkdoc-selfie')" style="display:none"></label>
+          <button type="button" class="kyc-upload-btn" onclick="openSelfieCapture('fkdoc-selfie')"><i class="ti ti-camera"></i> Prendre un selfie</button>
+          <label class="kyc-upload-alt" title="Téléverser une photo"><i class="ti ti-upload"></i><input type="file" accept=".jpg,.jpeg,.png" onchange="handleKycUpload(this,'fkdoc-selfie')" style="display:none"></label>
           <span class="kyc-status-badge pending">En attente</span>
         </div>
         <div class="kyc-preview" id="preview-fkdoc-selfie" style="display:none"></div>
@@ -5615,7 +5630,7 @@ function updateEKycProgress() {
 }
 
 function updateFKycProgress() {
-  const fDocs = ['fkdoc-cni','fkdoc-selfie','fkdoc-domicile','fkdoc-rib','fkdoc-releve','fkdoc-origine','fkdoc-ppe','fkdoc-casier','fkdoc-engagement','fkdoc-contrat','fkdoc-cgu'];
+  const fDocs = ['fkdoc-cni-recto','fkdoc-cni-verso','fkdoc-selfie','fkdoc-domicile','fkdoc-rib','fkdoc-releve','fkdoc-origine','fkdoc-ppe','fkdoc-casier','fkdoc-engagement','fkdoc-contrat','fkdoc-cgu'];
   const uploaded = fDocs.filter(d => kycUploaded[d]).length;
   const total = fDocs.length;
   const pct = Math.round(uploaded / total * 100);
@@ -6978,8 +6993,9 @@ var KYC_DOC_MAP = {
   'kdoc-casier':       { type: 'casier',         label: 'Extrait de casier judiciaire',        step: 3 },
   'kdoc-engagement':   { type: 'engagement_lbcft', label: 'Engagement LBC/FT',                step: 3 },
   'kdoc-cgu':          { type: 'cgu_entrepreneur', label: 'CGU Entrepreneur signées',          step: 4 },
-  'fkdoc-cni':         { type: 'cni_financeur',  label: "Pièce d'identité (CNI/Passeport)",   step: 1 },
-  'fkdoc-selfie':      { type: 'selfie_financeur', label: 'Selfie avec pièce d\'identité',    step: 1 },
+  'fkdoc-cni-recto':   { type: 'cni_recto_financeur', label: "Pièce d'identité — recto",       step: 1 },
+  'fkdoc-cni-verso':   { type: 'cni_verso_financeur', label: "Pièce d'identité — verso",       step: 1 },
+  'fkdoc-selfie':      { type: 'selfie_financeur', label: 'Selfie (visage)',                   step: 1 },
   'fkdoc-domicile':    { type: 'domicile_financeur', label: 'Justificatif de domicile',       step: 1 },
   'fkdoc-releve':      { type: 'releve_bancaire', label: 'Relevé bancaire (3 mois)',           step: 2 },
   'fkdoc-origine':     { type: 'origine_fonds_f', label: 'Déclaration origine des fonds',     step: 2 },
@@ -7726,7 +7742,7 @@ var KYC_E_STEPS = {
   4: { rows:['kdoc-engagement','kdoc-cgu'],                     total:2 }
 };
 var KYC_F_STEPS = {
-  1: { rows:['fkdoc-cni','fkdoc-selfie','fkdoc-domicile','fkdoc-rib'],                        total:4 },
+  1: { rows:['fkdoc-cni-recto','fkdoc-cni-verso','fkdoc-selfie','fkdoc-domicile','fkdoc-rib'],                        total:5 },
   2: { rows:['fkdoc-releve','fkdoc-origine','fkdoc-ppe','fkdoc-casier','fkdoc-engagement'],   total:5 },
   3: { rows:['fkdoc-contrat','fkdoc-cgu'],                                                    total:2 }
 };
