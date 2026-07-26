@@ -4156,7 +4156,9 @@ function renderRecapDetail(o){
     host.style.cssText='margin-top:12px';
     est.parentNode.insertBefore(host, est.nextSibling);
   }
-  var m=parseFloat((document.getElementById('f-montant')||{}).value)||0;
+  // Le montant vient de l'offre déjà calculée (o.montant) pour rester
+  // cohérent avec l'estimation principale ; repli sur le champ puis le défaut.
+  var m = (o && o.montant) ? o.montant : (parseFloat((document.getElementById('f-montant')||{}).value) || 10000000);
   var duree=12;
   // Liste des banques à détailler : celles choisies (avec barème), sinon la 1re.
   var liste = (wizBanks && wizBanks.length)
@@ -4171,9 +4173,16 @@ function renderRecapDetail(o){
 
   var cartes = liste.map(function(item, i){
     var o2=calculerOffreClient(item.bareme, m, duree, _clientScore);
-    if(!o2) return '';
-    var couleur=o2.sousPlafond?'#0A6E3B':'#B91C1C';
     var rang = liste.length>1 ? '<span style="font-size:10px;font-weight:800;color:#6C3FE8;background:#EEE8FF;padding:2px 8px;border-radius:20px;margin-right:6px">'+(i+1)+'</span>' : '';
+    // Repli : si le calcul échoue (barème incomplet), on montre au moins la
+    // banque plutôt qu'une carte vide qui laisserait l'intro orpheline.
+    if(!o2){
+      return '<div style="background:#F9FAFB;border:1px solid #EDECEF;border-radius:11px;padding:13px 15px;margin-bottom:8px">'
+        +'<span style="font-size:13px;font-weight:800;color:#111827">'+rang+'<i class="ti ti-building-bank" style="color:#6C3FE8;margin-right:5px"></i>'+item.name+'</span>'
+        +'<div style="font-size:12px;color:#6B7280;margin-top:6px">Les conditions détaillées seront confirmées après étude de votre dossier.</div>'
+        +'</div>';
+    }
+    var couleur=o2.sousPlafond?'#0A6E3B':'#B91C1C';
     return '<div style="background:#F9FAFB;border:1px solid #EDECEF;border-radius:11px;padding:13px 15px;margin-bottom:8px">'
       +'<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">'
         +'<span style="font-size:13px;font-weight:800;color:#111827">'+rang+'<i class="ti ti-building-bank" style="color:#6C3FE8;margin-right:5px"></i>'+item.name+'</span>'
