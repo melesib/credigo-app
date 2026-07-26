@@ -1195,6 +1195,14 @@ textarea{resize:vertical;min-height:70px}
     <div class="wiz-progress"><i id="wiz-progress-bar" style="width:16%"></i></div>
   </div>
 
+  <!-- Bandeau de reprise de brouillon -->
+  <div id="wiz-draft-banner" style="display:none;align-items:center;gap:10px;background:#EFF6FF;border:1px solid #BFDBFE;border-radius:12px;padding:11px 14px;margin:0 16px 8px">
+    <i class="ti ti-history" style="font-size:20px;color:#1E40AF;flex-shrink:0"></i>
+    <div style="flex:1;font-size:12.5px;color:#1E3A8A;line-height:1.4">Vous avez une demande commencée. Voulez-vous la reprendre ?</div>
+    <button class="wdb-resume" style="font-size:12px;font-weight:800;color:#fff;background:#6C3FE8;border:none;border-radius:8px;padding:7px 12px;cursor:pointer;font-family:inherit">Reprendre</button>
+    <button class="wdb-discard" style="font-size:12px;font-weight:700;color:#6B7280;background:none;border:none;cursor:pointer;font-family:inherit">Ignorer</button>
+  </div>
+
   <!-- Étape 1 : Type -->
   <div class="wiz-page on" id="wp-1">
     <svg class="wiz-illus" viewBox="0 0 80 80" fill="none"><rect x="12" y="18" width="56" height="44" rx="5" fill="#EEE8FF" stroke="#6C3FE8" stroke-width="3"/><path d="M26 36h28M26 46h20" stroke="#6C3FE8" stroke-width="3" stroke-linecap="round"/><circle cx="58" cy="56" r="13" fill="#6C3FE8"/><path d="M52 56l4 4 8-8" stroke="#fff" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/></svg>
@@ -3055,7 +3063,7 @@ function showScreen(id) {
 function renderScreen(id) {
   if (id === 'e-home') renderEHome();
   if (typeof stopFneScan === 'function') stopFneScan();  // ne jamais laisser la caméra active
-  if (id === 'e-submit') { _cachedRate=null; wizReset(); loadPartnerDonneurs(); loadBanques(); }
+  if (id === 'e-submit') { _cachedRate=null; _draftLoaded=false; wizReset(); loadPartnerDonneurs(); loadBanques(); setTimeout(wizMaybeRestoreDraft, 400); }
   if (id === 'e-support' || id === 'f-support') initPrioBoxes();
   if (id === 'e-list') renderEList();
   if (id === 'e-score') renderEScore();
@@ -4099,13 +4107,80 @@ function toggleConsent(el){
 }
 function wizNext(){
   var total=wizCurrentPages().length;
-  if(wizStep<total){ wizStep++; wizRenderStep(); }
+  if(wizStep<total){ wizStep++; wizRenderStep(); wizSaveDraft(); }
   else { wizSubmit(); }
 }
 function wizBack(){
-  if(wizStep>1){ wizStep--; wizRenderStep(); }
+  if(wizStep>1){ wizStep--; wizRenderStep(); wizSaveDraft(); }
   else { goSc('e-home','e',document.querySelector('#sb-e .slink[onclick*=e-home]')); }
 }
+
+// ═══ Brouillon : capture / sauvegarde / restauration de l'état du wizard ═══
+var _draftSaving=false, _draftLoaded=false;
+function wizCollectState(){
+  function val(id){ var e=document.getElementById(id); return e?e.value:''; }
+  return {
+    step: wizStep, type: wizType,
+    objet: val('f-objet'), montant: val('f-montant'), competence: val('f-competence'),
+    ref: val('f-ref'),
+    date_debut: val('f-date-debut'), date_fin: val('f-date-fin'), date_paie: val('f-date-paie'),
+    client_sel: val('f-client'), client_name: val('f-client-name'), client_contact: val('f-client-contact'),
+    banks: wizBanks.map(function(b){ return { id:b.id, name:b.name, hasAccount:b.hasAccount!==false, accountNumber:b.accountNumber||'' }; })
+  };
+}
+function wizSaveDraft(){
+  // Ne sauvegarde que si l'utilisateur a réellement commencé (au-delà de
+  // l'étape 1 ou un objet saisi) pour ne pas créer de brouillons vides.
+  if(!(window.CredigoDB && window.CredigoDB.ready && typeof window.credigoSaveDraft==='function')) return;
+  var st=wizCollectState();
+  var commence = wizStep>1 || (st.objet||'').trim() || st.banks.length || (st.montant||'').trim();
+  if(!commence) return;
+  if(_draftSaving) return;
+  _draftSaving=true;
+  window.credigoSaveDraft(st, wizStep).then(function(){ _draftSaving=false; }).catch(function(){ _draftSaving=false; });
+}
+function wizApplyState(st){
+  if(!st) return;
+  function set(id,v){ var e=document.getElementById(id); if(e && v!=null) e.value=v; }
+  // Type d'abord (il adapte les libellés).
+  if(st.type){ var elT=document.querySelector('#wp-1 .wiz-choice[onclick*="'+st.type+'"]'); if(elT && typeof wizPickType==='function') wizPickType(st.type, elT); }
+  set('f-objet',st.objet); set('f-montant',st.montant); set('f-competence',st.competence);
+  set('f-ref',st.ref);
+  set('f-date-debut',st.date_debut); set('f-date-fin',st.date_fin); set('f-date-paie',st.date_paie);
+  set('f-client',st.client_sel); set('f-client-name',st.client_name); set('f-client-contact',st.client_contact);
+  if(typeof wizClientChange==='function'){ var selCl=document.getElementById('f-client'); if(selCl) wizClientChange(selCl); }
+  // Banques : on restaure la sélection ordonnée avec comptes.
+  if(Array.isArray(st.banks) && st.banks.length){
+    wizBanks = st.banks.map(function(b){ return { id:b.id, name:b.name, hasAccount:b.hasAccount!==false, accountNumber:b.accountNumber||'' }; });
+    var first=wizBanks[0]; if(first){ wizBank=first.name; wizBankId=first.id; _wizBareme=_pricingBaremes[first.id]||null; }
+    if(typeof wizRenderBankSelection==='function') wizRenderBankSelection();
+    if(typeof wizRenderAccountsPerBank==='function') wizRenderAccountsPerBank();
+  }
+  // Va à l'étape enregistrée.
+  if(st.step){ wizStep=Math.max(1, Math.min(st.step, wizCurrentPages().length)); }
+  wizRenderStep();
+}
+// Propose de reprendre le brouillon à l'entrée de l'écran de demande.
+function wizMaybeRestoreDraft(){
+  if(_draftLoaded) return;
+  if(!(window.CredigoDB && window.CredigoDB.ready && typeof window.credigoLoadDraft==='function')) return;
+  window.credigoLoadDraft().then(function(res){
+    _draftLoaded=true;
+    var d=res && res.draft;
+    if(!d || !d.data) return;
+    var st=d.data;
+    var commence = (st.step>1) || (st.objet||'').trim() || (Array.isArray(st.banks)&&st.banks.length);
+    if(!commence) return;
+    // Bandeau de reprise (non intrusif).
+    var host=document.getElementById('wiz-draft-banner');
+    if(host){
+      host.style.display='flex';
+      host.querySelector('.wdb-resume').onclick=function(){ wizApplyState(st); host.style.display='none'; };
+      host.querySelector('.wdb-discard').onclick=function(){ if(typeof window.credigoDeleteDraft==='function') window.credigoDeleteDraft(); host.style.display='none'; };
+    }
+  }).catch(function(){ _draftLoaded=true; });
+}
+
 var _cachedRate=null;
 function wizFillEstimate(){
   var m=parseFloat(document.getElementById('f-montant').value)||10000000;
@@ -4359,6 +4434,8 @@ function wizSubmit(){
   function finishSubmit(){
     toast('Votre demande a été envoyée ! Nos équipes vont l\'examiner.');
     wizDocFile=null;
+    // La demande est envoyée : le brouillon n'a plus lieu d'être.
+    if(typeof window.credigoDeleteDraft==='function') window.credigoDeleteDraft();
     var lbl=document.getElementById('f-doc-label'); if(lbl) lbl.textContent='Appuyez pour ajouter un document';
     if(typeof wizReset==='function') wizReset();
     goSc('e-list','e',document.querySelector('#sb-e .slink[onclick*=e-list]'));

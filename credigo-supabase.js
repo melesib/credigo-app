@@ -363,6 +363,48 @@
     return { user: res.data };
   };
 
+  // ═══ Brouillon de demande : sauvegarde serveur pour reprise ═══
+  // Sauvegarde l'état du wizard (non envoyé) côté serveur, rattaché à
+  // l'utilisateur. Un seul brouillon actif (upsert sur la clé primaire).
+  window.credigoSaveDraft = async function (data, step) {
+    if (!supabaseReady) return { error: 'Supabase non configuré.' };
+    var userId = currentAppUserId();
+    if (!userId) return { error: 'Utilisateur non synchronisé.' };
+    try {
+      var res = await sb.from('request_drafts').upsert({
+        app_user_id: userId,
+        data: data || {},
+        step: step || 1,
+        updated_at: nowIso()
+      }, { onConflict: 'app_user_id' }).select().single();
+      if (res.error) return { error: res.error.message };
+      return { draft: res.data };
+    } catch (e) { return { error: e.message }; }
+  };
+
+  // Charge le brouillon éventuel de l'utilisateur (ou null s'il n'y en a pas).
+  window.credigoLoadDraft = async function () {
+    if (!supabaseReady) return { draft: null };
+    var userId = currentAppUserId();
+    if (!userId) return { draft: null };
+    try {
+      var res = await sb.from('request_drafts').select('*').eq('app_user_id', userId).maybeSingle();
+      if (res.error) return { draft: null };
+      return { draft: res.data || null };
+    } catch (e) { return { draft: null }; }
+  };
+
+  // Supprime le brouillon (après envoi réussi ou abandon volontaire).
+  window.credigoDeleteDraft = async function () {
+    if (!supabaseReady) return { ok: false };
+    var userId = currentAppUserId();
+    if (!userId) return { ok: false };
+    try {
+      await sb.from('request_drafts').delete().eq('app_user_id', userId);
+      return { ok: true };
+    } catch (e) { return { ok: false }; }
+  };
+
   // ════════════════════════════════════════════════════════════
   // VERROU DU PROFIL
   // ════════════════════════════════════════════════════════════
