@@ -259,6 +259,9 @@
       user.company_name = dbUser.company_name || null;
       user.first_name = dbUser.first_name || null;
       user.last_name = dbUser.last_name || null;
+      // Trace la dernière connexion (non bloquant : n'affecte pas le login).
+      sb.from('app_users').update({ last_seen_at: nowIso() }).eq('id', dbUser.id)
+        .then(function () {}, function () {});
       return user;
     } catch (err) {
       console.error('[Credigo] Échec sync utilisateur Supabase :', err.message);
