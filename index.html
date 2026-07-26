@@ -4109,7 +4109,8 @@ function wizFillEstimate(){
     if(o){
       var em=document.getElementById('est-montant'); if(em) em.textContent=fmtF(o.montant);
       var ef=document.getElementById('est-frais'); if(ef) ef.textContent='− '+fmtF(o.fraisTotaux);
-      var efl=document.getElementById('est-frais-lbl'); if(efl) efl.textContent='Coût total du crédit';
+      var efl=document.getElementById('est-frais-lbl');
+      if(efl) efl.textContent = (wizBanks && wizBanks.length>1) ? ('Coût du crédit ('+wizBank+', 1re préférence)') : 'Coût total du crédit';
       var er=document.getElementById('est-recu'); if(er) er.textContent=fmtF(o.montant-o.fraisTotaux);
       renderRecapDetail(o);
       return;
@@ -4133,8 +4134,9 @@ function wizFillEstimate(){
   }
 }
 
-// Détail transparent du crédit dans le récap : banque, TEG, coût total,
-// total à rembourser. Le TEG réunit tous les frais en un seul taux.
+// Détail transparent du crédit dans le récap. Avec plusieurs banques
+// choisies, on affiche une carte par banque (TEG, coût, à rembourser) pour
+// que le client compare. La 1re préférence pilote l'estimation principale.
 function renderRecapDetail(o){
   var host=document.getElementById('f-recap-detail');
   if(!host){
@@ -4142,20 +4144,41 @@ function renderRecapDetail(o){
     if(!est) return;
     host=document.createElement('div');
     host.id='f-recap-detail';
-    host.style.cssText='margin-top:12px;background:#F9FAFB;border:1px solid #EDECEF;border-radius:11px;padding:13px 15px';
+    host.style.cssText='margin-top:12px';
     est.parentNode.insertBefore(host, est.nextSibling);
   }
-  var couleur=o.sousPlafond?'#0A6E3B':'#B91C1C';
-  host.innerHTML=
-    '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">'
-      +'<span style="font-size:13px;font-weight:800;color:#111827"><i class="ti ti-building-bank" style="color:#6C3FE8;margin-right:5px"></i>'+(wizBank||'Banque')+'</span>'
-      +'<span style="font-size:14px;font-weight:800;color:'+couleur+'">TEG '+o.teg.toFixed(2).replace('.',',')+' %</span>'
-    +'</div>'
-    +'<div style="display:flex;justify-content:space-between;font-size:12.5px;color:#4B5563;padding:3px 0"><span>Coût total du crédit</span><span style="font-weight:700">'+fmtF(o.fraisTotaux)+'</span></div>'
-    +'<div style="display:flex;justify-content:space-between;font-size:12.5px;color:#4B5563;padding:3px 0"><span>Montant à rembourser par votre client</span><span style="font-weight:700">'+fmtF(o.montantARembourser)+'</span></div>'
-    +'<div style="display:flex;justify-content:space-between;font-size:12.5px;color:#4B5563;padding:3px 0;border-top:1px solid #EDECEF;margin-top:4px;padding-top:7px"><span>Durée</span><span style="font-weight:700">'+o.dureeMois+' mois</span></div>'
-    +'<div style="font-size:11px;color:#6B7280;margin-top:8px;line-height:1.5">Le <b>TEG</b> réunit tous les frais (intérêts et commissions) en un seul taux annuel. '
-      +(o.sousPlafond?'Il respecte le plafond BCEAO de '+o.plafond+' %.':'⚠ Ce taux dépasse le plafond réglementaire — contactez-nous.')+'</div>';
+  var m=parseFloat((document.getElementById('f-montant')||{}).value)||0;
+  var duree=12;
+  // Liste des banques à détailler : celles choisies (avec barème), sinon la 1re.
+  var liste = (wizBanks && wizBanks.length)
+    ? wizBanks.map(function(b){ return { name:b.name, bareme:_pricingBaremes[b.id]||null }; }).filter(function(x){return x.bareme;})
+    : (_wizBareme ? [{ name:(wizBank||'Banque'), bareme:_wizBareme }] : []);
+
+  if(!liste.length){ host.innerHTML=''; return; }
+
+  var intro = liste.length>1
+    ? '<div style="font-size:12px;color:#1E3A8A;background:#EFF6FF;border:1px solid #BFDBFE;border-radius:9px;padding:8px 11px;margin-bottom:8px;line-height:1.5"><i class="ti ti-scale" style="margin-right:4px"></i>Voici les conditions de vos <b>'+liste.length+' banques</b>, par ordre de préférence. La première qui accepte votre dossier vous finance.</div>'
+    : '';
+
+  var cartes = liste.map(function(item, i){
+    var o2=calculerOffreClient(item.bareme, m, duree, _clientScore);
+    if(!o2) return '';
+    var couleur=o2.sousPlafond?'#0A6E3B':'#B91C1C';
+    var rang = liste.length>1 ? '<span style="font-size:10px;font-weight:800;color:#6C3FE8;background:#EEE8FF;padding:2px 8px;border-radius:20px;margin-right:6px">'+(i+1)+'</span>' : '';
+    return '<div style="background:#F9FAFB;border:1px solid #EDECEF;border-radius:11px;padding:13px 15px;margin-bottom:8px">'
+      +'<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">'
+        +'<span style="font-size:13px;font-weight:800;color:#111827">'+rang+'<i class="ti ti-building-bank" style="color:#6C3FE8;margin-right:5px"></i>'+item.name+'</span>'
+        +'<span style="font-size:14px;font-weight:800;color:'+couleur+'">TEG '+o2.teg.toFixed(2).replace('.',',')+' %</span>'
+      +'</div>'
+      +'<div style="display:flex;justify-content:space-between;font-size:12.5px;color:#4B5563;padding:3px 0"><span>Coût total du crédit</span><span style="font-weight:700">'+fmtF(o2.fraisTotaux)+'</span></div>'
+      +'<div style="display:flex;justify-content:space-between;font-size:12.5px;color:#4B5563;padding:3px 0"><span>Vous recevez</span><span style="font-weight:700">'+fmtF(o2.montant-o2.fraisTotaux)+'</span></div>'
+      +'<div style="display:flex;justify-content:space-between;font-size:12.5px;color:#4B5563;padding:3px 0"><span>Remboursé par votre client</span><span style="font-weight:700">'+fmtF(o2.montantARembourser)+'</span></div>'
+      +(o2.sousPlafond?'':'<div style="font-size:11px;color:#B91C1C;margin-top:6px">⚠ Ce taux dépasse le plafond réglementaire — contactez-nous.</div>')
+      +'</div>';
+  }).join('');
+
+  var note = '<div style="font-size:11px;color:#6B7280;margin-top:2px;line-height:1.5">Le <b>TEG</b> réunit tous les frais (intérêts et commissions) en un seul taux annuel. Plus il est bas, moins le crédit coûte. Tous nos partenaires respectent le plafond BCEAO.</div>';
+  host.innerHTML = intro + cartes + note;
 }
 // Avertit l'entrepreneur si son score est bas (< 30) — informatif, non bloquant
 function showLowScoreWarning(score){
