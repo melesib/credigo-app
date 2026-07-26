@@ -1051,6 +1051,28 @@ textarea{resize:vertical;min-height:70px}
 </div>
 
 <!-- BANNER KYC REQUIS (après connexion, avant validation) -->
+<!-- Modal de capture de selfie avec cadre de détection du visage -->
+<div id="selfie-capture-modal" style="display:none;position:fixed;inset:0;z-index:500;background:rgba(0,0,0,.92);flex-direction:column;align-items:center;justify-content:center">
+  <div style="position:relative;width:100%;max-width:420px;padding:0 16px;box-sizing:border-box">
+    <div style="text-align:center;color:#fff;font-size:15px;font-weight:800;margin-bottom:6px">Cadrez votre visage</div>
+    <div id="selfie-hint" style="text-align:center;color:#C4B5FD;font-size:12px;margin-bottom:14px;min-height:16px">Placez votre visage dans l'ovale, bien éclairé</div>
+    <div style="position:relative;width:100%;aspect-ratio:3/4;border-radius:18px;overflow:hidden;background:#000">
+      <video id="selfie-video" autoplay playsinline muted style="width:100%;height:100%;object-fit:cover;transform:scaleX(-1)"></video>
+      <!-- Cadre ovale guide -->
+      <svg viewBox="0 0 300 400" preserveAspectRatio="none" style="position:absolute;inset:0;width:100%;height:100%;pointer-events:none">
+        <defs><mask id="ovalMask"><rect width="300" height="400" fill="white"/><ellipse cx="150" cy="180" rx="95" ry="125" fill="black"/></mask></defs>
+        <rect width="300" height="400" fill="rgba(0,0,0,.45)" mask="url(#ovalMask)"/>
+        <ellipse id="selfie-oval" cx="150" cy="180" rx="95" ry="125" fill="none" stroke="#6C3FE8" stroke-width="3" stroke-dasharray="10 8"/>
+      </svg>
+    </div>
+    <canvas id="selfie-canvas" style="display:none"></canvas>
+    <div style="display:flex;gap:10px;margin-top:16px;justify-content:center">
+      <button type="button" onclick="closeSelfieCapture()" style="flex:1;max-width:130px;padding:12px;border-radius:11px;border:1.5px solid #4B5563;background:transparent;color:#E5E7EB;font-family:inherit;font-size:13px;font-weight:700;cursor:pointer">Annuler</button>
+      <button type="button" id="selfie-shoot-btn" onclick="takeSelfie()" style="flex:1;max-width:170px;padding:12px;border-radius:11px;border:none;background:#6C3FE8;color:#fff;font-family:inherit;font-size:13px;font-weight:800;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:6px"><i class="ti ti-camera"></i> Prendre la photo</button>
+    </div>
+  </div>
+</div>
+
 <div id="kyc-required-banner" style="display:none;position:fixed;bottom:0;left:0;right:0;z-index:300;background:linear-gradient(135deg,#6C3FE8,#4C1D95);padding:12px 16px;display:flex;align-items:center;gap:10px;box-shadow:0 -4px 16px rgba(0,0,0,.15)">
   <i class="ti ti-shield-exclamation" style="font-size:20px;color:#fff;flex-shrink:0"></i>
   <div style="flex:1;min-width:0">
@@ -1590,34 +1612,54 @@ textarea{resize:vertical;min-height:70px}
         <span id="kyc-e-badge-1" style="margin-left:auto;font-size:10px;font-weight:700;background:#EEE8FF;color:#6C3FE8;padding:3px 8px;border-radius:10px">0/3</span>
       </div>
       <div class="kyc-doc-list">
-        <div class="kyc-doc-row" id="kdoc-cni">
+        <div class="kyc-doc-row" id="kdoc-cni-recto">
         <div class="kyc-doc-info">
           <div class="kyc-doc-icon" style="background:#EEE8FF"><i class="ti ti-id-badge" style="font-size:18px;color:#6C3FE8"></i></div>
           <div class="kyc-doc-text">
-            <div class="kyc-doc-title">Pièce d'identité nationale *</div>
-            <div class="kyc-doc-sub">CNI recto-verso ou Passeport · PDF ou image · Max 5 MB</div>
+            <div class="kyc-doc-title">Pièce d'identité — recto *</div>
+            <div class="kyc-doc-sub">Face avant de votre CNI ou Passeport · PDF ou image · Max 5 MB</div>
           </div>
         </div>
         <div class="kyc-doc-actions">
           <label class="kyc-upload-btn">
             <i class="ti ti-upload"></i> Téléverser
-            <input type="file" accept=".pdf,.jpg,.jpeg,.png" onchange="handleKycUpload(this,'kdoc-cni')" style="display:none">
+            <input type="file" accept=".pdf,.jpg,.jpeg,.png" onchange="handleKycUpload(this,'kdoc-cni-recto')" style="display:none">
           </label>
           <span class="kyc-status-badge pending">En attente</span>
         </div>
-        <div class="kyc-preview" id="preview-kdoc-cni" style="display:none"></div>
+        <div class="kyc-preview" id="preview-kdoc-cni-recto" style="display:none"></div>
+      </div>
+        <div class="kyc-doc-row" id="kdoc-cni-verso">
+        <div class="kyc-doc-info">
+          <div class="kyc-doc-icon" style="background:#EEE8FF"><i class="ti ti-id-badge-2" style="font-size:18px;color:#6C3FE8"></i></div>
+          <div class="kyc-doc-text">
+            <div class="kyc-doc-title">Pièce d'identité — verso *</div>
+            <div class="kyc-doc-sub">Face arrière de votre CNI · PDF ou image · Max 5 MB</div>
+          </div>
+        </div>
+        <div class="kyc-doc-actions">
+          <label class="kyc-upload-btn">
+            <i class="ti ti-upload"></i> Téléverser
+            <input type="file" accept=".pdf,.jpg,.jpeg,.png" onchange="handleKycUpload(this,'kdoc-cni-verso')" style="display:none">
+          </label>
+          <span class="kyc-status-badge pending">En attente</span>
+        </div>
+        <div class="kyc-preview" id="preview-kdoc-cni-verso" style="display:none"></div>
       </div>
         <div class="kyc-doc-row" id="kdoc-selfie">
         <div class="kyc-doc-info">
           <div class="kyc-doc-icon" style="background:#EEE8FF"><i class="ti ti-camera-selfie" style="font-size:18px;color:#6C3FE8"></i></div>
           <div class="kyc-doc-text">
-            <div class="kyc-doc-title">Selfie avec pièce d'identité *</div>
-            <div class="kyc-doc-sub">Photo de vous tenant votre CNI visible · JPG ou PNG · Max 5 MB</div>
+            <div class="kyc-doc-title">Selfie (votre visage) *</div>
+            <div class="kyc-doc-sub">Une photo nette de votre visage, sans lunettes ni chapeau · servira de photo de profil</div>
           </div>
         </div>
         <div class="kyc-doc-actions">
-          <label class="kyc-upload-btn">
-            <i class="ti ti-upload"></i> Téléverser
+          <button type="button" class="kyc-upload-btn" onclick="openSelfieCapture('kdoc-selfie')">
+            <i class="ti ti-camera"></i> Prendre un selfie
+          </button>
+          <label class="kyc-upload-alt" title="Téléverser une photo">
+            <i class="ti ti-upload"></i>
             <input type="file" accept=".jpg,.jpeg,.png" onchange="handleKycUpload(this,'kdoc-selfie')" style="display:none">
           </label>
           <span class="kyc-status-badge pending">En attente</span>
@@ -5553,7 +5595,7 @@ function buildPDF(jsPDF, filename, docTitle, docLines, signatureDataUrl, formVal
 
 
 function updateEKycProgress() {
-  const eDocs = ['kdoc-cni','kdoc-selfie','kdoc-domicile','kdoc-rccm','kdoc-statuts','kdoc-fiscal','kdoc-bilans','kdoc-releves','kdoc-beneficiaire','kdoc-fonds','kdoc-ppe','kdoc-casier','kdoc-engagement','kdoc-cgu'];
+  const eDocs = ['kdoc-cni-recto','kdoc-cni-verso','kdoc-selfie','kdoc-domicile','kdoc-rccm','kdoc-statuts','kdoc-fiscal','kdoc-bilans','kdoc-releves','kdoc-beneficiaire','kdoc-fonds','kdoc-ppe','kdoc-casier','kdoc-engagement','kdoc-cgu'];
   const uploaded = eDocs.filter(d => kycUploaded[d]).length;
   const total = eDocs.length;
   const pct = Math.round(uploaded / total * 100);
@@ -6921,8 +6963,9 @@ var kycUploaded = {};
 
 // Mapping rowId → { docType, docLabel, step }
 var KYC_DOC_MAP = {
-  'kdoc-cni':          { type: 'cni',           label: "Pièce d'identité (CNI/Passeport)",    step: 1 },
-  'kdoc-selfie':       { type: 'selfie',         label: 'Selfie avec pièce d\'identité',       step: 1 },
+  'kdoc-cni-recto':    { type: 'cni_recto',     label: "Pièce d'identité — recto",            step: 1 },
+  'kdoc-cni-verso':    { type: 'cni_verso',     label: "Pièce d'identité — verso",            step: 1 },
+  'kdoc-selfie':       { type: 'selfie',         label: 'Selfie (visage)',                     step: 1 },
   'kdoc-domicile':     { type: 'domicile',       label: 'Justificatif de domicile',             step: 1 },
   'kdoc-rccm':         { type: 'rccm',           label: 'Registre de commerce (RCCM)',          step: 2 },
   'kdoc-statuts':      { type: 'statuts',        label: 'Statuts de la société',               step: 2 },
@@ -6948,6 +6991,122 @@ var KYC_DOC_MAP = {
 };
 
 var _kycUploadBusy = {};
+
+/* ══════════════════════════════════════════════
+   CAPTURE DE SELFIE AVEC CADRE FACIAL
+   Ouvre la caméra frontale, guide l'utilisateur avec un ovale, et
+   (si le navigateur le supporte via l'API FaceDetector) valide qu'un
+   visage est bien présent avant d'autoriser la prise. Le résultat sert
+   à la fois de document KYC « selfie » ET de photo de profil.
+   ══════════════════════════════════════════════ */
+var _selfieStream = null, _selfieRowId = null, _selfieDetectTimer = null, _selfieFaceOk = false;
+
+function openSelfieCapture(rowId) {
+  // Mêmes garde-fous que l'upload (KYC approuvé / en attente / rejeté).
+  if (authUser && authUser.kycStatus === 'approved') { toast('\u2705 Votre KYC est déjà validée.'); return; }
+  if (authUser && authUser.kycStatus === 'pending_review') { toast('\u23F3 Dossier en cours de vérification.'); return; }
+  if (authUser && authUser.kycStatus === 'rejected' && !authUser.kyc_resubmit_allowed) { toast('\u274C KYC rejetée. Contactez le support.'); return; }
+
+  _selfieRowId = rowId;
+  _selfieFaceOk = false;
+  var modal = document.getElementById('selfie-capture-modal');
+  if (!modal) return;
+  modal.style.display = 'flex';
+
+  if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+    toast('Caméra non disponible sur cet appareil. Utilisez « Téléverser ».');
+    closeSelfieCapture();
+    return;
+  }
+  navigator.mediaDevices.getUserMedia({ video: { facingMode: 'user', width: { ideal: 720 }, height: { ideal: 960 } }, audio: false })
+    .then(function(stream) {
+      _selfieStream = stream;
+      var v = document.getElementById('selfie-video');
+      if (v) { v.srcObject = stream; }
+      startFaceDetection();
+    })
+    .catch(function() {
+      toast('Accès caméra refusé. Autorisez la caméra ou utilisez « Téléverser ».');
+      closeSelfieCapture();
+    });
+}
+
+// Détection de visage (si l'API existe) : verdit l'ovale et active le bouton.
+function startFaceDetection() {
+  var oval = document.getElementById('selfie-oval');
+  var hint = document.getElementById('selfie-hint');
+  var btn = document.getElementById('selfie-shoot-btn');
+  var v = document.getElementById('selfie-video');
+  var detector = null;
+  if ('FaceDetector' in window) {
+    try { detector = new window.FaceDetector({ fastMode: true, maxDetectedFaces: 1 }); } catch (e) { detector = null; }
+  }
+  // Sans API de détection : on autorise directement (guidage visuel seul).
+  if (!detector) {
+    _selfieFaceOk = true;
+    if (hint) hint.textContent = 'Placez votre visage dans l\'ovale, puis prenez la photo';
+    return;
+  }
+  _selfieDetectTimer = setInterval(function() {
+    if (!v || v.readyState < 2) return;
+    detector.detect(v).then(function(faces) {
+      var ok = faces && faces.length === 1;
+      _selfieFaceOk = ok;
+      if (oval) oval.setAttribute('stroke', ok ? '#22C55E' : '#6C3FE8');
+      if (hint) hint.textContent = ok ? '\u2713 Visage détecté — vous pouvez prendre la photo'
+        : (faces && faces.length > 1 ? 'Un seul visage à la fois' : 'Rapprochez votre visage de l\'ovale');
+      if (btn) { btn.style.opacity = ok ? '1' : '.55'; }
+    }).catch(function(){ /* ignore */ });
+  }, 600);
+}
+
+// Applique la photo de profil (selfie) sur les cercles d'avatar de l'app.
+function applyProfilePhoto(url) {
+  if (!url) return;
+  if (authUser) authUser.profilePhoto = url;
+  ['e-avatar-circle','f-avatar-circle'].forEach(function(id){
+    var el = document.getElementById(id);
+    if (el) {
+      el.style.backgroundImage = 'url("' + url + '")';
+      el.style.backgroundSize = 'cover';
+      el.style.backgroundPosition = 'center';
+      el.textContent = '';
+    }
+  });
+}
+
+function closeSelfieCapture() {
+  if (_selfieDetectTimer) { clearInterval(_selfieDetectTimer); _selfieDetectTimer = null; }
+  if (_selfieStream) { _selfieStream.getTracks().forEach(function(t){ t.stop(); }); _selfieStream = null; }
+  var modal = document.getElementById('selfie-capture-modal');
+  if (modal) modal.style.display = 'none';
+  var v = document.getElementById('selfie-video');
+  if (v) v.srcObject = null;
+}
+
+function takeSelfie() {
+  if (!_selfieFaceOk) { toast('Placez bien votre visage dans l\'ovale.'); return; }
+  var v = document.getElementById('selfie-video');
+  var canvas = document.getElementById('selfie-canvas');
+  if (!v || !canvas) return;
+  var w = v.videoWidth || 720, h = v.videoHeight || 960;
+  canvas.width = w; canvas.height = h;
+  var ctx = canvas.getContext('2d');
+  // Remet l'image à l'endroit (la vidéo est miroir à l'écran).
+  ctx.translate(w, 0); ctx.scale(-1, 1);
+  ctx.drawImage(v, 0, 0, w, h);
+  canvas.toBlob(function(blob) {
+    if (!blob) { toast('Échec de la capture, réessayez.'); return; }
+    var file = new File([blob], 'selfie-' + Date.now() + '.jpg', { type: 'image/jpeg' });
+    var rowId = _selfieRowId;
+    closeSelfieCapture();
+    // Passe par le même pipeline que l'upload, avec en plus l'enregistrement
+    // comme photo de profil.
+    _kycDoUpload({ value: '', files: [file] }, rowId, file, true);
+  }, 'image/jpeg', 0.9);
+}
+
+
 function handleKycUpload(input, rowId) {
   // Bloquer si KYC approuvé
   if (authUser && authUser.kycStatus === 'approved') {
@@ -7044,9 +7203,11 @@ function handleKycUpload(input, rowId) {
 }
 
 // Suite de l'upload une fois le fichier validé (taille + format + signature)
-function _kycDoUpload(input, rowId, file) {
+function _kycDoUpload(input, rowId, file, asProfilePhoto) {
   var docInfo = KYC_DOC_MAP[rowId];
   if (!docInfo) { _kycUploadBusy[rowId] = false; return; }
+  // Un selfie sert aussi de photo de profil.
+  var isSelfie = docInfo.type === 'selfie' || docInfo.type === 'selfie_financeur';
 
   // Afficher l'état "upload en cours"
   var row = document.getElementById(rowId);
@@ -7084,12 +7245,12 @@ function _kycDoUpload(input, rowId, file) {
       Promise.resolve(
         window.credigoUploadKycDocument(docInfo.type, docInfo.label, docInfo.step, file)
       ).then(function(res) {
-        if (res && res.error) {
-          // En cas d'erreur Supabase, sauvegarder localement quand même
-          console.warn('[KYC] Erreur Supabase, sauvegarde locale:', res.error);
-          markSuccess(file.name, file.type);
-        } else {
-          markSuccess(file.name, file.type);
+        markSuccess(file.name, file.type);
+        // Selfie → devient aussi la photo de profil du compte.
+        if (isSelfie && window.credigoSetProfilePhoto) {
+          Promise.resolve(window.credigoSetProfilePhoto(file)).then(function(r) {
+            if (r && r.url) { applyProfilePhoto(r.url); }
+          }).catch(function(){ /* non bloquant */ });
         }
       }).catch(function(err) {
         console.warn('[KYC] Erreur upload, sauvegarde locale:', err.message);
@@ -7559,7 +7720,7 @@ var kycFStep = 1;
 
 // Configs étapes
 var KYC_E_STEPS = {
-  1: { rows:['kdoc-cni','kdoc-selfie','kdoc-domicile'],         total:3 },
+  1: { rows:['kdoc-cni-recto','kdoc-cni-verso','kdoc-selfie','kdoc-domicile'],         total:4 },
   2: { rows:['kdoc-rccm','kdoc-statuts','kdoc-fiscal','kdoc-bilans','kdoc-releves'], total:4, optionnels:['kdoc-releves'] },
   3: { rows:['kdoc-beneficiaire','kdoc-fonds','kdoc-ppe','kdoc-casier'], total:4 },
   4: { rows:['kdoc-engagement','kdoc-cgu'],                     total:2 }

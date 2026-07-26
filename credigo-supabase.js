@@ -858,6 +858,34 @@
   };
 
   /**
+   * Enregistre le selfie comme PHOTO DE PROFIL du compte : l'envoie dans le
+   * bucket kyc-documents (déjà accessible au staff et au propriétaire) et
+   * met à jour app_users.profile_photo_url. Retourne l'URL publique/signée.
+   */
+  window.credigoSetProfilePhoto = async function (file) {
+    if (!supabaseReady) return { error: 'Supabase non configuré.' };
+    var userId = currentAppUserId();
+    if (!userId) return { error: 'Utilisateur non synchronisé.' };
+    try {
+      var path = userId + '/profile/selfie_' + Date.now() + '.jpg';
+      var up = await sb.storage.from('kyc-documents').upload(path, file, {
+        cacheControl: '3600', upsert: true, contentType: 'image/jpeg'
+      });
+      if (up.error) return { error: up.error.message };
+      // Lien signé longue durée pour affichage dans l'app (bucket privé).
+      var signed = await sb.storage.from('kyc-documents').createSignedUrl(path, 60 * 60 * 24 * 365);
+      var url = (signed.data && signed.data.signedUrl) || null;
+      var upd = await sb.from('app_users').update({
+        profile_photo_url: path, last_seen_at: nowIso()
+      }).eq('id', userId);
+      if (upd.error) return { error: upd.error.message };
+      return { path: path, url: url };
+    } catch (e) {
+      return { error: e.message || "Échec de l'enregistrement de la photo." };
+    }
+  };
+
+  /**
    * Soumet le dossier KYC complet : crée une ligne kyc_submissions et
    * passe app_users.kyc_status à 'pending_review'. C'est cette action
    * qui fait apparaître le dossier dans la file d'attente du back-office.
