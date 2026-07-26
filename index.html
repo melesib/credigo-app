@@ -1285,16 +1285,8 @@ textarea{resize:vertical;min-height:70px}
     <div class="wiz-sub">Choisissez jusqu'à 3 banques, par ordre de préférence. Nous soumettons votre dossier à ces banques ; la première qui l'accepte vous finance.</div>
     <div id="f-banks"><div class="ref-empty" style="padding:16px">Chargement des banques…</div></div>
     <div id="f-banks-count" style="font-size:12px;font-weight:700;color:#0A6E3B;margin-top:8px"></div>
-    <!-- Bloc compte : n'apparaît qu'APRÈS avoir choisi une banque -->
-    <div id="f-account-section" style="display:none;margin-top:16px">
-      <div class="wiz-sub" id="f-account-q">Avez-vous un compte dans cette banque ?</div>
-      <div class="wiz-radio2">
-        <div class="wr2-opt on" onclick="wizPickAccount(true,this)">Oui, j'ai un compte</div>
-        <div class="wr2-opt" onclick="wizPickAccount(false,this)">Non, ouvrez-m'en un</div>
-      </div>
-      <div class="wiz-field" id="f-account-wrap" style="margin-top:14px"><label>Votre numéro de compte</label><input type="text" id="f-account-number" placeholder="Le numéro de votre compte dans cette banque"></div>
-      <div id="f-open-account" class="wiz-callout blue" style="display:none"><svg viewBox="0 0 32 32" fill="none"><circle cx="16" cy="16" r="13" fill="#CFE4FF"/><path d="M16 10v7M16 21h.02" stroke="#1E40AF" stroke-width="2.5" stroke-linecap="round"/></svg><div>Pas de souci : nous vous aidons à ouvrir un compte dans cette banque pour recevoir votre paiement. Cela prend quelques jours de plus.</div></div>
-    </div>
+    <!-- Un bloc compte par banque choisie, généré dynamiquement -->
+    <div id="f-accounts-per-bank" style="margin-top:16px"></div>
   </div>
 
   <!-- Étape 6 : Récap + consentements -->
@@ -3787,8 +3779,8 @@ var wizStep=1, wizType='commande', wizHasAccount=true;
 var wizFlow=['1','3','2','dates','4','5','6']; // ordre : type → donneur d'ordre → marché → dates → pièces → banque → récap
 function wizReset(){
   wizStep=1; wizType='commande'; wizHasAccount=true; wizBank=''; wizBankId=''; wizBanks=[]; _wizBareme=null;
-  var section=document.getElementById('f-account-section'); if(section) section.style.display='none';
-  var accNum=document.getElementById('f-account-number'); if(accNum) accNum.value='';
+  var accHost=document.getElementById('f-accounts-per-bank'); if(accHost) accHost.innerHTML='';
+  var cnt=document.getElementById('f-banks-count'); if(cnt) cnt.textContent='';
   // Remplir le menu de compétences (réutilise la taxonomie partagée).
   var selC=document.getElementById('f-competence');
   if(selC && !selC.dataset.filled && typeof CREDIGO_COMPETENCES!=='undefined'){
@@ -3834,15 +3826,6 @@ function wizClientChange(sel){
   if(sel.value==='autre'){ if(partner)partner.style.display='none'; if(manual)manual.style.display='block'; }
   else if(sel.value){ if(partner)partner.style.display='flex'; if(manual)manual.style.display='none'; }
   else { if(partner)partner.style.display='none'; if(manual)manual.style.display='none'; }
-}
-function wizPickAccount(has,el){
-  wizHasAccount=has;
-  document.querySelectorAll('#wp-5 .wr2-opt').forEach(function(o){o.classList.remove('on');});
-  el.classList.add('on');
-  var acc=document.getElementById('f-account-wrap');
-  var open=document.getElementById('f-open-account');
-  if(acc) acc.style.display=has?'block':'none';
-  if(open) open.style.display=has?'none':'flex';
 }
 var wizDocFile=null;
 function fDocPicked(input){
@@ -3990,23 +3973,63 @@ var wizBankId = '';
 function wizPickBank(name, el, id){
   var idx = wizBanks.findIndex(function(b){ return b.id === id; });
   if(idx >= 0){
-    // Déjà sélectionnée → on la retire.
     wizBanks.splice(idx, 1);
   } else {
     if(wizBanks.length >= 3){ toast('Vous pouvez choisir au maximum 3 banques.'); return; }
-    wizBanks.push({ id: id, name: name });
+    // hasAccount / accountNumber : propres à chaque banque.
+    wizBanks.push({ id: id, name: name, hasAccount: true, accountNumber: '' });
   }
-  // La 1re préférence pilote le reste du parcours.
   var first = wizBanks[0] || null;
   wizBank = first ? first.name : '';
   wizBankId = first ? first.id : '';
   _wizBareme = first ? (_pricingBaremes[first.id] || null) : null;
   wizRenderBankSelection();
-  // Section compte : liée à la 1re banque, visible dès qu'il y a une sélection.
-  var section = document.getElementById('f-account-section');
-  if(section) section.style.display = first ? 'block' : 'none';
-  var q = document.getElementById('f-account-q');
-  if(q && first) q.textContent = 'Avez-vous un compte chez ' + first.name + ' ?';
+  wizRenderAccountsPerBank();
+}
+// Génère un bloc « compte » pour chaque banque choisie : numéro de compte
+// existant OU demande d'ouverture, indépendamment par banque.
+function wizRenderAccountsPerBank(){
+  var host = document.getElementById('f-accounts-per-bank');
+  if(!host) return;
+  if(!wizBanks.length){ host.innerHTML=''; return; }
+  host.innerHTML = wizBanks.map(function(b, i){
+    var has = b.hasAccount !== false;
+    return '<div class="wiz-field" style="background:#F9FAFB;border:1px solid #EDECEF;border-radius:12px;padding:13px 14px;margin-bottom:10px">'
+      + '<div style="font-size:13px;font-weight:800;color:#111827;margin-bottom:8px"><span style="font-size:10px;font-weight:800;color:#6C3FE8;background:#EEE8FF;padding:2px 8px;border-radius:20px;margin-right:6px">'+(i+1)+'</span>'+b.name+'</div>'
+      + '<div class="wiz-radio2">'
+      +   '<div class="wr2-opt'+(has?' on':'')+'" onclick="wizSetBankAccount(\''+b.id+'\',true,this)">J\'ai un compte</div>'
+      +   '<div class="wr2-opt'+(has?'':' on')+'" onclick="wizSetBankAccount(\''+b.id+'\',false,this)">Ouvrez-m\'en un</div>'
+      + '</div>'
+      + '<div class="acc-num-wrap" style="margin-top:12px;display:'+(has?'block':'none')+'">'
+      +   '<label style="font-size:12px;font-weight:700;color:#6B7280;display:block;margin-bottom:4px">Votre numéro de compte chez '+b.name+'</label>'
+      +   '<input type="text" value="'+(b.accountNumber||'').replace(/"/g,'&quot;')+'" oninput="wizSetBankAccountNumber(\''+b.id+'\',this.value)" placeholder="Numéro de compte" style="width:100%;padding:12px;border-radius:10px;border:1.5px solid #E5E7EB;font-size:15px;font-family:inherit">'
+      + '</div>'
+      + '<div class="acc-open-callout" style="margin-top:12px;display:'+(has?'none':'flex')+';gap:10px;align-items:flex-start;background:#EFF6FF;border:1px solid #BFDBFE;border-radius:10px;padding:10px 12px">'
+      +   '<i class="ti ti-info-circle" style="color:#1E40AF;font-size:18px;flex-shrink:0"></i>'
+      +   '<div style="font-size:12.5px;color:#1E3A8A;line-height:1.5">Nous vous aidons à ouvrir un compte chez '+b.name+' pour recevoir votre paiement. Cela prend quelques jours de plus.</div>'
+      + '</div>'
+      + '</div>';
+  }).join('');
+}
+function wizSetBankAccount(id, has, el){
+  var b = wizBanks.find(function(x){ return x.id === id; });
+  if(!b) return;
+  b.hasAccount = has;
+  if(!has) b.accountNumber = '';
+  // Bascule visuelle dans le bloc de cette banque.
+  var parent = el.closest('.wiz-field');
+  if(parent){
+    parent.querySelectorAll('.wr2-opt').forEach(function(o){ o.classList.remove('on'); });
+    el.classList.add('on');
+    var num = parent.querySelector('.acc-num-wrap');
+    var open = parent.querySelector('.acc-open-callout');
+    if(num) num.style.display = has ? 'block' : 'none';
+    if(open) open.style.display = has ? 'none' : 'flex';
+  }
+}
+function wizSetBankAccountNumber(id, val){
+  var b = wizBanks.find(function(x){ return x.id === id; });
+  if(b) b.accountNumber = val;
 }
 // Rafraîchit les pastilles de rang et l'état sélectionné sur chaque carte.
 function wizRenderBankSelection(){
@@ -4227,6 +4250,9 @@ function wizSubmit(){
   var montant=parseFloat((document.getElementById('f-montant')||{}).value)||0;
   if(!objet.trim() || !montant){ toast('Indiquez au moins l\'objet et le montant du marché.'); return; }
   if(!wizBanks.length){ toast("Veuillez choisir au moins une banque (jusqu'à 3, par préférence)."); return; }
+  // Chaque banque « j'ai un compte » doit avoir un numéro renseigné.
+  var manque = wizBanks.find(function(b){ return b.hasAccount !== false && !(b.accountNumber||'').trim(); });
+  if(manque){ toast('Indiquez votre numéro de compte chez '+manque.name+', ou demandez une ouverture de compte.'); return; }
 
   // Donneur d'ordre : partenaire (select) ou saisie libre
   var clientSel=document.getElementById('f-client');
@@ -4258,9 +4284,12 @@ function wizSubmit(){
     date_payment: (document.getElementById('f-date-paie')||{}).value||null,
     donneur_ordre_name: donneurName||null,
     bank_partner: (typeof wizBank!=='undefined'?wizBank:'')||null,
-    bank_choices: wizBanks.map(function(b, i){ return { rang: i+1, id: b.id, name: b.name }; }),
-    bank_account_number: (typeof wizHasAccount!=='undefined' && wizHasAccount) ? ((document.getElementById('f-account-number')||{}).value||null) : null,
-    needs_account_opening: (typeof wizHasAccount!=='undefined') ? !wizHasAccount : false,
+    bank_choices: wizBanks.map(function(b, i){ return { rang: i+1, id: b.id, name: b.name,
+      has_account: b.hasAccount !== false,
+      account_number: (b.hasAccount !== false) ? (b.accountNumber || null) : null,
+      needs_account_opening: b.hasAccount === false }; }),
+    bank_account_number: (wizBanks[0] && wizBanks[0].hasAccount !== false) ? (wizBanks[0].accountNumber || null) : null,
+    needs_account_opening: wizBanks[0] ? (wizBanks[0].hasAccount === false) : false,
     estimated_fees: frais,
     estimated_payout: payout,
     domiciliation_consent: true  // le consentement est intégré au parcours de soumission
