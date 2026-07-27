@@ -310,12 +310,14 @@
     document.querySelectorAll('button').forEach(function (b) { b.disabled = true; });
     sb.rpc('respond_bank_dossier', params).then(function (res) {
       if (res.error || (res.data && res.data.error)) {
-        alert((res.data && res.data.error) || 'Une erreur est survenue. Réessayez.');
+        if (res.error) { try { console.error('respond_bank_dossier error:', res.error); } catch (e) {} }
+        alert((res.data && res.data.error) || (res.error && res.error.message) || 'Une erreur est survenue. Réessayez.');
         document.querySelectorAll('button').forEach(function (b) { b.disabled = false; });
         return;
       }
       finish(response);
-    }, function () {
+    }, function (e) {
+      try { console.error('respond RPC rejected:', e); } catch (x) {}
       alert('Connexion impossible. Réessayez.');
       document.querySelectorAll('button').forEach(function (b) { b.disabled = false; });
     });
