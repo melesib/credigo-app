@@ -647,6 +647,24 @@
     };
     var res = await sb.from('financing_requests').insert(payload).select().single();
     if (res.error) return { error: res.error.message };
+    // Persiste les comptes bancaires saisis (par banque) sur le PROFIL, pour
+    // les réutiliser aux contrats suivants. Non bloquant.
+    try {
+      var choices = Array.isArray(req.bank_choices) ? req.bank_choices : [];
+      for (var i = 0; i < choices.length; i++) {
+        var b = choices[i];
+        if (!b || !b.id) continue;
+        var hasAcc = b.has_account !== false && !b.needs_account_opening;
+        await sb.from('entrepreneur_bank_accounts').upsert({
+          app_user_id: userId, bank_id: String(b.id), bank_name: b.name || null,
+          account_number: hasAcc ? (b.account_number || null) : null,
+          status: hasAcc ? 'existing' : 'creation_pending',
+          updated_at: nowIso(),
+        }, { onConflict: 'app_user_id,bank_id' });
+      }
+    } catch (e) {
+      console.warn('[Credigo] Comptes bancaires non persistés :', e.message);
+    }
     // Journaliser l'événement de soumission.
     // Non bloquant : la demande est créée, c'est l'essentiel. Mais on trace
     // l'échec — un try/catch ne suffit pas ici, car Supabase ne lève pas
@@ -856,6 +874,47 @@
     var file = new File([pdfBlob], filename, { type: 'application/pdf' });
     return window.credigoUploadKycDocument(docType, docLabel, stepNumber, file);
   };
+
+  /**
+   * Comptes bancaires de l'entrepreneur (un par banque). Stockés sur le
+   * profil pour être réutilisés d'un contrat à l'autre et recevoir le numéro
+   * d'un compte créé par la banque.
+   */
+  window.credigoGetBankAccounts = async function () {
+    if (!supabaseReady) return { accounts: [] };
+    var userId = currentAppUserId();
+    if (!userId) return { accounts: [] };
+    try {
+      var res = await sb.from('entrepreneur_bank_accounts')
+        .select('id, bank_id, bank_name, account_number, status, created_by_bank, updated_at')
+        .eq('app_user_id', userId)
+        .order('updated_at', { ascending: false });
+      if (res.error) return { accounts: [] };
+      return { accounts: res.data || [] };
+    } catch (e) { return { accounts: [] }; }
+  };
+
+  // L'entrepreneur enregistre/actualise son compte pour une banque donnée.
+  window.credigoSaveBankAccount = async function (bankId, bankName, accountNumber, hasAccount) {
+    if (!supabaseReady) return { error: 'Supabase non configuré.' };
+    var userId = currentAppUserId();
+    if (!userId) return { error: 'Utilisateur non synchronisé.' };
+    if (!bankId) return { error: 'Banque manquante.' };
+    try {
+      var status = hasAccount === false ? 'creation_pending' : 'existing';
+      var payload = {
+        app_user_id: userId, bank_id: String(bankId), bank_name: bankName || null,
+        account_number: hasAccount === false ? null : (accountNumber || null),
+        status: status, updated_at: nowIso(),
+      };
+      var res = await sb.from('entrepreneur_bank_accounts')
+        .upsert(payload, { onConflict: 'app_user_id,bank_id' })
+        .select().single();
+      if (res.error) return { error: res.error.message };
+      return { account: res.data };
+    } catch (e) { return { error: e.message }; }
+  };
+
 
   /**
    * Enregistre le selfie comme PHOTO DE PROFIL du compte : l'envoie dans le

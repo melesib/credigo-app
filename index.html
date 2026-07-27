@@ -2282,6 +2282,12 @@ textarea{resize:vertical;min-height:70px}
     </div>
   </div>
 
+  <!-- Mes comptes bancaires (un par banque) -->
+  <div class="card" id="e-bank-accounts-card" style="display:none">
+    <div class="card-title"><div class="ci"><i class="ti ti-building-bank" style="font-size:13px;color:#6C3FE8"></i></div>Mes comptes bancaires</div>
+    <div id="e-bank-accounts-list" style="display:grid;gap:8px"></div>
+  </div>
+
   <!-- Formulaire -->
   <div class="card">
     <div class="card-title"><div class="ci"><i class="ti ti-user" style="font-size:13px;color:#6C3FE8"></i></div>Informations personnelles</div>
@@ -3126,6 +3132,7 @@ function renderScreen(id) {
   if (id === 'e-score') renderEScore();
   if (id === 'e-references') renderEReferences();
   if (id === 'e-notifs') renderENotifs();
+  if (id === 'e-profile') renderBankAccounts();
   if (id === 'f-portfolio') renderFPortfolio();
   if (id === 'f-wallet') renderFWallet();
   if (id === 'f-transactions') renderTxList('f', 'all');
@@ -8647,6 +8654,45 @@ function drawAuthLogo() {
    ══════════════════════════════════════════════ */
 
 /* ── Remplir les champs depuis la session ── */
+// Affiche les comptes bancaires de l'entrepreneur (un par banque) dans le
+// profil. Met en evidence les comptes crees par la banque.
+function renderBankAccounts() {
+  var card = document.getElementById('e-bank-accounts-card');
+  var list = document.getElementById('e-bank-accounts-list');
+  if (!card || !list) return;
+  if (!(window.CredigoDB && window.CredigoDB.ready && typeof window.credigoGetBankAccounts === 'function')) {
+    card.style.display = 'none';
+    return;
+  }
+  window.credigoGetBankAccounts().then(function (res) {
+    var accts = (res && res.accounts) || [];
+    if (!accts.length) { card.style.display = 'none'; return; }
+    card.style.display = 'block';
+    list.innerHTML = accts.map(function (a) {
+      var created = a.status === 'created' || a.created_by_bank;
+      var pending = a.status === 'creation_pending';
+      var badge, badgeColor, badgeBg;
+      if (created) { badge = 'Compte cree'; badgeColor = '#15803D'; badgeBg = '#DCFCE7'; }
+      else if (pending) { badge = 'Ouverture en cours'; badgeColor = '#B45309'; badgeBg = '#FEF3C7'; }
+      else { badge = 'Compte existant'; badgeColor = '#6C3FE8'; badgeBg = '#EEE8FF'; }
+      var num = a.account_number
+        ? '<span style="font-family:monospace;font-weight:700;font-size:13px;color:#111827">' + a.account_number + '</span>'
+        : '<span style="font-size:12px;color:#9CA3AF">Numero a venir</span>';
+      var contactHint = created
+        ? '<div style="font-size:11px;color:#15803D;margin-top:5px"><i class="ti ti-info-circle" style="margin-right:3px"></i>Contactez la banque pour recuperer vos identifiants d\'acces.</div>'
+        : '';
+      return '<div style="padding:11px 13px;border:1px solid #EDECEF;border-radius:11px;background:#fff">'
+        + '<div style="display:flex;justify-content:space-between;align-items:center;gap:8px">'
+        +   '<span style="font-size:13px;font-weight:800;color:#111827"><i class="ti ti-building-bank" style="color:#6C3FE8;margin-right:5px"></i>' + (a.bank_name || 'Banque') + '</span>'
+        +   '<span style="font-size:10px;font-weight:800;padding:2px 8px;border-radius:20px;color:' + badgeColor + ';background:' + badgeBg + '">' + badge + '</span>'
+        + '</div>'
+        + '<div style="margin-top:6px">' + num + '</div>'
+        + contactHint
+        + '</div>';
+    }).join('');
+  }).catch(function () { card.style.display = 'none'; });
+}
+
 function loadProfileForms() {
   if (!authUser) return;
   var u = authUser;
