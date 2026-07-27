@@ -37,6 +37,10 @@
   .foot { text-align: center; color: #9CA3AF; font-size: 11px; margin-top: 16px; line-height: 1.5; }
   .legal { font-size: 11px; color: #9CA3AF; margin-top: 10px; }
   .legal a { color: #6C3FE8; cursor: pointer; }
+  .doc-link { display: flex; align-items: center; gap: 8px; padding: 9px 11px; border: 1px solid #E5E7EB; border-radius: 9px; margin-bottom: 6px; font-size: 13px; color: #374151; text-decoration: none; }
+  .doc-link:hover { background: #F9FAFB; }
+  .doc-ico { width: 24px; height: 24px; border-radius: 6px; background: #EEE8FF; color: #6C3FE8; display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 800; flex-shrink: 0; }
+  .doc-cat { font-size: 10px; font-weight: 800; color: #6B7280; text-transform: uppercase; letter-spacing: .3px; margin: 8px 0 5px; }
 </style>
 </head>
 <body>
@@ -74,6 +78,20 @@
         <div class="row"><span class="k">Avance à décaisser</span><span class="v" id="f-avance">—</span></div>
         <div class="row"><span class="k">Échéance de paiement</span><span class="v" id="f-echeance">—</span></div>
       </div>
+
+      <!-- Documents joints -->
+      <div class="box" id="docs-box" style="display:none">
+        <div class="box-title">Documents</div>
+        <div id="docs-contrat"></div>
+        <div id="docs-kyc"></div>
+      </div>
+
+      <!-- Bandeau création de compte -->
+      <div id="account-banner" class="box hide" style="background:#FFF7ED;border-color:#FED7AA">
+        <div class="box-title" style="color:#C2410C">Création de compte requise</div>
+        <div style="font-size:12.5px;color:#9A3412">Cet entrepreneur n'a pas encore de compte chez vous. La KYC complète est jointe ci-dessus pour l'ouverture. Renseignez le numéro du compte créé dans le formulaire d'accord.</div>
+      </div>
+
 
       <!-- Choix -->
       <div id="choice">
@@ -164,31 +182,78 @@
   if (!url || !key || url.indexOf('__') === 0 || !window.supabase) { fail('Service momentanément indisponible.'); return; }
   sb = window.supabase.createClient(url, key, { auth: { persistSession: false, autoRefreshToken: false, detectSessionInUrl: false } });
 
-  sb.rpc('get_bank_dossier', { p_token: token }).then(function (res) {
-    if (res.error || !res.data || res.data.error) {
-      var e = res.data && res.data.error;
-      return fail(e === 'expired' ? 'Ce lien a expiré. Contactez Credigo.' : 'Ce lien est invalide ou a expiré.');
-    }
-    var d = res.data;
-    if (d.status === 'answered' || d.response) { finish(d.response); return; }
-    sb.rpc('track_bank_dossier_open', { p_token: token }).then(function () {}, function () {});
+  var BACKOFFICE_URL = 'https://credigo-backoffice.netlify.app';
 
-    document.getElementById('lead').textContent = (d.bank_name || 'Votre établissement') + ' — merci d\u2019étudier ce dossier et de nous communiquer votre décision.';
-    document.getElementById('f-num').textContent = d.contract_number || '—';
-    document.getElementById('f-type').textContent = d.type === 'affacturage' ? 'Affacturage' : 'Financement de commande';
-    document.getElementById('f-objet').textContent = d.market_object || '—';
-    document.getElementById('f-refdo').textContent = d.donneur_ref_brute || '—';
-    document.getElementById('f-ent').textContent = d.entrepreneur || '—';
-    var sc = scoreClass(d.reliability_score);
-    var se = document.getElementById('f-score'); se.textContent = sc.label; se.style.background = sc.bg; se.style.color = sc.c;
-    var contact = [d.entrepreneur_phone, d.entrepreneur_email].filter(Boolean).join(' · ');
-    document.getElementById('f-contact').textContent = contact || '—';
-    document.getElementById('f-donneur').textContent = d.donneur_ordre_name || '—';
-    document.getElementById('f-montant').textContent = fmt(d.market_amount);
-    document.getElementById('f-avance').textContent = d.estimated_payout ? fmt(d.estimated_payout) : '—';
-    document.getElementById('f-echeance').textContent = dateFr(d.date_payment);
-    show('content');
-  }, function () { fail('Service momentanément indisponible.'); });
+  function renderDocs(docs, accountNeeded) {
+    var box = document.getElementById('docs-box');
+    var cBox = document.getElementById('docs-contrat');
+    var kBox = document.getElementById('docs-kyc');
+    var any = false;
+    function linkHtml(d, label) {
+      return '<a class="doc-link" href="' + d.url + '" target="_blank" rel="noreferrer">'
+        + '<span class="doc-ico">PDF</span><span>' + (label || d.name || 'Document') + '</span></a>';
+    }
+    if (docs && docs.contrat && docs.contrat.length) {
+      any = true;
+      cBox.innerHTML = '<div class="doc-cat">Pièces du marché</div>' + docs.contrat.map(function (d) { return linkHtml(d, d.name); }).join('');
+    }
+    if (docs && docs.kyc && docs.kyc.length) {
+      any = true;
+      kBox.innerHTML = '<div class="doc-cat">Pièces d\u2019identité (pour ouverture de compte)</div>' + docs.kyc.map(function (d) { return linkHtml(d, d.label); }).join('');
+    }
+    if (any) box.style.display = 'block';
+    if (accountNeeded) document.getElementById('account-banner').classList.remove('hide');
+  }
+
+  // Charge le dossier COMPLET (avec documents) via la fonction back-office.
+  fetch(BACKOFFICE_URL + '/.netlify/functions/bank-dossier-view?token=' + encodeURIComponent(token))
+    .then(function (r) { return r.json(); })
+    .then(function (d) {
+      if (d.error === 'expired') return fail('Ce lien a expiré. Contactez Credigo.');
+      if (d.error) return fail('Ce lien est invalide ou a expiré.');
+      if (d.status === 'answered' || d.response) { finish(d.response); return; }
+
+      // Enregistre l'ouverture (démarre le suivi de réactivité).
+      sb.rpc('track_bank_dossier_open', { p_token: token }).then(function () {}, function () {});
+
+      document.getElementById('lead').textContent = (d.bank_name || 'Votre établissement') + ' — merci d\u2019étudier ce dossier et de nous communiquer votre décision.';
+      document.getElementById('f-num').textContent = d.contract_number || '—';
+      document.getElementById('f-type').textContent = d.type === 'affacturage' ? 'Affacturage' : 'Financement de commande';
+      document.getElementById('f-objet').textContent = d.market_object || '—';
+      document.getElementById('f-refdo').textContent = d.donneur_ref_brute || '—';
+      document.getElementById('f-ent').textContent = d.entrepreneur || '—';
+      var sc = scoreClass(d.reliability_score);
+      var se = document.getElementById('f-score'); se.textContent = sc.label; se.style.background = sc.bg; se.style.color = sc.c;
+      var contact = [d.entrepreneur_phone, d.entrepreneur_email].filter(Boolean).join(' · ');
+      document.getElementById('f-contact').textContent = contact || '—';
+      document.getElementById('f-donneur').textContent = d.donneur_ordre_name || '—';
+      document.getElementById('f-montant').textContent = fmt(d.market_amount);
+      document.getElementById('f-avance').textContent = d.estimated_payout ? fmt(d.estimated_payout) : '—';
+      document.getElementById('f-echeance').textContent = dateFr(d.date_payment);
+      renderDocs(d.documents, d.account_creation_needed);
+      show('content');
+    })
+    .catch(function () {
+      // Repli : au moins les infos via le RPC (sans documents).
+      sb.rpc('get_bank_dossier', { p_token: token }).then(function (res) {
+        if (res.error || !res.data || res.data.error) return fail('Ce lien est invalide ou a expiré.');
+        var d = res.data;
+        if (d.status === 'answered' || d.response) { finish(d.response); return; }
+        sb.rpc('track_bank_dossier_open', { p_token: token }).then(function () {}, function () {});
+        document.getElementById('f-num').textContent = d.contract_number || '—';
+        document.getElementById('f-type').textContent = d.type === 'affacturage' ? 'Affacturage' : 'Financement de commande';
+        document.getElementById('f-objet').textContent = d.market_object || '—';
+        document.getElementById('f-refdo').textContent = d.donneur_ref_brute || '—';
+        document.getElementById('f-ent').textContent = d.entrepreneur || '—';
+        var sc = scoreClass(d.reliability_score);
+        var se = document.getElementById('f-score'); se.textContent = sc.label; se.style.background = sc.bg; se.style.color = sc.c;
+        document.getElementById('f-donneur').textContent = d.donneur_ordre_name || '—';
+        document.getElementById('f-montant').textContent = fmt(d.market_amount);
+        document.getElementById('f-avance').textContent = d.estimated_payout ? fmt(d.estimated_payout) : '—';
+        document.getElementById('f-echeance').textContent = dateFr(d.date_payment);
+        show('content');
+      }, function () { fail('Service momentanément indisponible.'); });
+    });
 
   // Navigation
   window.showAccord = function () { document.getElementById('choice').classList.add('hide'); document.getElementById('accord-step').classList.remove('hide'); setTimeout(initSign, 50); };
