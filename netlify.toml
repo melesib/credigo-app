@@ -16,3 +16,9 @@
   from = "/c/*"
   to = "/confirmation.html"
   status = 200
+
+# Le lien envoyé à la banque : /b/<jeton> → la page du dossier de financement.
+[[redirects]]
+  from = "/b/*"
+  to = "/banque.html"
+  status = 200

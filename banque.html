@@ -1,0 +1,178 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Credigo — Dossier de financement</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: #F5F3FF; color: #1F2937; line-height: 1.5; padding: 20px; }
+  .wrap { max-width: 560px; margin: 24px auto; }
+  .card { background: #fff; border-radius: 16px; padding: 26px; box-shadow: 0 6px 24px rgba(76,29,149,.08); }
+  .logo { font-size: 26px; font-weight: 800; color: #6C3FE8; text-align: center; margin-bottom: 6px; }
+  .sub { text-align: center; color: #6B7280; font-size: 13px; margin-bottom: 22px; }
+  h1 { font-size: 19px; margin-bottom: 14px; color: #111827; }
+  .row { display: flex; justify-content: space-between; padding: 9px 0; border-bottom: 1px solid #F3F4F6; font-size: 14px; }
+  .row .k { color: #6B7280; }
+  .row .v { font-weight: 700; text-align: right; }
+  .num { font-family: monospace; color: #6C3FE8; font-weight: 800; }
+  .score { display: inline-block; padding: 3px 12px; border-radius: 20px; font-weight: 800; font-size: 13px; }
+  .btns { display: flex; gap: 10px; margin-top: 22px; }
+  .btn { flex: 1; padding: 14px; border-radius: 11px; border: none; font-size: 14px; font-weight: 800; cursor: pointer; font-family: inherit; }
+  .btn-ok { background: #15803D; color: #fff; }
+  .btn-no { background: #fff; color: #B91C1C; border: 1.5px solid #FECACA; }
+  .note { width: 100%; margin-top: 12px; padding: 11px; border: 1px solid #E5E7EB; border-radius: 10px; font-family: inherit; font-size: 13px; resize: vertical; }
+  .hide { display: none; }
+  .msg { text-align: center; padding: 30px 10px; color: #6B7280; }
+  .done-ico { font-size: 40px; margin-bottom: 10px; }
+  .foot { text-align: center; color: #9CA3AF; font-size: 11px; margin-top: 18px; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="card">
+    <div class="logo">Credigo</div>
+    <div class="sub">Dossier de financement — partenaire bancaire</div>
+
+    <div id="loading" class="msg">Chargement du dossier…</div>
+    <div id="invalid" class="msg hide"><div class="done-ico">⚠️</div><div id="invalid-msg">Ce lien est invalide ou a expiré.</div></div>
+
+    <div id="content" class="hide">
+      <h1 id="dossier-title">Demande de financement</h1>
+      <div class="row"><span class="k">N° de contrat Credigo</span><span class="v num" id="f-num">—</span></div>
+      <div class="row"><span class="k">Type</span><span class="v" id="f-type">—</span></div>
+      <div class="row"><span class="k">Entrepreneur</span><span class="v" id="f-ent">—</span></div>
+      <div class="row"><span class="k">Score de fiabilité Credigo</span><span class="v"><span class="score" id="f-score">—</span></span></div>
+      <div class="row"><span class="k">Donneur d'ordre</span><span class="v" id="f-donneur">—</span></div>
+      <div class="row"><span class="k">Réf. du donneur d'ordre</span><span class="v" id="f-ref">—</span></div>
+      <div class="row"><span class="k">Montant du marché</span><span class="v" id="f-montant">—</span></div>
+      <div class="row"><span class="k">Échéance de paiement</span><span class="v" id="f-echeance">—</span></div>
+
+      <div class="btns">
+        <button class="btn btn-ok" id="btn-accord">Accepter de financer</button>
+        <button class="btn btn-no" id="btn-refus">Refuser</button>
+      </div>
+      <textarea id="note" class="note hide" rows="3" placeholder="Motif ou conditions (facultatif)"></textarea>
+      <div id="confirm-refus" class="hide">
+        <button class="btn btn-no" id="btn-refus-confirm" style="margin-top:10px;width:100%">Confirmer le refus</button>
+      </div>
+    </div>
+
+    <div id="done" class="msg hide">
+      <div class="done-ico" id="done-ico">✓</div>
+      <div id="done-msg">Merci, votre réponse a bien été enregistrée.</div>
+    </div>
+
+    <div class="foot">Ce lien est personnel et sécurisé. En cas de doute, contactez Credigo directement.</div>
+  </div>
+</div>
+
+<script src="/supabase.min.js"></script>
+<script>
+  window.CREDIGO_SUPABASE_URL = '__CREDIGO_SUPABASE_URL__';
+  window.CREDIGO_SUPABASE_ANON_KEY = '__CREDIGO_SUPABASE_ANON_KEY__';
+</script>
+<script>
+(function () {
+  var url = window.CREDIGO_SUPABASE_URL || '';
+  var key = window.CREDIGO_SUPABASE_ANON_KEY || '';
+  var sb = null;
+  var token = (location.pathname.split('/b/')[1] || '').split('?')[0].split('#')[0].trim();
+  var refusing = false;
+
+  function show(id) {
+    ['loading', 'invalid', 'content', 'done'].forEach(function (x) {
+      document.getElementById(x).classList.toggle('hide', x !== id);
+    });
+  }
+  function fail(msg) {
+    if (msg) document.getElementById('invalid-msg').textContent = msg;
+    show('invalid');
+  }
+  function fmt(n) { return new Intl.NumberFormat('fr-FR').format(Math.round(n || 0)) + ' FCFA'; }
+  function dateFr(d) {
+    if (!d) return '—';
+    try { return new Date(d).toLocaleDateString('fr-FR', { day: '2-digit', month: 'long', year: 'numeric' }); }
+    catch (e) { return d; }
+  }
+  function scoreClass(s) {
+    if (s == null) return { label: 'Non noté', bg: '#F3F4F6', c: '#6B7280' };
+    if (s >= 80) return { label: s + '/100 · A', bg: '#DCFCE7', c: '#15803D' };
+    if (s >= 65) return { label: s + '/100 · B', bg: '#D1FAE5', c: '#0A6E3B' };
+    if (s >= 50) return { label: s + '/100 · C', bg: '#FEF3C7', c: '#B45309' };
+    if (s >= 35) return { label: s + '/100 · D', bg: '#FFEDD5', c: '#C2410C' };
+    return { label: s + '/100 · E', bg: '#FEE2E2', c: '#B91C1C' };
+  }
+
+  if (!token) { fail('Ce lien est incomplet.'); return; }
+  if (!url || !key || url.indexOf('__') === 0 || !window.supabase) {
+    fail('Service momentanément indisponible. Réessayez dans un instant.');
+    return;
+  }
+  sb = window.supabase.createClient(url, key, {
+    auth: { persistSession: false, autoRefreshToken: false, detectSessionInUrl: false }
+  });
+
+  sb.rpc('get_bank_dossier', { p_token: token }).then(function (res) {
+    if (res.error || !res.data || res.data.error) {
+      var e = res.data && res.data.error;
+      if (e === 'expired') return fail('Ce lien a expiré. Contactez Credigo.');
+      return fail('Ce lien est invalide ou a expiré.');
+    }
+    var d = res.data;
+    if (d.status === 'answered' || d.response) { finish(d.response); return; }
+
+    // Enregistre l'ouverture (démarre le suivi de réactivité).
+    sb.rpc('track_bank_dossier_open', { p_token: token }).then(function () {}, function () {});
+
+    document.getElementById('f-num').textContent = d.contract_number || '—';
+    document.getElementById('f-type').textContent = d.type === 'affacturage' ? 'Affacturage' : 'Financement de commande';
+    document.getElementById('f-ent').textContent = d.entrepreneur || '—';
+    var sc = scoreClass(d.reliability_score);
+    var scoreEl = document.getElementById('f-score');
+    scoreEl.textContent = sc.label; scoreEl.style.background = sc.bg; scoreEl.style.color = sc.c;
+    document.getElementById('f-donneur').textContent = d.donneur_ordre_name || '—';
+    document.getElementById('f-ref').textContent = d.donneur_ref_brute || '—';
+    document.getElementById('f-montant').textContent = fmt(d.market_amount);
+    document.getElementById('f-echeance').textContent = dateFr(d.date_payment);
+    show('content');
+  }, function () { fail('Service momentanément indisponible.'); });
+
+  document.getElementById('btn-accord').addEventListener('click', function () {
+    respond('accord', null);
+  });
+  document.getElementById('btn-refus').addEventListener('click', function () {
+    if (!refusing) {
+      refusing = true;
+      document.getElementById('note').classList.remove('hide');
+      document.getElementById('confirm-refus').classList.remove('hide');
+      document.getElementById('btn-accord').classList.add('hide');
+      document.getElementById('btn-refus').classList.add('hide');
+    }
+  });
+  document.getElementById('btn-refus-confirm').addEventListener('click', function () {
+    respond('refus', document.getElementById('note').value.trim() || null);
+  });
+
+  function respond(resp, note) {
+    sb.rpc('respond_bank_dossier', { p_token: token, p_response: resp, p_note: note })
+      .then(function (res) {
+        if (res.error || (res.data && res.data.error)) {
+          fail('Impossible d\'enregistrer votre réponse. Réessayez.');
+          return;
+        }
+        finish(resp);
+      }, function () { fail('Service momentanément indisponible.'); });
+  }
+
+  function finish(resp) {
+    document.getElementById('done-ico').textContent = resp === 'accord' ? '✓' : '✕';
+    document.getElementById('done-msg').textContent = resp === 'accord'
+      ? 'Merci — votre accord de financement a bien été enregistré. Credigo vous recontacte pour la suite.'
+      : 'Votre refus a bien été enregistré. Merci de votre retour.';
+    show('done');
+  }
+})();
+</script>
+</body>
+</html>
