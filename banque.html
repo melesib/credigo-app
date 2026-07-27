@@ -6,60 +6,128 @@
 <title>Credigo — Dossier de financement</title>
 <style>
   * { box-sizing: border-box; margin: 0; padding: 0; }
-  body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: #F5F3FF; color: #1F2937; line-height: 1.5; padding: 20px; }
-  .wrap { max-width: 560px; margin: 24px auto; }
-  .card { background: #fff; border-radius: 16px; padding: 26px; box-shadow: 0 6px 24px rgba(76,29,149,.08); }
-  .logo { font-size: 26px; font-weight: 800; color: #6C3FE8; text-align: center; margin-bottom: 6px; }
-  .sub { text-align: center; color: #6B7280; font-size: 13px; margin-bottom: 22px; }
-  h1 { font-size: 19px; margin-bottom: 14px; color: #111827; }
-  .row { display: flex; justify-content: space-between; padding: 9px 0; border-bottom: 1px solid #F3F4F6; font-size: 14px; }
-  .row .k { color: #6B7280; }
+  body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: #F5F3FF; color: #1F2937; line-height: 1.5; padding: 18px; }
+  .wrap { max-width: 580px; margin: 20px auto; }
+  .card { background: #fff; border-radius: 16px; padding: 24px; box-shadow: 0 6px 24px rgba(76,29,149,.08); }
+  .logo { font-size: 25px; font-weight: 800; color: #6C3FE8; text-align: center; }
+  .sub { text-align: center; color: #6B7280; font-size: 12.5px; margin-bottom: 18px; }
+  h1 { font-size: 18px; margin-bottom: 6px; color: #111827; }
+  .lead { font-size: 13.5px; color: #4B5563; margin-bottom: 16px; }
+  .box { border: 1px solid #EDE9FE; border-radius: 12px; padding: 14px; margin-bottom: 8px; background: #FBFAFF; }
+  .box-title { font-size: 11px; font-weight: 800; color: #6C3FE8; text-transform: uppercase; letter-spacing: .4px; margin-bottom: 8px; }
+  .row { display: flex; justify-content: space-between; padding: 6px 0; font-size: 13.5px; gap: 12px; }
+  .row .k { color: #6B7280; flex-shrink: 0; }
   .row .v { font-weight: 700; text-align: right; }
   .num { font-family: monospace; color: #6C3FE8; font-weight: 800; }
-  .score { display: inline-block; padding: 3px 12px; border-radius: 20px; font-weight: 800; font-size: 13px; }
-  .btns { display: flex; gap: 10px; margin-top: 22px; }
+  .score { display: inline-block; padding: 2px 11px; border-radius: 20px; font-weight: 800; font-size: 12.5px; }
+  .btns { display: flex; gap: 10px; margin-top: 18px; }
   .btn { flex: 1; padding: 14px; border-radius: 11px; border: none; font-size: 14px; font-weight: 800; cursor: pointer; font-family: inherit; }
   .btn-ok { background: #15803D; color: #fff; }
   .btn-no { background: #fff; color: #B91C1C; border: 1.5px solid #FECACA; }
-  .note { width: 100%; margin-top: 12px; padding: 11px; border: 1px solid #E5E7EB; border-radius: 10px; font-family: inherit; font-size: 13px; resize: vertical; }
+  .btn-sec { background: #6C3FE8; color: #fff; width: 100%; margin-top: 14px; }
+  .btn-ghost { background: #fff; color: #6B7280; border: 1px solid #E5E7EB; }
+  label.fld { display: block; font-size: 12px; font-weight: 700; color: #4B5563; margin: 10px 0 4px; }
+  input, textarea, select { width: 100%; padding: 11px; border: 1px solid #E5E7EB; border-radius: 10px; font-family: inherit; font-size: 13.5px; }
+  .check { display: flex; align-items: center; gap: 8px; margin: 10px 0; font-size: 13px; }
+  .check input { width: auto; }
+  .sign-pad { width: 100%; height: 130px; border: 1.5px dashed #C4B5FD; border-radius: 10px; background: #fff; touch-action: none; }
   .hide { display: none; }
   .msg { text-align: center; padding: 30px 10px; color: #6B7280; }
-  .done-ico { font-size: 40px; margin-bottom: 10px; }
-  .foot { text-align: center; color: #9CA3AF; font-size: 11px; margin-top: 18px; }
+  .ico { font-size: 40px; margin-bottom: 10px; }
+  .foot { text-align: center; color: #9CA3AF; font-size: 11px; margin-top: 16px; line-height: 1.5; }
+  .legal { font-size: 11px; color: #9CA3AF; margin-top: 10px; }
+  .legal a { color: #6C3FE8; cursor: pointer; }
 </style>
 </head>
 <body>
 <div class="wrap">
   <div class="card">
     <div class="logo">Credigo</div>
-    <div class="sub">Dossier de financement — partenaire bancaire</div>
+    <div class="sub">Dossier de financement — traitement partenaire bancaire</div>
 
     <div id="loading" class="msg">Chargement du dossier…</div>
-    <div id="invalid" class="msg hide"><div class="done-ico">⚠️</div><div id="invalid-msg">Ce lien est invalide ou a expiré.</div></div>
+    <div id="invalid" class="msg hide"><div class="ico">⚠️</div><div id="invalid-msg">Ce lien est invalide ou a expiré.</div></div>
 
     <div id="content" class="hide">
       <h1 id="dossier-title">Demande de financement</h1>
-      <div class="row"><span class="k">N° de contrat Credigo</span><span class="v num" id="f-num">—</span></div>
-      <div class="row"><span class="k">Type</span><span class="v" id="f-type">—</span></div>
-      <div class="row"><span class="k">Entrepreneur</span><span class="v" id="f-ent">—</span></div>
-      <div class="row"><span class="k">Score de fiabilité Credigo</span><span class="v"><span class="score" id="f-score">—</span></span></div>
-      <div class="row"><span class="k">Donneur d'ordre</span><span class="v" id="f-donneur">—</span></div>
-      <div class="row"><span class="k">Réf. du donneur d'ordre</span><span class="v" id="f-ref">—</span></div>
-      <div class="row"><span class="k">Montant du marché</span><span class="v" id="f-montant">—</span></div>
-      <div class="row"><span class="k">Échéance de paiement</span><span class="v" id="f-echeance">—</span></div>
+      <div class="lead" id="lead">Merci d'étudier ce dossier et de nous communiquer votre décision.</div>
 
-      <div class="btns">
-        <button class="btn btn-ok" id="btn-accord">Accepter de financer</button>
-        <button class="btn btn-no" id="btn-refus">Refuser</button>
+      <div class="box">
+        <div class="box-title">Contrat</div>
+        <div class="row"><span class="k">N° Credigo</span><span class="v num" id="f-num">—</span></div>
+        <div class="row"><span class="k">Type</span><span class="v" id="f-type">—</span></div>
+        <div class="row"><span class="k">Objet du marché</span><span class="v" id="f-objet">—</span></div>
+        <div class="row"><span class="k">Réf. donneur d'ordre</span><span class="v" id="f-refdo">—</span></div>
       </div>
-      <textarea id="note" class="note hide" rows="3" placeholder="Motif ou conditions (facultatif)"></textarea>
-      <div id="confirm-refus" class="hide">
-        <button class="btn btn-no" id="btn-refus-confirm" style="margin-top:10px;width:100%">Confirmer le refus</button>
+
+      <div class="box">
+        <div class="box-title">Entrepreneur</div>
+        <div class="row"><span class="k">Nom</span><span class="v" id="f-ent">—</span></div>
+        <div class="row"><span class="k">Score de fiabilité Credigo</span><span class="v"><span class="score" id="f-score">—</span></span></div>
+        <div class="row"><span class="k">Contact</span><span class="v" id="f-contact">—</span></div>
+      </div>
+
+      <div class="box">
+        <div class="box-title">Donneur d'ordre & montants</div>
+        <div class="row"><span class="k">Donneur d'ordre</span><span class="v" id="f-donneur">—</span></div>
+        <div class="row"><span class="k">Montant du marché</span><span class="v" id="f-montant">—</span></div>
+        <div class="row"><span class="k">Avance à décaisser</span><span class="v" id="f-avance">—</span></div>
+        <div class="row"><span class="k">Échéance de paiement</span><span class="v" id="f-echeance">—</span></div>
+      </div>
+
+      <!-- Choix -->
+      <div id="choice">
+        <div class="btns">
+          <button class="btn btn-ok" onclick="showAccord()">Accepter de financer</button>
+          <button class="btn btn-no" onclick="showRefus()">Refuser</button>
+        </div>
+      </div>
+
+      <!-- Formulaire ACCORD -->
+      <div id="accord-step" class="hide">
+        <h1 style="font-size:16px;margin-top:18px">Accord de financement</h1>
+        <label class="fld">Numéro de compte de l'entrepreneur</label>
+        <input type="text" id="acc-num" placeholder="Compte sur lequel décaisser">
+        <div class="check">
+          <input type="checkbox" id="acc-created">
+          <label for="acc-created" style="margin:0;font-weight:600">Ce compte a été créé par nos soins pour cet entrepreneur</label>
+        </div>
+        <label class="fld">Référence de décaissement (facultatif)</label>
+        <input type="text" id="acc-ref" placeholder="Votre référence interne">
+        <label class="fld">Conditions éventuelles (facultatif)</label>
+        <textarea id="acc-cond" rows="2" placeholder="Conditions particulières"></textarea>
+
+        <label class="fld">Nom du décideur *</label>
+        <input type="text" id="signer-name" placeholder="Prénom et nom">
+        <label class="fld">Fonction *</label>
+        <input type="text" id="signer-role" placeholder="Ex. Responsable crédit">
+        <label class="fld">Signature *</label>
+        <canvas id="sign-pad" class="sign-pad"></canvas>
+        <div style="text-align:right"><a onclick="clearSign()" style="font-size:11px;color:#6C3FE8;cursor:pointer">Effacer</a></div>
+
+        <div class="legal">En validant, vous engagez votre établissement sur cet accord de financement. <a onclick="toggleLegal()" id="legal-toggle">Lire les conditions ▾</a>
+          <div id="legal-full" class="hide" style="margin-top:6px">Cet accord vaut engagement de décaisser sous votre agrément, sur le compte indiqué, selon les termes du dossier. Les informations saisies (identité du signataire, signature, horodatage, empreinte technique) sont conservées comme preuve de votre décision.</div>
+        </div>
+        <button class="btn btn-sec" onclick="send('accord')">Confirmer l'accord</button>
+        <button class="btn btn-ghost" style="width:100%;margin-top:8px" onclick="back()">Retour</button>
+      </div>
+
+      <!-- Formulaire REFUS -->
+      <div id="refus-step" class="hide">
+        <h1 style="font-size:16px;margin-top:18px">Refus du dossier</h1>
+        <label class="fld">Motif du refus *</label>
+        <textarea id="refus-note" rows="3" placeholder="Merci d'indiquer la raison"></textarea>
+        <label class="fld">Nom du décideur *</label>
+        <input type="text" id="refus-name" placeholder="Prénom et nom">
+        <label class="fld">Fonction (facultatif)</label>
+        <input type="text" id="refus-role" placeholder="Ex. Analyste crédit">
+        <button class="btn btn-no" style="width:100%;margin-top:14px" onclick="send('refus')">Confirmer le refus</button>
+        <button class="btn btn-ghost" style="width:100%;margin-top:8px" onclick="back()">Retour</button>
       </div>
     </div>
 
     <div id="done" class="msg hide">
-      <div class="done-ico" id="done-ico">✓</div>
+      <div class="ico" id="done-ico">✓</div>
       <div id="done-msg">Merci, votre réponse a bien été enregistrée.</div>
     </div>
 
@@ -78,23 +146,11 @@
   var key = window.CREDIGO_SUPABASE_ANON_KEY || '';
   var sb = null;
   var token = (location.pathname.split('/b/')[1] || '').split('?')[0].split('#')[0].trim();
-  var refusing = false;
 
-  function show(id) {
-    ['loading', 'invalid', 'content', 'done'].forEach(function (x) {
-      document.getElementById(x).classList.toggle('hide', x !== id);
-    });
-  }
-  function fail(msg) {
-    if (msg) document.getElementById('invalid-msg').textContent = msg;
-    show('invalid');
-  }
+  function show(id) { ['loading','invalid','content','done'].forEach(function (x) { document.getElementById(x).classList.toggle('hide', x !== id); }); }
+  function fail(msg) { if (msg) document.getElementById('invalid-msg').textContent = msg; show('invalid'); }
   function fmt(n) { return new Intl.NumberFormat('fr-FR').format(Math.round(n || 0)) + ' FCFA'; }
-  function dateFr(d) {
-    if (!d) return '—';
-    try { return new Date(d).toLocaleDateString('fr-FR', { day: '2-digit', month: 'long', year: 'numeric' }); }
-    catch (e) { return d; }
-  }
+  function dateFr(d) { if (!d) return '—'; try { return new Date(d).toLocaleDateString('fr-FR', { day: '2-digit', month: 'long', year: 'numeric' }); } catch (e) { return d; } }
   function scoreClass(s) {
     if (s == null) return { label: 'Non noté', bg: '#F3F4F6', c: '#6B7280' };
     if (s >= 80) return { label: s + '/100 · A', bg: '#DCFCE7', c: '#15803D' };
@@ -105,70 +161,105 @@
   }
 
   if (!token) { fail('Ce lien est incomplet.'); return; }
-  if (!url || !key || url.indexOf('__') === 0 || !window.supabase) {
-    fail('Service momentanément indisponible. Réessayez dans un instant.');
-    return;
-  }
-  sb = window.supabase.createClient(url, key, {
-    auth: { persistSession: false, autoRefreshToken: false, detectSessionInUrl: false }
-  });
+  if (!url || !key || url.indexOf('__') === 0 || !window.supabase) { fail('Service momentanément indisponible.'); return; }
+  sb = window.supabase.createClient(url, key, { auth: { persistSession: false, autoRefreshToken: false, detectSessionInUrl: false } });
 
   sb.rpc('get_bank_dossier', { p_token: token }).then(function (res) {
     if (res.error || !res.data || res.data.error) {
       var e = res.data && res.data.error;
-      if (e === 'expired') return fail('Ce lien a expiré. Contactez Credigo.');
-      return fail('Ce lien est invalide ou a expiré.');
+      return fail(e === 'expired' ? 'Ce lien a expiré. Contactez Credigo.' : 'Ce lien est invalide ou a expiré.');
     }
     var d = res.data;
     if (d.status === 'answered' || d.response) { finish(d.response); return; }
-
-    // Enregistre l'ouverture (démarre le suivi de réactivité).
     sb.rpc('track_bank_dossier_open', { p_token: token }).then(function () {}, function () {});
 
+    document.getElementById('lead').textContent = (d.bank_name || 'Votre établissement') + ' — merci d\u2019étudier ce dossier et de nous communiquer votre décision.';
     document.getElementById('f-num').textContent = d.contract_number || '—';
     document.getElementById('f-type').textContent = d.type === 'affacturage' ? 'Affacturage' : 'Financement de commande';
+    document.getElementById('f-objet').textContent = d.market_object || '—';
+    document.getElementById('f-refdo').textContent = d.donneur_ref_brute || '—';
     document.getElementById('f-ent').textContent = d.entrepreneur || '—';
     var sc = scoreClass(d.reliability_score);
-    var scoreEl = document.getElementById('f-score');
-    scoreEl.textContent = sc.label; scoreEl.style.background = sc.bg; scoreEl.style.color = sc.c;
+    var se = document.getElementById('f-score'); se.textContent = sc.label; se.style.background = sc.bg; se.style.color = sc.c;
+    var contact = [d.entrepreneur_phone, d.entrepreneur_email].filter(Boolean).join(' · ');
+    document.getElementById('f-contact').textContent = contact || '—';
     document.getElementById('f-donneur').textContent = d.donneur_ordre_name || '—';
-    document.getElementById('f-ref').textContent = d.donneur_ref_brute || '—';
     document.getElementById('f-montant').textContent = fmt(d.market_amount);
+    document.getElementById('f-avance').textContent = d.estimated_payout ? fmt(d.estimated_payout) : '—';
     document.getElementById('f-echeance').textContent = dateFr(d.date_payment);
     show('content');
   }, function () { fail('Service momentanément indisponible.'); });
 
-  document.getElementById('btn-accord').addEventListener('click', function () {
-    respond('accord', null);
-  });
-  document.getElementById('btn-refus').addEventListener('click', function () {
-    if (!refusing) {
-      refusing = true;
-      document.getElementById('note').classList.remove('hide');
-      document.getElementById('confirm-refus').classList.remove('hide');
-      document.getElementById('btn-accord').classList.add('hide');
-      document.getElementById('btn-refus').classList.add('hide');
-    }
-  });
-  document.getElementById('btn-refus-confirm').addEventListener('click', function () {
-    respond('refus', document.getElementById('note').value.trim() || null);
-  });
+  // Navigation
+  window.showAccord = function () { document.getElementById('choice').classList.add('hide'); document.getElementById('accord-step').classList.remove('hide'); setTimeout(initSign, 50); };
+  window.showRefus = function () { document.getElementById('choice').classList.add('hide'); document.getElementById('refus-step').classList.remove('hide'); };
+  window.back = function () { document.getElementById('choice').classList.remove('hide'); document.getElementById('accord-step').classList.add('hide'); document.getElementById('refus-step').classList.add('hide'); };
+  window.toggleLegal = function () { var f = document.getElementById('legal-full'); var t = document.getElementById('legal-toggle'); var o = f.classList.toggle('hide'); t.textContent = o ? 'Lire les conditions ▾' : 'Masquer ▴'; };
 
-  function respond(resp, note) {
-    sb.rpc('respond_bank_dossier', { p_token: token, p_response: resp, p_note: note })
-      .then(function (res) {
-        if (res.error || (res.data && res.data.error)) {
-          fail('Impossible d\'enregistrer votre réponse. Réessayez.');
-          return;
-        }
-        finish(resp);
-      }, function () { fail('Service momentanément indisponible.'); });
+  // Signature
+  var pad = null, ctx = null, drawing = false, hasSign = false;
+  function initSign() {
+    pad = document.getElementById('sign-pad'); if (!pad || ctx) return;
+    var r = pad.getBoundingClientRect(); var dpr = window.devicePixelRatio || 1;
+    pad.width = r.width * dpr; pad.height = r.height * dpr;
+    ctx = pad.getContext('2d'); ctx.scale(dpr, dpr); ctx.lineWidth = 2.2; ctx.lineCap = 'round'; ctx.lineJoin = 'round'; ctx.strokeStyle = '#111827';
+    function pos(e) { var b = pad.getBoundingClientRect(); var t = e.touches ? e.touches[0] : e; return { x: t.clientX - b.left, y: t.clientY - b.top }; }
+    function start(e) { e.preventDefault(); drawing = true; hasSign = true; var p = pos(e); ctx.beginPath(); ctx.moveTo(p.x, p.y); }
+    function move(e) { if (!drawing) return; e.preventDefault(); var p = pos(e); ctx.lineTo(p.x, p.y); ctx.stroke(); }
+    function end() { drawing = false; }
+    pad.addEventListener('mousedown', start); pad.addEventListener('mousemove', move); window.addEventListener('mouseup', end);
+    pad.addEventListener('touchstart', start, { passive: false }); pad.addEventListener('touchmove', move, { passive: false }); pad.addEventListener('touchend', end);
   }
+  window.clearSign = function () { if (!ctx || !pad) return; ctx.clearRect(0, 0, pad.width, pad.height); hasSign = false; };
+
+  function fingerprint() {
+    try {
+      var raw = [navigator.userAgent, navigator.language, screen.width + 'x' + screen.height, new Date().getTimezoneOffset(), navigator.hardwareConcurrency || ''].join('|');
+      var h = 0; for (var i = 0; i < raw.length; i++) { h = ((h << 5) - h) + raw.charCodeAt(i); h |= 0; }
+      return 'fp_' + Math.abs(h).toString(36);
+    } catch (e) { return null; }
+  }
+
+  window.send = function (response) {
+    var params = { p_token: token, p_response: response, p_ip: null, p_agent: navigator.userAgent, p_fingerprint: fingerprint(), p_legal_version: 'CGBANK-2026-07' };
+    if (response === 'accord') {
+      var name = (document.getElementById('signer-name') || {}).value || '';
+      var role = (document.getElementById('signer-role') || {}).value || '';
+      if (name.trim().length < 3) { alert('Merci d\u2019indiquer le nom du décideur.'); return; }
+      if (role.trim().length < 2) { alert('Merci d\u2019indiquer la fonction.'); return; }
+      if (!hasSign) { alert('Merci de signer dans le cadre.'); return; }
+      params.p_signer_name = name.trim();
+      params.p_signer_role = role.trim();
+      params.p_signature = pad.toDataURL('image/png');
+      params.p_account_number = ((document.getElementById('acc-num') || {}).value || '').trim() || null;
+      params.p_account_created = !!(document.getElementById('acc-created') || {}).checked;
+      params.p_disbursement_ref = ((document.getElementById('acc-ref') || {}).value || '').trim() || null;
+      params.p_conditions = ((document.getElementById('acc-cond') || {}).value || '').trim() || null;
+    } else {
+      var note = (document.getElementById('refus-note') || {}).value || '';
+      if (note.trim().length < 3) { alert('Merci d\u2019indiquer le motif du refus.'); return; }
+      params.p_note = note.trim();
+      params.p_signer_name = ((document.getElementById('refus-name') || {}).value || '').trim() || null;
+      params.p_signer_role = ((document.getElementById('refus-role') || {}).value || '').trim() || null;
+    }
+    document.querySelectorAll('button').forEach(function (b) { b.disabled = true; });
+    sb.rpc('respond_bank_dossier', params).then(function (res) {
+      if (res.error || (res.data && res.data.error)) {
+        alert((res.data && res.data.error) || 'Une erreur est survenue. Réessayez.');
+        document.querySelectorAll('button').forEach(function (b) { b.disabled = false; });
+        return;
+      }
+      finish(response);
+    }, function () {
+      alert('Connexion impossible. Réessayez.');
+      document.querySelectorAll('button').forEach(function (b) { b.disabled = false; });
+    });
+  };
 
   function finish(resp) {
     document.getElementById('done-ico').textContent = resp === 'accord' ? '✓' : '✕';
     document.getElementById('done-msg').textContent = resp === 'accord'
-      ? 'Merci — votre accord de financement a bien été enregistré. Credigo vous recontacte pour la suite.'
+      ? 'Merci — votre accord de financement a bien été enregistré. Credigo poursuit le circuit de décaissement.'
       : 'Votre refus a bien été enregistré. Merci de votre retour.';
     show('done');
   }
