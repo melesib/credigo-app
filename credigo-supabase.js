@@ -630,6 +630,7 @@
       competence_label: req.competence_label || null,
       competence_famille: req.competence_famille || null,
       reference: req.reference || null,
+      donneur_ref_brute: req.donneur_ref_brute || req.reference || null,
       fne_number: req.fne_number || null,
       date_start: req.date_start || null,
       date_end: req.date_end || null,
