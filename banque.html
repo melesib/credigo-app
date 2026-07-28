@@ -73,7 +73,8 @@
 
       <div class="box">
         <div class="box-title">Donneur d'ordre & montants</div>
-        <div class="row"><span class="k">Donneur d'ordre</span><span class="v" id="f-donneur">—</span></div>
+        <div class="row"><span class="k">Donneur d'ordre (le payeur)</span><span class="v" id="f-donneur">—</span></div>
+        <div class="row"><span class="k">Score de fiabilité du donneur</span><span class="v"><span class="score" id="f-donneur-score">—</span></span></div>
         <div class="row"><span class="k">Montant du marché</span><span class="v" id="f-montant">—</span></div>
         <div class="row"><span class="k">Avance à décaisser</span><span class="v" id="f-avance">—</span></div>
         <div class="row"><span class="k">Échéance de paiement</span><span class="v" id="f-echeance">—</span></div>
@@ -227,6 +228,7 @@
       var contact = [d.entrepreneur_phone, d.entrepreneur_email].filter(Boolean).join(' · ');
       document.getElementById('f-contact').textContent = contact || '—';
       document.getElementById('f-donneur').textContent = d.donneur_ordre_name || '—';
+      (function(){ var sd = scoreClass(d.donneur_score); var el = document.getElementById('f-donneur-score'); if(el){ el.textContent = sd.label; el.style.background = sd.bg; el.style.color = sd.c; } })();
       document.getElementById('f-montant').textContent = fmt(d.market_amount);
       document.getElementById('f-avance').textContent = d.estimated_payout ? fmt(d.estimated_payout) : '—';
       document.getElementById('f-echeance').textContent = dateFr(d.date_payment);
@@ -248,6 +250,7 @@
         var sc = scoreClass(d.reliability_score);
         var se = document.getElementById('f-score'); se.textContent = sc.label; se.style.background = sc.bg; se.style.color = sc.c;
         document.getElementById('f-donneur').textContent = d.donneur_ordre_name || '—';
+      (function(){ var sd = scoreClass(d.donneur_score); var el = document.getElementById('f-donneur-score'); if(el){ el.textContent = sd.label; el.style.background = sd.bg; el.style.color = sd.c; } })();
         document.getElementById('f-montant').textContent = fmt(d.market_amount);
         document.getElementById('f-avance').textContent = d.estimated_payout ? fmt(d.estimated_payout) : '—';
         document.getElementById('f-echeance').textContent = dateFr(d.date_payment);
