@@ -101,6 +101,24 @@
 
     <!-- Étape 2 : où verser le paiement (on l'AFFICHE, on ne le demande pas) -->
     <div id="confirm-step" class="hide">
+      <!-- Document du contrat joint par l'entrepreneur, à vérifier -->
+      <div id="doc-box" class="hide" style="border:1px solid #EDE9FE;border-radius:12px;padding:14px;margin-bottom:14px;background:#FBFAFF">
+        <div style="font-size:11px;font-weight:800;color:#6C3FE8;text-transform:uppercase;letter-spacing:.4px;margin-bottom:8px">Document du marché — à vérifier</div>
+        <div id="doc-list"></div>
+      </div>
+
+      <!-- Ce qui se passe après la confirmation -->
+      <div style="background:#EFF6FF;border:1px solid #BFDBFE;border-radius:12px;padding:14px;margin-bottom:14px;font-size:13px;line-height:1.6;color:#1E3A8A">
+        <b>Après votre confirmation :</b> nous mettrons ce prestataire en relation avec une banque partenaire qui lui prêtera les fonds nécessaires pour exécuter ce marché dans les délais. La banque retenue vous communiquera ses coordonnées, afin que votre paiement soit versé sur son <b>compte de cantonnement</b> à l'échéance.
+      </div>
+
+      <!-- Évaluation de l'entrepreneur (4 questions oui/non) -->
+      <div style="border:1px solid #E5E7EB;border-radius:12px;padding:14px;margin-bottom:14px">
+        <div style="font-size:13px;font-weight:700;margin-bottom:4px;color:#111827">Votre avis sur ce prestataire</div>
+        <div style="font-size:12px;color:#6B7280;margin-bottom:12px;line-height:1.5">En signant, vous vous engagez sur l'existence de ce marché <b>et sur la capacité de ce prestataire à le réaliser</b>. Merci de répondre :</div>
+        <div id="eval-questions"></div>
+      </div>
+
       <div class="hint">En confirmant, vous vous engagez à verser le paiement sur le compte ci-dessous.</div>
       <div class="account-box" id="account-box">
         <div class="account-bank" id="acc-bank"></div>
@@ -113,6 +131,7 @@
         <div class="legal-t">En signant, vous déclarez et vous engagez :</div>
         <ul class="legal-l">
           <li><b>Ce marché existe réellement</b> — vous avez vérifié son existence, son objet et son montant avant de confirmer.</li>
+          <li><b>Ce prestataire est capable de le réaliser</b> — vous vous engagez sur sa capacité à exécuter ce marché dans les délais, sur la foi de votre expérience avec lui.</li>
           <li><b>Vous paierez sur le compte de cantonnement indiqué ci-dessus</b>, et sur aucun autre, même si votre prestataire vous demande le contraire.</li>
           <li><b>Credigo financera sur la foi de cette confirmation</b> — vous en mesurez la portée.</li>
         </ul>
@@ -346,9 +365,63 @@
     } catch (e) { return null; }
   }
 
+  var EVAL_QUESTIONS = [
+    { id: 'q1', text: 'Avez-vous déjà travaillé avec ce prestataire ?' },
+    { id: 'q2', text: 'Ce type de marché fait-il partie de ses activités habituelles ?' },
+    { id: 'q3', text: "L'avez-vous toujours trouvé fiable (délais, qualité) ?" },
+    { id: 'q4', text: 'Êtes-vous confiant qu\'il réalisera ce marché dans les délais ?' },
+  ];
+  var evalAnswers = {};
+
+  function renderEvalQuestions() {
+    var box = document.getElementById('eval-questions');
+    if (!box || box.dataset.done) return;
+    box.dataset.done = '1';
+    box.innerHTML = EVAL_QUESTIONS.map(function (q) {
+      return '<div style="display:flex;justify-content:space-between;align-items:center;gap:10px;padding:9px 0;border-bottom:1px solid #F3F4F6">'
+        + '<span style="font-size:13px;color:#374151;flex:1">' + q.text + '</span>'
+        + '<span style="display:flex;gap:6px">'
+        + '<button type="button" data-q="' + q.id + '" data-v="1" class="eval-btn" style="padding:6px 14px;border-radius:8px;border:1.5px solid #E5E7EB;background:#fff;font-weight:700;font-size:13px;cursor:pointer">Oui</button>'
+        + '<button type="button" data-q="' + q.id + '" data-v="0" class="eval-btn" style="padding:6px 14px;border-radius:8px;border:1.5px solid #E5E7EB;background:#fff;font-weight:700;font-size:13px;cursor:pointer">Non</button>'
+        + '</span></div>';
+    }).join('');
+    box.querySelectorAll('.eval-btn').forEach(function (b) {
+      b.addEventListener('click', function () {
+        var q = b.dataset.q, v = b.dataset.v === '1';
+        evalAnswers[q] = v;
+        box.querySelectorAll('.eval-btn[data-q="' + q + '"]').forEach(function (x) {
+          var on = x.dataset.v === (v ? '1' : '0');
+          x.style.background = on ? (v ? '#DCFCE7' : '#FEE2E2') : '#fff';
+          x.style.borderColor = on ? (v ? '#15803D' : '#B91C1C') : '#E5E7EB';
+          x.style.color = on ? (v ? '#15803D' : '#B91C1C') : '#374151';
+        });
+      });
+    });
+  }
+
+  function loadDonneurDocs() {
+    var BACKOFFICE_URL = 'https://credigo-backoffice.netlify.app';
+    fetch(BACKOFFICE_URL + '/.netlify/functions/donneur-dossier-view?token=' + encodeURIComponent(token))
+      .then(function (r) { return r.json(); })
+      .then(function (d) {
+        if (!d || !d.documents || !d.documents.length) return;
+        var box = document.getElementById('doc-box');
+        var list = document.getElementById('doc-list');
+        list.innerHTML = d.documents.map(function (doc) {
+          return '<a href="' + doc.url + '" target="_blank" rel="noreferrer" style="display:flex;align-items:center;gap:8px;padding:9px 11px;border:1px solid #E5E7EB;border-radius:9px;margin-bottom:6px;font-size:13px;color:#374151;text-decoration:none">'
+            + '<span style="width:24px;height:24px;border-radius:6px;background:#EEE8FF;color:#6C3FE8;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:800">PDF</span>'
+            + (doc.name || 'Document du marché') + '</a>';
+        }).join('');
+        box.classList.remove('hide');
+      })
+      .catch(function () { /* pas de document : on n'affiche rien */ });
+  }
+
   window.showConfirm = function () {
     document.getElementById('choice').classList.add('hide');
     document.getElementById('confirm-step').classList.remove('hide');
+    renderEvalQuestions();
+    loadDonneurDocs();
     setTimeout(initSign, 50);   // le canvas doit être visible pour être dimensionné
   };
   window.showContest = function () {
@@ -393,6 +466,16 @@
         alert((res.data && res.data.error) || 'Une erreur est survenue. Réessayez.');
         document.querySelectorAll('button').forEach(function (b) { b.disabled = false; });
         return;
+      }
+      // Enregistre l'évaluation de l'entrepreneur (si confirmation).
+      if (response === 'confirmed') {
+        sb.rpc('save_donneur_eval', {
+          p_token: token,
+          p_eval_q1: evalAnswers.q1 != null ? evalAnswers.q1 : null,
+          p_eval_q2: evalAnswers.q2 != null ? evalAnswers.q2 : null,
+          p_eval_q3: evalAnswers.q3 != null ? evalAnswers.q3 : null,
+          p_eval_q4: evalAnswers.q4 != null ? evalAnswers.q4 : null,
+        }).then(function () {}, function () {});
       }
       finish(response);
     }).catch(function () {
