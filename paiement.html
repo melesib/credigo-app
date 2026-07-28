@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Credigo — Coordonnées de paiement</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: #F5F3FF; color: #1F2937; line-height: 1.5; padding: 20px; }
+  .wrap { max-width: 540px; margin: 24px auto; }
+  .card { background: #fff; border-radius: 16px; padding: 26px; box-shadow: 0 6px 24px rgba(76,29,149,.08); }
+  .logo { font-size: 25px; font-weight: 800; color: #6C3FE8; text-align: center; }
+  .sub { text-align: center; color: #6B7280; font-size: 12.5px; margin-bottom: 20px; }
+  h1 { font-size: 18px; margin-bottom: 12px; color: #111827; }
+  .lead { font-size: 14px; color: #4B5563; margin-bottom: 16px; line-height: 1.6; }
+  .acct { background: #F5F3FF; border: 1.5px solid #DDD6FE; border-radius: 12px; padding: 16px; margin-bottom: 14px; }
+  .acct-bank { font-size: 12px; color: #6D28D9; font-weight: 700; }
+  .acct-num { font-size: 20px; font-weight: 800; color: #4C1D95; letter-spacing: .5px; word-break: break-all; margin: 4px 0; }
+  .acct-label { font-size: 12px; color: #7C3AED; }
+  .row { display: flex; justify-content: space-between; padding: 8px 0; font-size: 14px; border-bottom: 1px solid #F3F4F6; }
+  .row .k { color: #6B7280; }
+  .row .v { font-weight: 700; text-align: right; }
+  .num { font-family: monospace; color: #6C3FE8; font-weight: 800; }
+  .warn { font-size: 13px; color: #B45309; background: #FFF7ED; border-radius: 8px; padding: 11px; margin: 14px 0; line-height: 1.5; }
+  .btn { width: 100%; padding: 15px; border-radius: 11px; border: none; font-size: 15px; font-weight: 800; cursor: pointer; font-family: inherit; background: #15803D; color: #fff; margin-top: 14px; }
+  .hide { display: none; }
+  .msg { text-align: center; padding: 30px 10px; color: #6B7280; }
+  .ico { font-size: 42px; margin-bottom: 10px; }
+  .foot { text-align: center; color: #9CA3AF; font-size: 11px; margin-top: 16px; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="card">
+    <div class="logo">Credigo</div>
+    <div class="sub">Coordonnées de paiement</div>
+
+    <div id="loading" class="msg">Chargement…</div>
+    <div id="invalid" class="msg hide"><div class="ico">⚠️</div><div id="invalid-msg">Ce lien est invalide ou a expiré.</div></div>
+
+    <div id="content" class="hide">
+      <h1>Financement confirmé</h1>
+      <div class="lead" id="lead">Le financement de ce marché est confirmé. Voici le compte sur lequel régler ce marché à l'échéance.</div>
+
+      <div class="acct">
+        <div class="acct-bank" id="p-bank">Compte de cantonnement</div>
+        <div class="acct-num" id="p-account">—</div>
+        <div class="acct-label" id="p-label"></div>
+      </div>
+
+      <div class="row"><span class="k">Dossier</span><span class="v num" id="p-num">—</span></div>
+      <div class="row"><span class="k">Marché</span><span class="v" id="p-objet">—</span></div>
+      <div class="row"><span class="k">Montant à régler</span><span class="v" id="p-montant">—</span></div>
+      <div class="row"><span class="k">Échéance de paiement</span><span class="v" id="p-echeance">—</span></div>
+
+      <div class="warn">⚠️ Réglez <b>uniquement</b> sur ce compte, pour ce dossier. N'utilisez aucune autre coordonnée, même transmise par un tiers ou par le prestataire.</div>
+
+      <button class="btn" id="btn-ack">J'ai bien reçu ces coordonnées</button>
+    </div>
+
+    <div id="done" class="msg hide">
+      <div class="ico">✓</div>
+      <div id="done-msg">Merci — votre réception est bien enregistrée. Vous réglerez ce marché sur le compte indiqué, à l'échéance.</div>
+    </div>
+
+    <div class="foot">Ce lien est personnel et sécurisé. En cas de doute, contactez Credigo directement.</div>
+  </div>
+</div>
+
+<script src="/supabase.min.js"></script>
+<script>
+  window.CREDIGO_SUPABASE_URL = '__CREDIGO_SUPABASE_URL__';
+  window.CREDIGO_SUPABASE_ANON_KEY = '__CREDIGO_SUPABASE_ANON_KEY__';
+</script>
+<script>
+(function () {
+  var url = window.CREDIGO_SUPABASE_URL || '';
+  var key = window.CREDIGO_SUPABASE_ANON_KEY || '';
+  var sb = null;
+  var token = (location.pathname.split('/p/')[1] || '').split('?')[0].split('#')[0].trim();
+
+  function show(id) { ['loading','invalid','content','done'].forEach(function (x) { document.getElementById(x).classList.toggle('hide', x !== id); }); }
+  function fail(msg) { if (msg) document.getElementById('invalid-msg').textContent = msg; show('invalid'); }
+  function fmt(n) { return new Intl.NumberFormat('fr-FR').format(Math.round(n || 0)) + ' FCFA'; }
+  function dateFr(d) { if (!d) return '—'; try { return new Date(d).toLocaleDateString('fr-FR', { day: '2-digit', month: 'long', year: 'numeric' }); } catch (e) { return d; } }
+
+  if (!token) { fail('Ce lien est incomplet.'); return; }
+  if (!url || !key || url.indexOf('__') === 0 || !window.supabase) { fail('Service momentanément indisponible.'); return; }
+  sb = window.supabase.createClient(url, key, { auth: { persistSession: false, autoRefreshToken: false, detectSessionInUrl: false } });
+
+  window.__clientIp = null;
+  try { fetch('https://api.ipify.org?format=json').then(function (r) { return r.json(); }).then(function (d) { window.__clientIp = d && d.ip ? d.ip : null; }, function () {}); } catch (e) {}
+
+  sb.rpc('get_payment_instruction', { p_token: token }).then(function (res) {
+    if (res.error || !res.data || res.data.error) {
+      var e = res.data && res.data.error;
+      return fail(e === 'expired' ? 'Ce lien a expiré. Contactez Credigo.' : 'Ce lien est invalide ou a expiré.');
+    }
+    var d = res.data;
+    if (d.acknowledged) { show('done'); return; }
+    sb.rpc('track_payment_open', { p_token: token }).then(function () {}, function () {});
+
+    document.getElementById('p-bank').textContent = d.bank_name ? ('Compte de cantonnement — ' + d.bank_name) : 'Compte de cantonnement';
+    document.getElementById('p-account').textContent = d.cantonnement_account || '—';
+    document.getElementById('p-label').textContent = d.cantonnement_label || '';
+    document.getElementById('p-num').textContent = d.contract_number || '—';
+    document.getElementById('p-objet').textContent = d.market_object || '—';
+    document.getElementById('p-montant').textContent = fmt(d.amount_expected);
+    document.getElementById('p-echeance').textContent = dateFr(d.date_payment);
+    show('content');
+  }, function () { fail('Service momentanément indisponible.'); });
+
+  document.getElementById('btn-ack').addEventListener('click', function () {
+    var b = document.getElementById('btn-ack');
+    b.disabled = true; b.textContent = 'Enregistrement…';
+    sb.rpc('acknowledge_payment_instruction', { p_token: token, p_ip: window.__clientIp || null, p_agent: navigator.userAgent })
+      .then(function (res) {
+        if (res.error) { b.disabled = false; b.textContent = 'J\u2019ai bien reçu ces coordonnées'; alert('Réessayez.'); return; }
+        show('done');
+      }, function () { b.disabled = false; b.textContent = 'J\u2019ai bien reçu ces coordonnées'; alert('Connexion impossible.'); });
+  });
+})();
+</script>
+</body>
+</html>

@@ -22,3 +22,9 @@
   from = "/b/*"
   to = "/banque.html"
   status = 200
+
+# Le lien de paiement au donneur : /p/<jeton> → coordonnées de cantonnement.
+[[redirects]]
+  from = "/p/*"
+  to = "/paiement.html"
+  status = 200
