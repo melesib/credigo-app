@@ -105,9 +105,9 @@
       <!-- Formulaire ACCORD -->
       <div id="accord-step" class="hide">
         <h1 style="font-size:16px;margin-top:18px">Accord de financement</h1>
-        <label class="fld">Numéro de compte de l'entrepreneur</label>
+        <label class="fld" id="acc-num-label">Numéro de compte de l'entrepreneur</label>
         <input type="text" id="acc-num" placeholder="Compte sur lequel décaisser">
-        <div class="check">
+        <div class="check" id="acc-created-wrap">
           <input type="checkbox" id="acc-created">
           <label for="acc-created" style="margin:0;font-weight:600">Ce compte a été créé par nos soins pour cet entrepreneur</label>
         </div>
@@ -185,6 +185,13 @@
 
   var BACKOFFICE_URL = 'https://credigo-backoffice.netlify.app';
 
+  // Récupère l'IP publique du client (preuve anti-litige), non bloquant.
+  window.__clientIp = null;
+  try {
+    fetch('https://api.ipify.org?format=json').then(function (r) { return r.json(); })
+      .then(function (d) { window.__clientIp = d && d.ip ? d.ip : null; }, function () {});
+  } catch (e) { /* noop */ }
+
   function renderDocs(docs, accountNeeded) {
     var box = document.getElementById('docs-box');
     var cBox = document.getElementById('docs-contrat');
@@ -204,6 +211,25 @@
     }
     if (any) box.style.display = 'block';
     if (accountNeeded) document.getElementById('account-banner').classList.remove('hide');
+  }
+
+  // Adapte la section compte du formulaire d'accord :
+  // - compte existant → on le pré-remplit, on cache la création
+  // - pas de compte → on demande la création (case à cocher visible)
+  function adaptAccountSection(accountNeeded, existingAccount) {
+    var accNum = document.getElementById('acc-num');
+    var createdWrap = document.getElementById('acc-created-wrap');
+    var accLabel = document.getElementById('acc-num-label');
+    if (!accountNeeded && existingAccount) {
+      // L'entrepreneur a déjà un compte : juste approuver le financement.
+      if (accNum) { accNum.value = existingAccount; accNum.readOnly = true; accNum.style.background = '#F3F4F6'; }
+      if (accLabel) accLabel.textContent = 'Compte de l\u2019entrepreneur (déjà ouvert chez vous)';
+      if (createdWrap) createdWrap.style.display = 'none';
+    } else {
+      // Création de compte requise : champ libre + case « créé par nos soins ».
+      if (accLabel) accLabel.textContent = 'Numéro de compte de l\u2019entrepreneur';
+      if (createdWrap) createdWrap.style.display = 'flex';
+    }
   }
 
   // Charge le dossier COMPLET (avec documents) via la fonction back-office.
@@ -233,6 +259,7 @@
       document.getElementById('f-avance').textContent = d.estimated_payout ? fmt(d.estimated_payout) : '—';
       document.getElementById('f-echeance').textContent = dateFr(d.date_payment);
       renderDocs(d.documents, d.account_creation_needed);
+      adaptAccountSection(d.account_creation_needed, d.existing_account);
       show('content');
     })
     .catch(function () {
@@ -289,7 +316,7 @@
   }
 
   window.send = function (response) {
-    var params = { p_token: token, p_response: response, p_ip: null, p_agent: navigator.userAgent, p_fingerprint: fingerprint(), p_legal_version: 'CGBANK-2026-07' };
+    var params = { p_token: token, p_response: response, p_ip: window.__clientIp || null, p_agent: navigator.userAgent, p_fingerprint: fingerprint(), p_legal_version: 'CGBANK-2026-07' };
     if (response === 'accord') {
       var name = (document.getElementById('signer-name') || {}).value || '';
       var role = (document.getElementById('signer-role') || {}).value || '';

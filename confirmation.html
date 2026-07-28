@@ -242,6 +242,13 @@
     auth: { persistSession: false, autoRefreshToken: false, detectSessionInUrl: false }
   });
 
+  // Récupère l'IP publique du client (preuve anti-litige), non bloquant.
+  window.__clientIp = null;
+  try {
+    fetch('https://api.ipify.org?format=json').then(function (r) { return r.json(); })
+      .then(function (d) { window.__clientIp = d && d.ip ? d.ip : null; }, function () {});
+  } catch (e) { /* noop */ }
+
   // Charger la sollicitation
   sb.rpc('get_solicitation', { p_token: token }).then(function (res) {
     if (res.error || !res.data || res.data.length === 0) {
