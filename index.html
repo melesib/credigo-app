@@ -4039,7 +4039,9 @@ function loadPartnerDonneurs(){
       donneurs.forEach(function(d){
         var opt=document.createElement('option');
         opt.className='partner-opt';
-        opt.value=d.name; opt.textContent=d.name;
+        opt.value=d.id;            // on capte désormais l'ID du donneur (plus le nom)
+        opt.dataset.name=d.name;   // le nom reste disponible pour l'affichage
+        opt.textContent=d.name;
         sel.insertBefore(opt, autreOpt);
       });
     }).catch(function(){});
@@ -4434,14 +4436,18 @@ function wizSubmit(){
   var manque = wizBanks.find(function(b){ return b.hasAccount !== false && !(b.accountNumber||'').trim(); });
   if(manque){ toast('Indiquez votre numéro de compte chez '+manque.name+', ou demandez une ouverture de compte.'); return; }
 
-  // Donneur d'ordre : partenaire (select) ou saisie libre
+  // Donneur d'ordre : partenaire (select → id) ou saisie libre (nom seul)
   var clientSel=document.getElementById('f-client');
   var donneurName='';
+  var donneurId=null;
   if(clientSel){
     if(clientSel.value==='autre'){
       donneurName=(document.getElementById('f-client-name')||{}).value||'';
-    } else {
-      donneurName=clientSel.value||'';
+    } else if(clientSel.value){
+      // Partenaire connu : la value est l'ID, le nom est dans data-name.
+      donneurId=clientSel.value;
+      var selOpt=clientSel.options[clientSel.selectedIndex];
+      donneurName=(selOpt && selOpt.dataset && selOpt.dataset.name) ? selOpt.dataset.name : (selOpt ? selOpt.textContent : '');
     }
   }
 
@@ -4464,6 +4470,7 @@ function wizSubmit(){
     date_end: (document.getElementById('f-date-fin')||{}).value||null,
     date_payment: (document.getElementById('f-date-paie')||{}).value||null,
     donneur_ordre_name: donneurName||null,
+    donneur_ordre_id: donneurId||null,
     bank_partner: (typeof wizBank!=='undefined'?wizBank:'')||null,
     bank_choices: wizBanks.map(function(b, i){ return { rang: i+1, id: b.id, name: b.name,
       has_account: b.hasAccount !== false,

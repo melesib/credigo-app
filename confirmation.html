@@ -289,20 +289,16 @@
     if (dp) document.getElementById('f-paie').textContent = dp;
     else document.getElementById('r-paie').style.display = 'none';
 
-    // Le compte de cantonnement lui est AFFICHÉ, pas demandé : c'est à nous de
-    // lui dire où payer. Garde-fou : il l'a vu noir sur blanc avant de valider.
-    document.getElementById('acc-bank').textContent =
-      data.bank_partner ? 'Compte de cantonnement chez ' + data.bank_partner : 'Compte de cantonnement';
-    if (data.cantonnement_account) {
-      document.getElementById('acc-num').textContent = data.cantonnement_account;
-      document.getElementById('acc-label').textContent = data.cantonnement_label || 'CREDIGO';
-    } else {
-      // Compte non renseigné côté back-office : on ne bloque pas la confirmation,
-      // mais on est transparent.
-      document.getElementById('acc-num').textContent = 'Communiqué prochainement';
-      document.getElementById('acc-label').textContent =
-        'Nos équipes vous transmettront les coordonnées avant l\'échéance.';
-    }
+    // Le compte de cantonnement n'est PAS montré à ce stade : aucune banque
+    // n'a encore approuvé le financement, donc on ne sait pas sur quel compte
+    // le paiement devra être versé. Il sera communiqué APRÈS l'accord d'une
+    // banque, dans un second message dédié.
+    var accBank = document.getElementById('acc-bank');
+    var accNum = document.getElementById('acc-num');
+    var accLabel = document.getElementById('acc-label');
+    if (accBank) accBank.textContent = 'Coordonnées de paiement';
+    if (accNum) accNum.textContent = 'Communiquées après validation';
+    if (accLabel) accLabel.textContent = 'Dès qu\'une banque partenaire aura confirmé le financement, nous vous transmettrons le compte exact sur lequel régler ce marché, avant l\'échéance.';
 
     show('content');
   }).catch(function () { fail(); });

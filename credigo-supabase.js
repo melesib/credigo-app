@@ -636,6 +636,7 @@
       date_end: req.date_end || null,
       date_payment: req.date_payment || null,
       donneur_ordre_name: req.donneur_ordre_name || null,
+      donneur_ordre_id: req.donneur_ordre_id || null,
       bank_partner: req.bank_partner || null,
       bank_choices: Array.isArray(req.bank_choices) ? req.bank_choices : [],
       bank_account_number: req.bank_account_number || null,
