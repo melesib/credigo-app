@@ -232,58 +232,48 @@
     }
   }
 
-  // Charge le dossier COMPLET (avec documents) via la fonction back-office.
-  fetch(BACKOFFICE_URL + '/.netlify/functions/bank-dossier-view?token=' + encodeURIComponent(token))
-    .then(function (r) { return r.json(); })
-    .then(function (d) {
-      if (d.error === 'expired') return fail('Ce lien a expiré. Contactez Credigo.');
-      if (d.error) return fail('Ce lien est invalide ou a expiré.');
-      if (d.status === 'answered' || d.response) { finish(d.response); return; }
+  // Remplit les infos du dossier (commun aux deux voies de chargement).
+  function fillDossier(d) {
+    document.getElementById('lead').textContent = (d.bank_name || 'Votre \u00e9tablissement') + ' \u2014 merci d\u2019\u00e9tudier ce dossier et de nous communiquer votre d\u00e9cision.';
+    document.getElementById('f-num').textContent = d.contract_number || '\u2014';
+    document.getElementById('f-type').textContent = d.type === 'affacturage' ? 'Affacturage' : 'Financement de commande';
+    document.getElementById('f-objet').textContent = d.market_object || '\u2014';
+    document.getElementById('f-refdo').textContent = d.donneur_ref_brute || '\u2014';
+    document.getElementById('f-ent').textContent = d.entrepreneur || '\u2014';
+    var sc = scoreClass(d.reliability_score);
+    var se = document.getElementById('f-score'); se.textContent = sc.label; se.style.background = sc.bg; se.style.color = sc.c;
+    var contact = [d.entrepreneur_phone, d.entrepreneur_email].filter(Boolean).join(' \u00b7 ');
+    document.getElementById('f-contact').textContent = contact || '\u2014';
+    document.getElementById('f-donneur').textContent = d.donneur_ordre_name || '\u2014';
+    var sd = scoreClass(d.donneur_score); var de = document.getElementById('f-donneur-score');
+    if (de) { de.textContent = sd.label; de.style.background = sd.bg; de.style.color = sd.c; }
+    document.getElementById('f-montant').textContent = fmt(d.market_amount);
+    document.getElementById('f-avance').textContent = d.estimated_payout ? fmt(d.estimated_payout) : '\u2014';
+    document.getElementById('f-echeance').textContent = dateFr(d.date_payment);
+  }
 
-      // Enregistre l'ouverture (démarre le suivi de réactivité).
-      sb.rpc('track_bank_dossier_open', { p_token: token }).then(function () {}, function () {});
+  // 1) AFFICHAGE IMMEDIAT via le RPC leger (direct Supabase, rapide).
+  sb.rpc('get_bank_dossier', { p_token: token }).then(function (res) {
+    if (res.error || !res.data || res.data.error) {
+      var e = res.data && res.data.error;
+      return fail(e === 'expired' ? 'Ce lien a expir\u00e9. Contactez Credigo.' : 'Ce lien est invalide ou a expir\u00e9.');
+    }
+    var d = res.data;
+    if (d.status === 'answered' || d.response) { finish(d.response); return; }
+    sb.rpc('track_bank_dossier_open', { p_token: token }).then(function () {}, function () {});
+    fillDossier(d);
+    show('content');
 
-      document.getElementById('lead').textContent = (d.bank_name || 'Votre établissement') + ' — merci d\u2019étudier ce dossier et de nous communiquer votre décision.';
-      document.getElementById('f-num').textContent = d.contract_number || '—';
-      document.getElementById('f-type').textContent = d.type === 'affacturage' ? 'Affacturage' : 'Financement de commande';
-      document.getElementById('f-objet').textContent = d.market_object || '—';
-      document.getElementById('f-refdo').textContent = d.donneur_ref_brute || '—';
-      document.getElementById('f-ent').textContent = d.entrepreneur || '—';
-      var sc = scoreClass(d.reliability_score);
-      var se = document.getElementById('f-score'); se.textContent = sc.label; se.style.background = sc.bg; se.style.color = sc.c;
-      var contact = [d.entrepreneur_phone, d.entrepreneur_email].filter(Boolean).join(' · ');
-      document.getElementById('f-contact').textContent = contact || '—';
-      document.getElementById('f-donneur').textContent = d.donneur_ordre_name || '—';
-      (function(){ var sd = scoreClass(d.donneur_score); var el = document.getElementById('f-donneur-score'); if(el){ el.textContent = sd.label; el.style.background = sd.bg; el.style.color = sd.c; } })();
-      document.getElementById('f-montant').textContent = fmt(d.market_amount);
-      document.getElementById('f-avance').textContent = d.estimated_payout ? fmt(d.estimated_payout) : '—';
-      document.getElementById('f-echeance').textContent = dateFr(d.date_payment);
-      renderDocs(d.documents, d.account_creation_needed);
-      adaptAccountSection(d.account_creation_needed, d.existing_account);
-      show('content');
-    })
-    .catch(function () {
-      // Repli : au moins les infos via le RPC (sans documents).
-      sb.rpc('get_bank_dossier', { p_token: token }).then(function (res) {
-        if (res.error || !res.data || res.data.error) return fail('Ce lien est invalide ou a expiré.');
-        var d = res.data;
-        if (d.status === 'answered' || d.response) { finish(d.response); return; }
-        sb.rpc('track_bank_dossier_open', { p_token: token }).then(function () {}, function () {});
-        document.getElementById('f-num').textContent = d.contract_number || '—';
-        document.getElementById('f-type').textContent = d.type === 'affacturage' ? 'Affacturage' : 'Financement de commande';
-        document.getElementById('f-objet').textContent = d.market_object || '—';
-        document.getElementById('f-refdo').textContent = d.donneur_ref_brute || '—';
-        document.getElementById('f-ent').textContent = d.entrepreneur || '—';
-        var sc = scoreClass(d.reliability_score);
-        var se = document.getElementById('f-score'); se.textContent = sc.label; se.style.background = sc.bg; se.style.color = sc.c;
-        document.getElementById('f-donneur').textContent = d.donneur_ordre_name || '—';
-      (function(){ var sd = scoreClass(d.donneur_score); var el = document.getElementById('f-donneur-score'); if(el){ el.textContent = sd.label; el.style.background = sd.bg; el.style.color = sd.c; } })();
-        document.getElementById('f-montant').textContent = fmt(d.market_amount);
-        document.getElementById('f-avance').textContent = d.estimated_payout ? fmt(d.estimated_payout) : '—';
-        document.getElementById('f-echeance').textContent = dateFr(d.date_payment);
-        show('content');
-      }, function () { fail('Service momentanément indisponible.'); });
-    });
+    // 2) EN ARRIERE-PLAN : documents + detail compte via la fonction back-office.
+    fetch(BACKOFFICE_URL + '/.netlify/functions/bank-dossier-view?token=' + encodeURIComponent(token))
+      .then(function (r) { return r.json(); })
+      .then(function (full) {
+        if (!full || full.error) return;
+        renderDocs(full.documents, full.account_creation_needed);
+        adaptAccountSection(full.account_creation_needed, full.existing_account);
+      })
+      .catch(function () { /* documents non bloquants */ });
+  }, function () { fail('Service momentan\u00e9ment indisponible.'); });
 
   // Navigation
   window.showAccord = function () { document.getElementById('choice').classList.add('hide'); document.getElementById('accord-step').classList.remove('hide'); setTimeout(initSign, 50); };
