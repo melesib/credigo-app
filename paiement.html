@@ -55,12 +55,50 @@
 
       <div class="warn">⚠️ Réglez <b>uniquement</b> sur ce compte, pour ce dossier. N'utilisez aucune autre coordonnée, même transmise par un tiers ou par le prestataire.</div>
 
+      <!-- Instructions de paiement : le motif à recopier -->
+      <div style="border:1px solid #E5E7EB;border-radius:12px;padding:14px;margin-bottom:14px">
+        <div style="font-size:12px;font-weight:800;color:#6C3FE8;text-transform:uppercase;letter-spacing:.4px;margin-bottom:8px">Comment payer</div>
+        <ol style="margin:0 0 0 18px;padding:0;font-size:13px;line-height:1.7;color:#374151">
+          <li>Effectuez le virement sur le compte de cantonnement ci-dessus, à l'échéance.</li>
+          <li>Indiquez <b>obligatoirement</b> ce motif sur le virement :</li>
+        </ol>
+        <div style="background:#F9FAFB;border:1px dashed #C4B5FD;border-radius:8px;padding:10px;margin:8px 0;font-family:monospace;font-size:13px;font-weight:700;color:#4C1D95;word-break:break-all" id="p-motif">—</div>
+        <button type="button" id="copy-motif" style="font-size:11px;color:#6C3FE8;background:none;border:none;cursor:pointer;padding:0;font-weight:700">Copier le motif</button>
+        <ol start="3" style="margin:8px 0 0 18px;padding:0;font-size:13px;line-height:1.7;color:#374151">
+          <li>Après le paiement, revenez sur ce lien pour <b>soumettre votre preuve de virement</b> (reçu + informations). Cela nous permet de rapprocher votre paiement et de solder le dossier.</li>
+        </ol>
+      </div>
+
       <button class="btn" id="btn-ack">J'ai bien reçu ces coordonnées</button>
+    </div>
+
+    <!-- Écran de soumission de preuve (après réception, quand le paiement est fait) -->
+    <div id="proof-step" class="hide">
+      <h1>Soumettre la preuve de virement</h1>
+      <div class="lead">Une fois le paiement effectué, transmettez-nous le reçu et les informations du virement pour ce dossier <b id="proof-num">—</b>.</div>
+
+      <label style="display:block;font-size:12px;font-weight:700;color:#4B5563;margin:10px 0 4px">Reçu / justificatif de virement</label>
+      <input type="file" id="proof-file" accept="image/jpeg,image/png,image/webp,application/pdf" style="width:100%;font-size:13px">
+      <div style="font-size:11px;color:#9CA3AF;margin-top:3px">Image (JPEG, PNG, WEBP) ou PDF, max 8 Mo.</div>
+
+      <label style="display:block;font-size:12px;font-weight:700;color:#4B5563;margin:12px 0 4px">Référence du virement</label>
+      <input type="text" id="proof-ref" placeholder="Référence indiquée par votre banque" style="width:100%;padding:11px;border:1px solid #E5E7EB;border-radius:10px;font-size:13.5px;font-family:inherit">
+
+      <div style="display:flex;gap:10px">
+        <div style="flex:1"><label style="display:block;font-size:12px;font-weight:700;color:#4B5563;margin:12px 0 4px">Date du virement</label>
+        <input type="date" id="proof-date" style="width:100%;padding:11px;border:1px solid #E5E7EB;border-radius:10px;font-size:13.5px;font-family:inherit"></div>
+        <div style="flex:1"><label style="display:block;font-size:12px;font-weight:700;color:#4B5563;margin:12px 0 4px">Montant viré (FCFA)</label>
+        <input type="number" id="proof-amount" placeholder="Montant" style="width:100%;padding:11px;border:1px solid #E5E7EB;border-radius:10px;font-size:13.5px;font-family:inherit"></div>
+      </div>
+
+      <button class="btn" id="btn-proof" style="background:#6C3FE8">Envoyer ma preuve de virement</button>
+      <button class="btn" id="btn-proof-back" style="background:#fff;color:#6B7280;border:1px solid #E5E7EB;margin-top:8px">Retour</button>
     </div>
 
     <div id="done" class="msg hide">
       <div class="ico">✓</div>
       <div id="done-msg">Merci — votre réception est bien enregistrée. Vous réglerez ce marché sur le compte indiqué, à l'échéance.</div>
+      <button class="btn" id="btn-goto-proof" style="background:#6C3FE8;margin-top:16px">J'ai déjà payé — soumettre ma preuve</button>
     </div>
 
     <div class="foot">Ce lien est personnel et sécurisé. En cas de doute, contactez Credigo directement.</div>
@@ -79,7 +117,7 @@
   var sb = null;
   var token = (location.pathname.split('/p/')[1] || '').split('?')[0].split('#')[0].trim();
 
-  function show(id) { ['loading','invalid','content','done'].forEach(function (x) { document.getElementById(x).classList.toggle('hide', x !== id); }); }
+  function show(id) { ['loading','invalid','content','proof-step','done'].forEach(function (x) { document.getElementById(x).classList.toggle('hide', x !== id); }); }
   function fail(msg) { if (msg) document.getElementById('invalid-msg').textContent = msg; show('invalid'); }
   function fmt(n) { return new Intl.NumberFormat('fr-FR').format(Math.round(n || 0)) + ' FCFA'; }
   function dateFr(d) { if (!d) return '—'; try { return new Date(d).toLocaleDateString('fr-FR', { day: '2-digit', month: 'long', year: 'numeric' }); } catch (e) { return d; } }
@@ -97,7 +135,17 @@
       return fail(e === 'expired' ? 'Ce lien a expiré. Contactez Credigo.' : 'Ce lien est invalide ou a expiré.');
     }
     var d = res.data;
-    if (d.acknowledged) { show('done'); return; }
+    if (d.proof_submitted || d.payment_status === 'declared' || d.payment_status === 'verified') {
+      document.getElementById('done-msg').textContent = 'Votre preuve de virement a bien été reçue. Nous procédons au rapprochement. Merci.';
+      var gp = document.getElementById('btn-goto-proof'); if (gp) gp.style.display = 'none';
+      show('done'); return;
+    }
+    if (d.acknowledged) {
+      // Coordonnées déjà reçues : on propose directement la soumission de preuve.
+      window.__motif = d.payment_motif || '';
+      window.__num = d.contract_number || '';
+      show('done'); return;
+    }
     sb.rpc('track_payment_open', { p_token: token }).then(function () {}, function () {});
 
     document.getElementById('p-bank').textContent = d.bank_name ? ('Compte de cantonnement — ' + d.bank_name) : 'Compte de cantonnement';
@@ -107,6 +155,10 @@
     document.getElementById('p-objet').textContent = d.market_object || '—';
     document.getElementById('p-montant').textContent = fmt(d.amount_expected);
     document.getElementById('p-echeance').textContent = dateFr(d.date_payment);
+    document.getElementById('p-motif').textContent = d.payment_motif || d.contract_number || '—';
+    window.__motif = d.payment_motif || '';
+    window.__num = d.contract_number || '';
+    document.getElementById('proof-num').textContent = d.contract_number || '';
     show('content');
   }, function () { fail('Service momentanément indisponible.'); });
 
@@ -118,6 +170,71 @@
         if (res.error) { b.disabled = false; b.textContent = 'J\u2019ai bien reçu ces coordonnées'; alert('Réessayez.'); return; }
         show('done');
       }, function () { b.disabled = false; b.textContent = 'J\u2019ai bien reçu ces coordonnées'; alert('Connexion impossible.'); });
+  });
+
+  // Copier le motif de virement
+  var copyBtn = document.getElementById('copy-motif');
+  if (copyBtn) copyBtn.addEventListener('click', function () {
+    var m = document.getElementById('p-motif').textContent;
+    try { navigator.clipboard.writeText(m); copyBtn.textContent = 'Motif copié ✓'; setTimeout(function () { copyBtn.textContent = 'Copier le motif'; }, 2000); } catch (e) {}
+  });
+
+  // Aller à l'étape de soumission de preuve
+  var goProof = document.getElementById('btn-goto-proof');
+  if (goProof) goProof.addEventListener('click', function () {
+    document.getElementById('proof-num').textContent = window.__num || '';
+    show('proof-step');
+  });
+  var proofBack = document.getElementById('btn-proof-back');
+  if (proofBack) proofBack.addEventListener('click', function () { show('done'); });
+
+  // Soumettre la preuve de virement (fichier + infos)
+  var proofBtn = document.getElementById('btn-proof');
+  if (proofBtn) proofBtn.addEventListener('click', function () {
+    var fileInput = document.getElementById('proof-file');
+    var ref = (document.getElementById('proof-ref') || {}).value || '';
+    var date = (document.getElementById('proof-date') || {}).value || '';
+    var amount = (document.getElementById('proof-amount') || {}).value || '';
+    var file = fileInput && fileInput.files && fileInput.files[0];
+
+    if (!file && !ref.trim() && !amount) {
+      alert('Merci de joindre le reçu ou d\u2019indiquer au moins la référence du virement.');
+      return;
+    }
+    proofBtn.disabled = true; proofBtn.textContent = 'Envoi…';
+
+    function sendProof(fileBase64, fileName, contentType) {
+      var BACKOFFICE_URL = 'https://credigo-backoffice.netlify.app';
+      fetch(BACKOFFICE_URL + '/.netlify/functions/payment-proof-upload', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ token: token, fileBase64: fileBase64, fileName: fileName, contentType: contentType, reference: ref.trim() || null, date: date || null, amount: amount || null }),
+      }).then(function (r) { return r.json(); }).then(function (res) {
+        if (res && res.ok) {
+          document.getElementById('done-msg').textContent = 'Votre preuve de virement a bien été reçue. Nous procédons au rapprochement. Merci.';
+          var gp = document.getElementById('btn-goto-proof'); if (gp) gp.style.display = 'none';
+          show('done');
+        } else {
+          proofBtn.disabled = false; proofBtn.textContent = 'Envoyer ma preuve de virement';
+          alert((res && res.error) || 'Envoi impossible. Réessayez.');
+        }
+      }).catch(function () {
+        proofBtn.disabled = false; proofBtn.textContent = 'Envoyer ma preuve de virement';
+        alert('Connexion impossible. Réessayez.');
+      });
+    }
+
+    if (file) {
+      if (file.size > 8 * 1024 * 1024) { alert('Fichier trop volumineux (max 8 Mo).'); proofBtn.disabled = false; proofBtn.textContent = 'Envoyer ma preuve de virement'; return; }
+      var reader = new FileReader();
+      reader.onload = function () {
+        var b64 = String(reader.result).split(',')[1];
+        sendProof(b64, file.name, file.type);
+      };
+      reader.onerror = function () { proofBtn.disabled = false; proofBtn.textContent = 'Envoyer ma preuve de virement'; alert('Lecture du fichier impossible.'); };
+      reader.readAsDataURL(file);
+    } else {
+      sendProof(null, null, null);
+    }
   });
 })();
 </script>
