@@ -94,7 +94,7 @@
   var sb = null;
   var token = (location.pathname.split('/p/')[1] || '').split('?')[0].split('#')[0].trim();
 
-  function show(id) { ['loading','invalid','content','proof-step','done'].forEach(function (x) { document.getElementById(x).classList.toggle('hide', x !== id); }); }
+  function show(id) { ['loading','invalid','content','done'].forEach(function (x) { var el = document.getElementById(x); if (el) el.classList.toggle('hide', x !== id); }); }
   function fail(msg) { if (msg) document.getElementById('invalid-msg').textContent = msg; show('invalid'); }
   function fmt(n) { return new Intl.NumberFormat('fr-FR').format(Math.round(n || 0)) + ' FCFA'; }
   function dateFr(d) { if (!d) return '—'; try { return new Date(d).toLocaleDateString('fr-FR', { day: '2-digit', month: 'long', year: 'numeric' }); } catch (e) { return d; } }
