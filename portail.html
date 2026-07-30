@@ -117,7 +117,18 @@
         + '<button class="btn-sm" data-copy="' + idx + '">Copier le motif</button>'
         + (done
             ? '<div style="margin-top:10px;font-size:12.5px;color:#15803D;font-weight:700">✓ Votre preuve a été reçue. Merci.</div>'
-            : '<button class="btn" data-pay="' + idx + '">J\u2019ai payé — envoyer ma preuve</button>'
+            : '<div class="cap-row" style="margin-top:10px;padding:10px;background:#F9FAFB;border-radius:9px">'
+              + '<div style="font-size:12.5px;font-weight:700;color:#374151;margin-bottom:6px">Pourrez-vous régler à l\u2019échéance ?</div>'
+              + '<div style="display:flex;gap:6px;flex-wrap:wrap">'
+              + '<button class="cap-btn" data-cap-yes="' + idx + '" style="flex:1;padding:9px;border-radius:8px;border:1.5px solid #86EFAC;background:#fff;font-weight:700;font-size:12.5px;cursor:pointer;color:#15803D">Oui, je confirme</button>'
+              + '<button class="cap-btn" data-cap-new="' + idx + '" style="flex:1;padding:9px;border-radius:8px;border:1.5px solid #FED7AA;background:#fff;font-weight:700;font-size:12.5px;cursor:pointer;color:#C2410C">Proposer une autre date</button>'
+              + '</div>'
+              + '<div class="cap-new hide" id="capnew-' + idx + '" style="margin-top:8px">'
+              + '<label>Nouvelle date envisagée</label><input type="date" id="capdate-' + idx + '">'
+              + '<button class="btn" data-cap-submit="' + idx + '" style="margin-top:8px;background:#C2410C">Valider cette date</button></div>'
+              + '<div class="cap-done hide" id="capdone-' + idx + '" style="margin-top:6px;font-size:12px;color:#15803D;font-weight:700"></div>'
+              + '</div>'
+              + '<button class="btn" data-pay="' + idx + '">J\u2019ai payé — envoyer ma preuve</button>'
               + '<div class="proof-form hide" id="pf-' + idx + '" style="margin-top:10px">'
               + '<label>Reçu / justificatif (image ou PDF)</label>'
               + '<input type="file" id="file-' + idx + '" accept="image/jpeg,image/png,image/webp,application/pdf" style="margin-top:4px">'
@@ -144,6 +155,50 @@
     list.querySelectorAll('[data-submit]').forEach(function (b) {
       b.addEventListener('click', function () { submitProof(b.dataset.submit, items[b.dataset.submit].token, b); });
     });
+
+    // Confirmation de capacité à payer
+    function capConfirm(idx, canPay, newDate) {
+      var token = items[idx].token;
+      sb.rpc('confirm_payment_capacity', {
+        p_token: token, p_can_pay: canPay, p_new_date: newDate || null,
+        p_ip: window.__clientIp || null, p_agent: navigator.userAgent,
+        p_fingerprint: fingerprint(),
+      }).then(function (res) {
+        var done = document.getElementById('capdone-' + idx);
+        if (res.error || (res.data && res.data.error)) { alert('Réessayez.'); return; }
+        if (done) {
+          done.classList.remove('hide');
+          done.textContent = canPay ? '✓ Merci, votre confirmation est enregistrée.' : '✓ Nouvelle date enregistrée : ' + newDate;
+        }
+        var yes = list.querySelector('[data-cap-yes="' + idx + '"]');
+        var nw = list.querySelector('[data-cap-new="' + idx + '"]');
+        var nwForm = document.getElementById('capnew-' + idx);
+        if (yes) yes.style.display = 'none';
+        if (nw) nw.style.display = 'none';
+        if (nwForm) nwForm.classList.add('hide');
+      }, function () { alert('Connexion impossible.'); });
+    }
+    list.querySelectorAll('[data-cap-yes]').forEach(function (b) {
+      b.addEventListener('click', function () { capConfirm(b.dataset.capYes, true, null); });
+    });
+    list.querySelectorAll('[data-cap-new]').forEach(function (b) {
+      b.addEventListener('click', function () { document.getElementById('capnew-' + b.dataset.capNew).classList.remove('hide'); });
+    });
+    list.querySelectorAll('[data-cap-submit]').forEach(function (b) {
+      b.addEventListener('click', function () {
+        var nd = (document.getElementById('capdate-' + b.dataset.capSubmit) || {}).value || '';
+        if (!nd) { alert('Choisissez une date.'); return; }
+        capConfirm(b.dataset.capSubmit, false, nd);
+      });
+    });
+  }
+
+  function fingerprint() {
+    try {
+      var raw = [navigator.userAgent, navigator.language, screen.width + 'x' + screen.height, new Date().getTimezoneOffset()].join('|');
+      var h = 0; for (var i = 0; i < raw.length; i++) { h = ((h << 5) - h) + raw.charCodeAt(i); h |= 0; }
+      return 'fp_' + Math.abs(h).toString(36);
+    } catch (e) { return null; }
   }
 
   function submitProof(idx, token, btn) {
