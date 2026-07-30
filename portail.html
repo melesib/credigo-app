@@ -125,7 +125,7 @@
   sb = window.supabase.createClient(url, key, { auth: { persistSession: false, autoRefreshToken: false, detectSessionInUrl: false } });
 
   window.__clientIp = null;
-  try { fetch('https://api.ipify.org?format=json').then(function (r) { return r.json(); }).then(function (d) { window.__clientIp = d && d.ip ? d.ip : null; }, function () {}); } catch (e) {}
+  try { var _ipc = new AbortController(); setTimeout(function(){ try{_ipc.abort();}catch(e){} }, 3000); fetch('https://api.ipify.org?format=json', { signal: _ipc.signal }).then(function (r) { return r.json(); }).then(function (d) { window.__clientIp = d && d.ip ? d.ip : null; }, function () {}); } catch (e) {}
 
   var STATE_BADGE = {
     to_verify: '<span class="badge b-verify">\u00c0 v\u00e9rifier</span>',
