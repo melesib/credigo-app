@@ -3,38 +3,50 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Credigo — Mes paiements</title>
+<title>Credigo — Mon espace</title>
 <style>
   * { box-sizing: border-box; margin: 0; padding: 0; }
-  body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: #F5F3FF; color: #1F2937; line-height: 1.5; padding: 18px; }
-  .wrap { max-width: 620px; margin: 20px auto; }
-  .head { text-align: center; margin-bottom: 18px; }
-  .logo { font-size: 25px; font-weight: 800; color: #6C3FE8; }
-  .sub { color: #6B7280; font-size: 13px; }
-  .tip { background: #EEF2FF; border: 1px solid #C7D2FE; border-radius: 10px; padding: 11px 13px; font-size: 12.5px; color: #3730A3; margin-bottom: 16px; line-height: 1.5; }
-  .card { background: #fff; border-radius: 14px; padding: 18px; box-shadow: 0 4px 16px rgba(76,29,149,.07); margin-bottom: 12px; }
-  .c-top { display: flex; justify-content: space-between; align-items: flex-start; gap: 10px; margin-bottom: 10px; }
+  body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: #F5F3FF; color: #1F2937; line-height: 1.5; padding: 16px; }
+  .wrap { max-width: 640px; margin: 16px auto; }
+  .head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 14px; }
+  .logo { font-size: 24px; font-weight: 800; color: #6C3FE8; }
+  .bell { position: relative; font-size: 22px; color: #6B7280; cursor: pointer; }
+  .pastille { position: absolute; top: -6px; right: -8px; background: #DC2626; color: #fff; font-size: 10px; font-weight: 800; min-width: 17px; height: 17px; border-radius: 9px; display: flex; align-items: center; justify-content: center; padding: 0 4px; }
+  .sub { color: #6B7280; font-size: 13px; margin-bottom: 14px; }
+  .tabs { display: flex; gap: 6px; margin-bottom: 14px; }
+  .tab { flex: 1; padding: 9px; border-radius: 9px; border: 1.5px solid #E5E7EB; background: #fff; font-size: 12.5px; font-weight: 700; cursor: pointer; text-align: center; color: #6B7280; }
+  .tab.active { background: #6C3FE8; color: #fff; border-color: #6C3FE8; }
+  .tab .cnt { display: inline-block; margin-left: 4px; background: rgba(0,0,0,.12); border-radius: 10px; padding: 0 6px; font-size: 11px; }
+  .tab.active .cnt { background: rgba(255,255,255,.25); }
+  .tip { background: #EEF2FF; border: 1px solid #C7D2FE; border-radius: 10px; padding: 10px 12px; font-size: 12px; color: #3730A3; margin-bottom: 14px; line-height: 1.5; }
+  .card { background: #fff; border-radius: 14px; padding: 16px; box-shadow: 0 4px 16px rgba(76,29,149,.07); margin-bottom: 12px; }
+  .card.act { border-left: 4px solid #DC2626; }
+  .c-top { display: flex; justify-content: space-between; align-items: flex-start; gap: 10px; margin-bottom: 8px; }
   .c-obj { font-size: 15px; font-weight: 800; color: #111827; }
-  .c-num { font-family: monospace; font-size: 12px; color: #6C3FE8; font-weight: 700; }
-  .badge { font-size: 11px; font-weight: 800; padding: 3px 10px; border-radius: 20px; white-space: nowrap; }
-  .b-await { background: #FEF3C7; color: #B45309; }
-  .b-declared { background: #DBEAFE; color: #1E40AF; }
-  .b-verified { background: #DCFCE7; color: #15803D; }
+  .c-num { font-family: monospace; font-size: 11.5px; color: #6C3FE8; font-weight: 700; }
+  .badge { font-size: 10.5px; font-weight: 800; padding: 3px 9px; border-radius: 20px; white-space: nowrap; }
+  .b-verify { background: #FEE2E2; color: #B91C1C; }
+  .b-progress { background: #E0E7FF; color: #3730A3; }
+  .b-approved { background: #DBEAFE; color: #1E40AF; }
+  .b-topay { background: #FEF3C7; color: #B45309; }
+  .b-paid { background: #DCFCE7; color: #15803D; }
   .acct { background: #F5F3FF; border: 1px solid #DDD6FE; border-radius: 10px; padding: 11px; margin: 10px 0; }
   .acct-num { font-size: 16px; font-weight: 800; color: #4C1D95; word-break: break-all; }
   .acct-meta { font-size: 12px; color: #7C3AED; }
-  .row { display: flex; justify-content: space-between; font-size: 13px; padding: 4px 0; }
-  .row .k { color: #6B7280; }
-  .row .v { font-weight: 700; }
+  .row { display: flex; justify-content: space-between; font-size: 13px; padding: 3px 0; }
+  .row .k { color: #6B7280; } .row .v { font-weight: 700; }
   .motif { background: #F9FAFB; border: 1px dashed #C4B5FD; border-radius: 8px; padding: 8px; font-family: monospace; font-size: 12px; font-weight: 700; color: #4C1D95; word-break: break-all; margin: 6px 0; }
   .btn { width: 100%; padding: 12px; border-radius: 10px; border: none; font-size: 14px; font-weight: 800; cursor: pointer; font-family: inherit; background: #6C3FE8; color: #fff; margin-top: 8px; }
+  .btn-2 { background: #15803D; } .btn-3 { background: #C2410C; }
   .btn-sm { font-size: 11px; color: #6C3FE8; background: none; border: none; cursor: pointer; padding: 0; font-weight: 700; }
+  .btns2 { display: flex; gap: 6px; }
+  .btns2 .btn { flex: 1; }
   .hide { display: none; }
   .msg { text-align: center; padding: 40px 10px; color: #6B7280; }
   .ico { font-size: 40px; margin-bottom: 10px; }
-  .file-row { margin-top: 8px; }
+  label { font-size: 11.5px; font-weight: 700; color: #4B5563; display: block; margin-top: 8px; }
   input[type=text], input[type=date], input[type=number] { width: 100%; padding: 10px; border: 1px solid #E5E7EB; border-radius: 9px; font-size: 13px; font-family: inherit; margin-top: 4px; }
-  label { font-size: 11.5px; font-weight: 700; color: #4B5563; }
+  input[type=file] { margin-top: 4px; font-size: 12.5px; }
   .foot { text-align: center; color: #9CA3AF; font-size: 11px; margin-top: 18px; }
 </style>
 </head>
@@ -42,16 +54,21 @@
 <div class="wrap">
   <div class="head">
     <div class="logo">Credigo</div>
-    <div class="sub" id="sub">Vos paiements</div>
+    <div class="bell" id="bell" title="Activer les notifications">&#128276;<span class="pastille hide" id="pastille">0</span></div>
   </div>
+  <div class="sub" id="sub">Mon espace</div>
 
-  <div id="loading" class="msg">Chargement…</div>
-  <div id="invalid" class="msg hide"><div class="ico">⚠️</div><div id="invalid-msg">Lien invalide. Vérifiez votre code d'accès.</div></div>
+  <div id="loading" class="msg">Chargement&#8230;</div>
+  <div id="invalid" class="msg hide"><div class="ico">&#9888;&#65039;</div><div id="invalid-msg">Lien invalide. V&#233;rifiez votre code d'acc&#232;s.</div></div>
 
   <div id="content" class="hide">
-    <div class="tip">💡 Enregistrez cette page dans vos favoris : vous y retrouvez tous vos paiements en cours, à tout moment, sans chercher d'email.</div>
+    <div class="tip">&#128161; Enregistrez cette page dans vos favoris : vous y g&#233;rez tous vos march&#233;s Credigo (v&#233;rifications, paiements, preuves), &#224; tout moment.</div>
+    <div class="tabs">
+      <button class="tab active" id="tab-action" data-tab="action">Action requise<span class="cnt" id="cnt-action">0</span></button>
+      <button class="tab" id="tab-all" data-tab="all">Tous mes march&#233;s<span class="cnt" id="cnt-all">0</span></button>
+    </div>
     <div id="list"></div>
-    <div id="empty" class="msg hide">Aucun paiement en attente pour le moment.</div>
+    <div id="empty" class="msg hide">Rien &#224; afficher ici pour le moment.</div>
   </div>
 
   <div class="foot">Ce lien vous est personnel. Ne le partagez pas. En cas de doute, contactez Credigo.</div>
@@ -69,165 +86,174 @@
   var sb = null;
   var code = (location.pathname.split('/portail/')[1] || '').split('?')[0].split('#')[0].trim();
   var BACKOFFICE_URL = 'https://credigo-backoffice.netlify.app';
+  var allItems = [];
+  var currentTab = 'action';
 
   function show(id) { ['loading','invalid','content'].forEach(function (x) { document.getElementById(x).classList.toggle('hide', x !== id); }); }
   function fail(m) { if (m) document.getElementById('invalid-msg').textContent = m; show('invalid'); }
   function fmt(n) { return new Intl.NumberFormat('fr-FR').format(Math.round(n || 0)) + ' FCFA'; }
-  function dateFr(d) { if (!d) return '—'; try { return new Date(d).toLocaleDateString('fr-FR', { day: '2-digit', month: 'long', year: 'numeric' }); } catch (e) { return d; } }
+  function dateFr(d) { if (!d) return '\u2014'; try { return new Date(d).toLocaleDateString('fr-FR', { day: '2-digit', month: 'long', year: 'numeric' }); } catch (e) { return d; } }
+  function fingerprint() {
+    try { var raw = [navigator.userAgent, navigator.language, screen.width + 'x' + screen.height, new Date().getTimezoneOffset()].join('|'); var h = 0; for (var i = 0; i < raw.length; i++) { h = ((h << 5) - h) + raw.charCodeAt(i); h |= 0; } return 'fp_' + Math.abs(h).toString(36); } catch (e) { return null; }
+  }
 
-  if (!code) { fail('Code d\u2019accès manquant.'); return; }
-  if (!url || !key || url.indexOf('__') === 0 || !window.supabase) { fail('Service momentanément indisponible.'); return; }
+  if (!code) { fail('Code d\u2019acc\u00e8s manquant.'); return; }
+  if (!url || !key || url.indexOf('__') === 0 || !window.supabase) { fail('Service momentan\u00e9ment indisponible.'); return; }
   sb = window.supabase.createClient(url, key, { auth: { persistSession: false, autoRefreshToken: false, detectSessionInUrl: false } });
 
   window.__clientIp = null;
   try { fetch('https://api.ipify.org?format=json').then(function (r) { return r.json(); }).then(function (d) { window.__clientIp = d && d.ip ? d.ip : null; }, function () {}); } catch (e) {}
 
-  sb.rpc('get_donneur_portal', { p_code: code }).then(function (res) {
-    if (res.error || !res.data || res.data.error) return fail('Lien invalide. Vérifiez votre code d\u2019accès.');
-    var d = res.data;
-    document.getElementById('sub').textContent = d.donneur_name ? ('Paiements — ' + d.donneur_name) : 'Vos paiements';
-    var items = d.items || [];
-    if (!items.length) { show('content'); document.getElementById('empty').classList.remove('hide'); return; }
-    renderList(items);
-    show('content');
-  }, function () { fail('Service momentanément indisponible.'); });
-
-  function badge(status) {
-    if (status === 'verified') return '<span class="badge b-verified">Payé ✓</span>';
-    if (status === 'declared') return '<span class="badge b-declared">Preuve envoyée</span>';
-    return '<span class="badge b-await">À régler</span>';
+  function load() {
+    sb.rpc('get_donneur_portal', { p_code: code }).then(function (res) {
+      if (res.error || !res.data || res.data.error) return fail('Lien invalide. V\u00e9rifiez votre code d\u2019acc\u00e8s.');
+      var d = res.data;
+      document.getElementById('sub').textContent = d.donneur_name ? ('Espace de ' + d.donneur_name) : 'Mon espace';
+      allItems = d.items || [];
+      var nAction = allItems.filter(function (it) { return it.action_required; }).length;
+      document.getElementById('cnt-action').textContent = nAction;
+      document.getElementById('cnt-all').textContent = allItems.length;
+      updatePastille(nAction);
+      render();
+      show('content');
+    }, function () { fail('Service momentan\u00e9ment indisponible.'); });
   }
 
-  function renderList(items) {
+  function updatePastille(n) {
+    var p = document.getElementById('pastille');
+    if (n > 0) { p.textContent = n; p.classList.remove('hide'); document.title = '(' + n + ') Credigo \u2014 Mon espace'; }
+    else { p.classList.add('hide'); document.title = 'Credigo \u2014 Mon espace'; }
+    if (n > 0 && window.Notification && Notification.permission === 'granted' && !window.__notified) {
+      try { new Notification('Credigo', { body: n + ' action' + (n > 1 ? 's' : '') + ' en attente sur votre espace.' }); window.__notified = true; } catch (e) {}
+    }
+  }
+
+  document.querySelectorAll('.tab').forEach(function (t) {
+    t.addEventListener('click', function () {
+      currentTab = t.dataset.tab;
+      document.querySelectorAll('.tab').forEach(function (x) { x.classList.toggle('active', x === t); });
+      render();
+    });
+  });
+
+  var STATE_BADGE = {
+    to_verify: '<span class="badge b-verify">\u00c0 v\u00e9rifier</span>',
+    in_progress: '<span class="badge b-progress">En cours</span>',
+    approved: '<span class="badge b-approved">Financement approuv\u00e9</span>',
+    to_pay: '<span class="badge b-topay">\u00c0 r\u00e9gler</span>',
+    paid: '<span class="badge b-paid">Pay\u00e9 \u2713</span>',
+  };
+
+  function render() {
     var list = document.getElementById('list');
+    var empty = document.getElementById('empty');
+    var items = currentTab === 'action' ? allItems.filter(function (it) { return it.action_required; }) : allItems;
     list.innerHTML = '';
-    items.forEach(function (it, idx) {
+    if (!items.length) { empty.classList.remove('hide'); empty.textContent = currentTab === 'action' ? 'Aucune action requise. Tout est \u00e0 jour !' : 'Aucun march\u00e9 pour le moment.'; return; }
+    empty.classList.add('hide');
+
+    items.forEach(function (it) {
+      var gi = allItems.indexOf(it);
       var card = document.createElement('div');
-      card.className = 'card';
-      var done = it.payment_status === 'declared' || it.payment_status === 'verified';
-      card.innerHTML =
-        '<div class="c-top"><div><div class="c-obj">' + (it.market_object || 'Marché') + '</div>'
-        + '<div class="c-num">' + (it.contract_number || '') + '</div></div>' + badge(it.payment_status) + '</div>'
-        + '<div class="acct"><div class="acct-num">' + (it.cantonnement_account || '—') + '</div>'
-        + '<div class="acct-meta">' + (it.bank_name || '') + (it.cantonnement_label ? ' · ' + it.cantonnement_label : '') + '</div></div>'
-        + '<div class="row"><span class="k">Montant à régler</span><span class="v">' + fmt(it.amount_expected) + '</span></div>'
-        + '<div class="row"><span class="k">Échéance</span><span class="v">' + dateFr(it.date_payment) + '</span></div>'
-        + '<label>Motif à indiquer sur le virement</label>'
-        + '<div class="motif" id="motif-' + idx + '">' + (it.payment_motif || it.contract_number || '') + '</div>'
-        + '<button class="btn-sm" data-copy="' + idx + '">Copier le motif</button>'
-        + (done
-            ? '<div style="margin-top:10px;font-size:12.5px;color:#15803D;font-weight:700">✓ Votre preuve a été reçue. Merci.</div>'
-            : '<div class="cap-row" style="margin-top:10px;padding:10px;background:#F9FAFB;border-radius:9px">'
-              + '<div style="font-size:12.5px;font-weight:700;color:#374151;margin-bottom:6px">Pourrez-vous régler à l\u2019échéance ?</div>'
-              + '<div style="display:flex;gap:6px;flex-wrap:wrap">'
-              + '<button class="cap-btn" data-cap-yes="' + idx + '" style="flex:1;padding:9px;border-radius:8px;border:1.5px solid #86EFAC;background:#fff;font-weight:700;font-size:12.5px;cursor:pointer;color:#15803D">Oui, je confirme</button>'
-              + '<button class="cap-btn" data-cap-new="' + idx + '" style="flex:1;padding:9px;border-radius:8px;border:1.5px solid #FED7AA;background:#fff;font-weight:700;font-size:12.5px;cursor:pointer;color:#C2410C">Proposer une autre date</button>'
-              + '</div>'
-              + '<div class="cap-new hide" id="capnew-' + idx + '" style="margin-top:8px">'
-              + '<label>Nouvelle date envisagée</label><input type="date" id="capdate-' + idx + '">'
-              + '<button class="btn" data-cap-submit="' + idx + '" style="margin-top:8px;background:#C2410C">Valider cette date</button></div>'
-              + '<div class="cap-done hide" id="capdone-' + idx + '" style="margin-top:6px;font-size:12px;color:#15803D;font-weight:700"></div>'
-              + '</div>'
-              + '<button class="btn" data-pay="' + idx + '">J\u2019ai payé — envoyer ma preuve</button>'
-              + '<div class="proof-form hide" id="pf-' + idx + '" style="margin-top:10px">'
-              + '<label>Reçu / justificatif (image ou PDF)</label>'
-              + '<input type="file" id="file-' + idx + '" accept="image/jpeg,image/png,image/webp,application/pdf" style="margin-top:4px">'
-              + '<label style="margin-top:8px;display:block">Référence du virement</label><input type="text" id="ref-' + idx + '" placeholder="Référence">'
-              + '<div style="display:flex;gap:8px"><div style="flex:1"><label style="margin-top:8px;display:block">Date</label><input type="date" id="date-' + idx + '"></div>'
-              + '<div style="flex:1"><label style="margin-top:8px;display:block">Montant</label><input type="number" id="amt-' + idx + '" placeholder="FCFA"></div></div>'
-              + '<button class="btn" data-submit="' + idx + '" style="margin-top:10px">Envoyer ma preuve de virement</button></div>');
+      card.className = 'card' + (it.action_required ? ' act' : '');
+      var html = '<div class="c-top"><div><div class="c-obj">' + (it.market_object || 'March\u00e9') + '</div>'
+        + '<div class="c-num">' + (it.contract_number || '') + '</div></div>' + (STATE_BADGE[it.state] || '') + '</div>';
+
+      if (it.state === 'to_verify') {
+        html += '<div style="font-size:13px;color:#4B5563;margin:6px 0">Un march\u00e9 de <b>' + fmt(it.market_amount) + '</b> vous est pr\u00e9sent\u00e9. Merci de confirmer qu\u2019il est r\u00e9el.</div>'
+          + '<a class="btn" style="text-decoration:none;text-align:center;display:block" href="/c/' + it.solic_token + '">V\u00e9rifier ce march\u00e9</a>';
+      } else if (it.state === 'in_progress') {
+        html += '<div class="row"><span class="k">Montant</span><span class="v">' + fmt(it.market_amount) + '</span></div>'
+          + '<div style="font-size:12.5px;color:#6B7280;margin-top:6px">March\u00e9 confirm\u00e9. Nous recherchons un financement. Vous recevrez le compte de paiement d\u00e8s qu\u2019une banque aura approuv\u00e9.</div>';
+      } else if (it.state === 'approved' || it.state === 'to_pay') {
+        html += '<div class="acct"><div class="acct-num">' + (it.cantonnement_account || '\u2014') + '</div>'
+          + '<div class="acct-meta">' + (it.bank_name || '') + (it.cantonnement_label ? ' \u00b7 ' + it.cantonnement_label : '') + '</div></div>'
+          + '<div class="row"><span class="k">Montant \u00e0 r\u00e9gler</span><span class="v">' + fmt(it.amount_expected) + '</span></div>'
+          + '<div class="row"><span class="k">\u00c9ch\u00e9ance</span><span class="v">' + dateFr(it.date_payment) + '</span></div>'
+          + '<label>Motif \u00e0 indiquer sur le virement</label><div class="motif" id="motif-' + gi + '">' + (it.payment_motif || it.contract_number || '') + '</div>'
+          + '<button class="btn-sm" data-copy="' + gi + '">Copier le motif</button>';
+
+        if (!it.capacity_confirmed && !it.proof_submitted) {
+          html += '<div style="margin-top:10px;padding:10px;background:#F9FAFB;border-radius:9px">'
+            + '<div style="font-size:12.5px;font-weight:700;color:#374151;margin-bottom:6px">Pourrez-vous r\u00e9gler \u00e0 l\u2019\u00e9ch\u00e9ance ?</div>'
+            + '<div class="btns2"><button class="btn btn-2" data-cap-yes="' + gi + '">Oui, je confirme</button>'
+            + '<button class="btn btn-3" data-cap-new="' + gi + '">Autre date</button></div>'
+            + '<div class="hide" id="capnew-' + gi + '"><label>Nouvelle date</label><input type="date" id="capdate-' + gi + '">'
+            + '<button class="btn btn-3" data-cap-submit="' + gi + '">Valider cette date</button></div>'
+            + '<div class="hide" id="capdone-' + gi + '" style="font-size:12px;color:#15803D;font-weight:700;margin-top:6px"></div></div>';
+        } else if (it.capacity_confirmed && !it.proof_submitted) {
+          html += '<div style="margin-top:8px;font-size:12px;color:#15803D;font-weight:700">\u2713 Paiement confirm\u00e9' + (it.proposed_new_date ? ' \u2014 nouvelle date : ' + dateFr(it.proposed_new_date) : '') + '</div>';
+        }
+
+        if (!it.proof_submitted) {
+          html += '<button class="btn" data-pay="' + gi + '" style="margin-top:8px">J\u2019ai pay\u00e9 \u2014 envoyer ma preuve</button>'
+            + '<div class="hide" id="pf-' + gi + '" style="margin-top:8px">'
+            + '<label>Re\u00e7u / justificatif</label><input type="file" id="file-' + gi + '" accept="image/jpeg,image/png,image/webp,application/pdf">'
+            + '<label>R\u00e9f\u00e9rence du virement</label><input type="text" id="ref-' + gi + '" placeholder="R\u00e9f\u00e9rence">'
+            + '<div style="display:flex;gap:8px"><div style="flex:1"><label>Date</label><input type="date" id="pdate-' + gi + '"></div>'
+            + '<div style="flex:1"><label>Montant</label><input type="number" id="amt-' + gi + '" placeholder="FCFA"></div></div>'
+            + '<button class="btn" data-submit="' + gi + '">Envoyer ma preuve</button></div>';
+        } else {
+          html += '<div style="margin-top:8px;font-size:12.5px;color:#15803D;font-weight:700">\u2713 Votre preuve a \u00e9t\u00e9 re\u00e7ue. Merci.</div>';
+        }
+      } else if (it.state === 'paid') {
+        html += '<div class="row"><span class="k">Montant r\u00e9gl\u00e9</span><span class="v">' + fmt(it.amount_expected) + '</span></div>'
+          + '<div style="margin-top:6px;font-size:12.5px;color:#15803D;font-weight:700">\u2713 ' + (it.payment_status === 'verified' ? 'Paiement v\u00e9rifi\u00e9.' : 'Preuve re\u00e7ue, en cours de v\u00e9rification.') + '</div>';
+      }
+
+      card.innerHTML = html;
       list.appendChild(card);
     });
 
-    // Handlers
-    list.querySelectorAll('[data-copy]').forEach(function (b) {
-      b.addEventListener('click', function () {
-        var i = b.dataset.copy;
-        try { navigator.clipboard.writeText(document.getElementById('motif-' + i).textContent); b.textContent = 'Motif copié ✓'; setTimeout(function () { b.textContent = 'Copier le motif'; }, 2000); } catch (e) {}
-      });
-    });
-    list.querySelectorAll('[data-pay]').forEach(function (b) {
-      b.addEventListener('click', function () {
-        document.getElementById('pf-' + b.dataset.pay).classList.remove('hide');
-        b.classList.add('hide');
-      });
-    });
-    list.querySelectorAll('[data-submit]').forEach(function (b) {
-      b.addEventListener('click', function () { submitProof(b.dataset.submit, items[b.dataset.submit].token, b); });
-    });
-
-    // Confirmation de capacité à payer
-    function capConfirm(idx, canPay, newDate) {
-      var token = items[idx].token;
-      sb.rpc('confirm_payment_capacity', {
-        p_token: token, p_can_pay: canPay, p_new_date: newDate || null,
-        p_ip: window.__clientIp || null, p_agent: navigator.userAgent,
-        p_fingerprint: fingerprint(),
-      }).then(function (res) {
-        var done = document.getElementById('capdone-' + idx);
-        if (res.error || (res.data && res.data.error)) { alert('Réessayez.'); return; }
-        if (done) {
-          done.classList.remove('hide');
-          done.textContent = canPay ? '✓ Merci, votre confirmation est enregistrée.' : '✓ Nouvelle date enregistrée : ' + newDate;
-        }
-        var yes = list.querySelector('[data-cap-yes="' + idx + '"]');
-        var nw = list.querySelector('[data-cap-new="' + idx + '"]');
-        var nwForm = document.getElementById('capnew-' + idx);
-        if (yes) yes.style.display = 'none';
-        if (nw) nw.style.display = 'none';
-        if (nwForm) nwForm.classList.add('hide');
-      }, function () { alert('Connexion impossible.'); });
-    }
-    list.querySelectorAll('[data-cap-yes]').forEach(function (b) {
-      b.addEventListener('click', function () { capConfirm(b.dataset.capYes, true, null); });
-    });
-    list.querySelectorAll('[data-cap-new]').forEach(function (b) {
-      b.addEventListener('click', function () { document.getElementById('capnew-' + b.dataset.capNew).classList.remove('hide'); });
-    });
-    list.querySelectorAll('[data-cap-submit]').forEach(function (b) {
-      b.addEventListener('click', function () {
-        var nd = (document.getElementById('capdate-' + b.dataset.capSubmit) || {}).value || '';
-        if (!nd) { alert('Choisissez une date.'); return; }
-        capConfirm(b.dataset.capSubmit, false, nd);
-      });
-    });
+    attachHandlers(list);
   }
 
-  function fingerprint() {
-    try {
-      var raw = [navigator.userAgent, navigator.language, screen.width + 'x' + screen.height, new Date().getTimezoneOffset()].join('|');
-      var h = 0; for (var i = 0; i < raw.length; i++) { h = ((h << 5) - h) + raw.charCodeAt(i); h |= 0; }
-      return 'fp_' + Math.abs(h).toString(36);
-    } catch (e) { return null; }
+  function attachHandlers(list) {
+    list.querySelectorAll('[data-copy]').forEach(function (b) { b.addEventListener('click', function () { try { navigator.clipboard.writeText(document.getElementById('motif-' + b.dataset.copy).textContent); b.textContent = 'Motif copi\u00e9 \u2713'; setTimeout(function () { b.textContent = 'Copier le motif'; }, 2000); } catch (e) {} }); });
+    list.querySelectorAll('[data-pay]').forEach(function (b) { b.addEventListener('click', function () { document.getElementById('pf-' + b.dataset.pay).classList.remove('hide'); b.classList.add('hide'); }); });
+    list.querySelectorAll('[data-cap-new]').forEach(function (b) { b.addEventListener('click', function () { document.getElementById('capnew-' + b.dataset.capNew).classList.remove('hide'); }); });
+    list.querySelectorAll('[data-cap-yes]').forEach(function (b) { b.addEventListener('click', function () { capConfirm(b.dataset.capYes, true, null); }); });
+    list.querySelectorAll('[data-cap-submit]').forEach(function (b) { b.addEventListener('click', function () { var nd = (document.getElementById('capdate-' + b.dataset.capSubmit) || {}).value || ''; if (!nd) { alert('Choisissez une date.'); return; } capConfirm(b.dataset.capSubmit, false, nd); }); });
+    list.querySelectorAll('[data-submit]').forEach(function (b) { b.addEventListener('click', function () { submitProof(b.dataset.submit, b); }); });
   }
 
-  function submitProof(idx, token, btn) {
-    var file = (document.getElementById('file-' + idx) || {}).files;
-    file = file && file[0];
-    var ref = (document.getElementById('ref-' + idx) || {}).value || '';
-    var date = (document.getElementById('date-' + idx) || {}).value || '';
-    var amt = (document.getElementById('amt-' + idx) || {}).value || '';
-    if (!file && !ref.trim() && !amt) { alert('Joignez le reçu ou indiquez au moins la référence.'); return; }
-    btn.disabled = true; btn.textContent = 'Envoi…';
+  function capConfirm(gi, canPay, newDate) {
+    var it = allItems[gi];
+    sb.rpc('confirm_payment_capacity', { p_token: it.pay_token, p_can_pay: canPay, p_new_date: newDate || null, p_ip: window.__clientIp || null, p_agent: navigator.userAgent, p_fingerprint: fingerprint() })
+      .then(function (res) { if (res.error || (res.data && res.data.error)) { alert('R\u00e9essayez.'); return; } load(); }, function () { alert('Connexion impossible.'); });
+  }
 
+  function submitProof(gi, btn) {
+    var it = allItems[gi];
+    var file = (document.getElementById('file-' + gi) || {}).files; file = file && file[0];
+    var ref = (document.getElementById('ref-' + gi) || {}).value || '';
+    var date = (document.getElementById('pdate-' + gi) || {}).value || '';
+    var amt = (document.getElementById('amt-' + gi) || {}).value || '';
+    if (!file && !ref.trim() && !amt) { alert('Joignez le re\u00e7u ou indiquez au moins la r\u00e9f\u00e9rence.'); return; }
+    btn.disabled = true; btn.textContent = 'Envoi\u2026';
     function send(b64, name, ctype) {
-      fetch(BACKOFFICE_URL + '/.netlify/functions/payment-proof-upload', {
-        method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ token: token, fileBase64: b64, fileName: name, contentType: ctype, reference: ref.trim() || null, date: date || null, amount: amt || null }),
-      }).then(function (r) { return r.json(); }).then(function (res) {
-        if (res && res.ok) { location.reload(); }
-        else { btn.disabled = false; btn.textContent = 'Envoyer ma preuve de virement'; alert((res && res.error) || 'Envoi impossible.'); }
-      }).catch(function () { btn.disabled = false; btn.textContent = 'Envoyer ma preuve de virement'; alert('Connexion impossible.'); });
+      fetch(BACKOFFICE_URL + '/.netlify/functions/payment-proof-upload', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ token: it.pay_token, fileBase64: b64, fileName: name, contentType: ctype, reference: ref.trim() || null, date: date || null, amount: amt || null }) })
+        .then(function (r) { return r.json(); }).then(function (res) { if (res && res.ok) { load(); } else { btn.disabled = false; btn.textContent = 'Envoyer ma preuve'; alert((res && res.error) || 'Envoi impossible.'); } })
+        .catch(function () { btn.disabled = false; btn.textContent = 'Envoyer ma preuve'; alert('Connexion impossible.'); });
     }
-
     if (file) {
-      if (file.size > 8 * 1024 * 1024) { alert('Fichier trop volumineux (max 8 Mo).'); btn.disabled = false; btn.textContent = 'Envoyer ma preuve de virement'; return; }
+      if (file.size > 8 * 1024 * 1024) { alert('Fichier trop volumineux (max 8 Mo).'); btn.disabled = false; btn.textContent = 'Envoyer ma preuve'; return; }
       var reader = new FileReader();
       reader.onload = function () { send(String(reader.result).split(',')[1], file.name, file.type); };
-      reader.onerror = function () { btn.disabled = false; btn.textContent = 'Envoyer ma preuve de virement'; alert('Lecture impossible.'); };
+      reader.onerror = function () { btn.disabled = false; btn.textContent = 'Envoyer ma preuve'; alert('Lecture impossible.'); };
       reader.readAsDataURL(file);
     } else { send(null, null, null); }
   }
+
+  document.getElementById('bell').addEventListener('click', function () {
+    if (!window.Notification) { alert('Votre navigateur ne g\u00e8re pas les notifications.'); return; }
+    if (Notification.permission === 'granted') { alert('Notifications d\u00e9j\u00e0 activ\u00e9es.'); return; }
+    Notification.requestPermission().then(function (perm) {
+      if (perm === 'granted') { try { new Notification('Credigo', { body: 'Notifications activ\u00e9es. Vous serez pr\u00e9venu des actions \u00e0 faire.' }); } catch (e) {} }
+    });
+  });
+
+  load();
 })();
 </script>
 </body>
