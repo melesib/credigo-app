@@ -75,6 +75,7 @@
     <div id="done" class="msg hide">
       <div class="ico">✓</div>
       <div id="done-msg">Merci — votre réception est bien enregistrée. Vous réglerez ce marché sur le compte indiqué, à l'échéance. Vous serez rappelé avant la date, et vous confirmerez le paiement depuis votre espace personnel.</div>
+      <div id="done-actions" style="margin-top:18px"></div>
     </div>
 
     <div class="foot">Ce lien est personnel et sécurisé. En cas de doute, contactez Credigo directement.</div>
@@ -113,14 +114,13 @@
     var d = res.data;
     if (d.proof_submitted || d.payment_status === 'declared' || d.payment_status === 'verified') {
       document.getElementById('done-msg').textContent = 'Votre preuve de virement a bien été reçue. Nous procédons au rapprochement. Merci.';
-      var gp = document.getElementById('btn-goto-proof'); if (gp) gp.style.display = 'none';
-      show('done'); return;
+      show('done'); fillPortalActions(); return;
     }
     if (d.acknowledged) {
       // Coordonnées déjà reçues : on propose directement la soumission de preuve.
       window.__motif = d.payment_motif || '';
       window.__num = d.contract_number || '';
-      show('done'); return;
+      show('done'); fillPortalActions(); return;
     }
     sb.rpc('track_payment_open', { p_token: token }).then(function () {}, function () {});
 
@@ -144,9 +144,21 @@
     sb.rpc('acknowledge_payment_instruction', { p_token: token, p_ip: window.__clientIp || null, p_agent: navigator.userAgent })
       .then(function (res) {
         if (res.error) { b.disabled = false; b.textContent = 'J\u2019ai bien reçu ces coordonnées'; alert('Réessayez.'); return; }
-        show('done');
+        show('done'); fillPortalActions();
       }, function () { b.disabled = false; b.textContent = 'J\u2019ai bien reçu ces coordonnées'; alert('Connexion impossible.'); });
   });
+
+  function fillPortalActions() {
+    sb.rpc('portal_code_from_payment', { p_token: token }).then(function (res) {
+      var actions = document.getElementById('done-actions');
+      if (!actions) return;
+      var code = res && res.data;
+      var html = '';
+      if (code) html += '<a href="/portail/' + code + '" style="display:block;background:#6C3FE8;color:#fff;text-decoration:none;text-align:center;padding:13px;border-radius:10px;font-weight:800;font-size:14px;margin-bottom:8px">Voir tous mes marchés</a>';
+      html += '<button onclick="window.close()" style="width:100%;background:#fff;color:#6B7280;border:1px solid #E5E7EB;padding:12px;border-radius:10px;font-weight:700;font-size:14px;cursor:pointer;font-family:inherit">Fermer</button>';
+      actions.innerHTML = html;
+    }, function () {});
+  }
 
   // Copier le motif de virement
   var copyBtn = document.getElementById('copy-motif');
