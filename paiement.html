@@ -65,40 +65,16 @@
         <div style="background:#F9FAFB;border:1px dashed #C4B5FD;border-radius:8px;padding:10px;margin:8px 0;font-family:monospace;font-size:13px;font-weight:700;color:#4C1D95;word-break:break-all" id="p-motif">—</div>
         <button type="button" id="copy-motif" style="font-size:11px;color:#6C3FE8;background:none;border:none;cursor:pointer;padding:0;font-weight:700">Copier le motif</button>
         <ol start="3" style="margin:8px 0 0 18px;padding:0;font-size:13px;line-height:1.7;color:#374151">
-          <li>Après le paiement, revenez sur ce lien pour <b>soumettre votre preuve de virement</b> (reçu + informations). Cela nous permet de rapprocher votre paiement et de solder le dossier.</li>
+          <li>Nous vous <b>rappellerons avant l'échéance</b>. Le jour du paiement, vous confirmerez le règlement et joindrez votre preuve depuis votre espace personnel Credigo (lien à conserver en favori) — pas besoin de rechercher cet email.</li>
         </ol>
       </div>
 
       <button class="btn" id="btn-ack">J'ai bien reçu ces coordonnées</button>
     </div>
 
-    <!-- Écran de soumission de preuve (après réception, quand le paiement est fait) -->
-    <div id="proof-step" class="hide">
-      <h1>Soumettre la preuve de virement</h1>
-      <div class="lead">Une fois le paiement effectué, transmettez-nous le reçu et les informations du virement pour ce dossier <b id="proof-num">—</b>.</div>
-
-      <label style="display:block;font-size:12px;font-weight:700;color:#4B5563;margin:10px 0 4px">Reçu / justificatif de virement</label>
-      <input type="file" id="proof-file" accept="image/jpeg,image/png,image/webp,application/pdf" style="width:100%;font-size:13px">
-      <div style="font-size:11px;color:#9CA3AF;margin-top:3px">Image (JPEG, PNG, WEBP) ou PDF, max 8 Mo.</div>
-
-      <label style="display:block;font-size:12px;font-weight:700;color:#4B5563;margin:12px 0 4px">Référence du virement</label>
-      <input type="text" id="proof-ref" placeholder="Référence indiquée par votre banque" style="width:100%;padding:11px;border:1px solid #E5E7EB;border-radius:10px;font-size:13.5px;font-family:inherit">
-
-      <div style="display:flex;gap:10px">
-        <div style="flex:1"><label style="display:block;font-size:12px;font-weight:700;color:#4B5563;margin:12px 0 4px">Date du virement</label>
-        <input type="date" id="proof-date" style="width:100%;padding:11px;border:1px solid #E5E7EB;border-radius:10px;font-size:13.5px;font-family:inherit"></div>
-        <div style="flex:1"><label style="display:block;font-size:12px;font-weight:700;color:#4B5563;margin:12px 0 4px">Montant viré (FCFA)</label>
-        <input type="number" id="proof-amount" placeholder="Montant" style="width:100%;padding:11px;border:1px solid #E5E7EB;border-radius:10px;font-size:13.5px;font-family:inherit"></div>
-      </div>
-
-      <button class="btn" id="btn-proof" style="background:#6C3FE8">Envoyer ma preuve de virement</button>
-      <button class="btn" id="btn-proof-back" style="background:#fff;color:#6B7280;border:1px solid #E5E7EB;margin-top:8px">Retour</button>
-    </div>
-
     <div id="done" class="msg hide">
       <div class="ico">✓</div>
-      <div id="done-msg">Merci — votre réception est bien enregistrée. Vous réglerez ce marché sur le compte indiqué, à l'échéance.</div>
-      <button class="btn" id="btn-goto-proof" style="background:#6C3FE8;margin-top:16px">J'ai déjà payé — soumettre ma preuve</button>
+      <div id="done-msg">Merci — votre réception est bien enregistrée. Vous réglerez ce marché sur le compte indiqué, à l'échéance. Vous serez rappelé avant la date, et vous confirmerez le paiement depuis votre espace personnel.</div>
     </div>
 
     <div class="foot">Ce lien est personnel et sécurisé. En cas de doute, contactez Credigo directement.</div>

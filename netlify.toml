@@ -28,3 +28,9 @@
   from = "/p/*"
   to = "/paiement.html"
   status = 200
+
+# Le portail personnel durable du donneur : /portail/<code> → tous ses paiements.
+[[redirects]]
+  from = "/portail/*"
+  to = "/portail.html"
+  status = 200
