@@ -73,6 +73,27 @@
   <div id="loading" class="msg">Chargement&#8230;</div>
   <div id="invalid" class="msg hide"><div class="ico">&#9888;&#65039;</div><div id="invalid-msg">Lien invalide. V&#233;rifiez votre code d'acc&#232;s.</div></div>
 
+  <!-- CONNEXION -->
+  <div id="auth" class="hide">
+    <div class="card" style="cursor:default">
+      <div style="font-size:16px;font-weight:800;margin-bottom:6px">Acc\u00e8s \u00e0 votre espace</div>
+      <div style="font-size:13px;color:#6B7280;line-height:1.6;margin-bottom:12px">Pour votre s\u00e9curit\u00e9, confirmez votre adresse email. Nous vous enverrons un code \u00e0 6 chiffres.</div>
+      <div id="auth-step1">
+        <label>Votre adresse email</label>
+        <input type="text" id="auth-email" placeholder="email@entreprise.ci" autocomplete="email">
+        <button class="btn" id="auth-send">Recevoir mon code</button>
+      </div>
+      <div id="auth-step2" class="hide">
+        <div style="font-size:13px;color:#15803D;font-weight:700;margin-bottom:8px">Un code vient d\u2019\u00eatre envoy\u00e9 \u00e0 votre adresse.</div>
+        <label>Code re\u00e7u par email</label>
+        <input type="text" id="auth-otp" placeholder="123456" inputmode="numeric" maxlength="6" style="letter-spacing:5px;font-size:18px;font-weight:800;text-align:center">
+        <button class="btn" id="auth-verify">Acc\u00e9der \u00e0 mon espace</button>
+        <button class="btn" id="auth-back" style="background:#fff;color:#6B7280;border:1px solid #E5E7EB">Changer d\u2019adresse</button>
+      </div>
+      <div id="auth-err" style="font-size:12.5px;color:#B91C1C;font-weight:700;margin-top:8px"></div>
+    </div>
+  </div>
+
   <!-- LISTE -->
   <div id="content" class="hide">
     <div class="tip">&#128161; Enregistrez cette page dans vos favoris : vous y g&#233;rez tous vos march&#233;s Credigo (v&#233;rifications, paiements, preuves).</div>
@@ -112,7 +133,7 @@
   var currentTab = 'action';
   var searchTerm = '';
 
-  function showView(v) { ['loading','invalid','content','detail'].forEach(function (x) { var el = document.getElementById(x); if (el) el.classList.toggle('hide', x !== v); }); }
+  function showView(v) { ['loading','invalid','auth','content','detail'].forEach(function (x) { var el = document.getElementById(x); if (el) el.classList.toggle('hide', x !== v); }); }
   function fail(m) { if (m) document.getElementById('invalid-msg').textContent = m; showView('invalid'); }
   function fmt(n) { return new Intl.NumberFormat('fr-FR').format(Math.round(n || 0)) + ' FCFA'; }
   function dateFr(d) { if (!d) return '\u2014'; try { return new Date(d).toLocaleDateString('fr-FR', { day: '2-digit', month: 'long', year: 'numeric' }); } catch (e) { return d; } }
@@ -135,8 +156,17 @@
     paid: '<span class="badge b-paid">Pay\u00e9 \u2713</span>',
   };
 
+  // Jeton de session mémorisé sur l'appareil (par code portail).
+  function sessKey() { return 'credigo_portal_' + code; }
+  function getSession() { try { return sessionStorage.getItem(sessKey()) || localStorage.getItem(sessKey()); } catch (e) { return null; } }
+  function setSession(t) { try { localStorage.setItem(sessKey(), t); } catch (e) {} }
+  function clearSession() { try { localStorage.removeItem(sessKey()); sessionStorage.removeItem(sessKey()); } catch (e) {} }
+
   function load() {
-    sb.rpc('get_donneur_portal', { p_code: code }).then(function (res) {
+    var st = getSession();
+    if (!st) { showView('auth'); return; }
+    sb.rpc('get_donneur_portal_secure', { p_code: code, p_session_token: st }).then(function (res) {
+      if (res.data && res.data.error === 'auth_required') { clearSession(); showView('auth'); return; }
       if (res.error || !res.data || res.data.error) return fail('Lien invalide. V\u00e9rifiez votre code d\u2019acc\u00e8s.');
       var d = res.data;
       document.getElementById('sub').textContent = d.donneur_name ? ('Espace de ' + d.donneur_name) : 'Mon espace';
@@ -220,7 +250,7 @@
     var body = document.getElementById('detail-body');
     body.innerHTML = '<div class="msg">Chargement\u2026</div>';
     showView('detail');
-    sb.rpc('get_donneur_contract_detail', { p_code: code, p_request_id: requestId }).then(function (res) {
+    sb.rpc('get_donneur_contract_detail_secure', { p_code: code, p_session_token: getSession(), p_request_id: requestId }).then(function (res) {
       if (res.error || !res.data || res.data.error) { body.innerHTML = '<div class="msg">Impossible d\u2019ouvrir ce march\u00e9.</div>'; return; }
       renderDetail(res.data);
     }, function () { body.innerHTML = '<div class="msg">Connexion impossible.</div>'; });
@@ -343,6 +373,51 @@
     if (!window.Notification) { alert('Votre navigateur ne g\u00e8re pas les notifications.'); return; }
     if (Notification.permission === 'granted') { alert('Notifications d\u00e9j\u00e0 activ\u00e9es.'); return; }
     Notification.requestPermission().then(function (perm) { if (perm === 'granted') { try { new Notification('Credigo', { body: 'Notifications activ\u00e9es.' }); } catch (e) {} } });
+  });
+
+  // ── Connexion par email ──
+  var _pendingToken = null;
+  function authErr(m) { document.getElementById('auth-err').textContent = m || ''; }
+
+  document.getElementById('auth-send').addEventListener('click', function () {
+    var b = this;
+    var email = (document.getElementById('auth-email') || {}).value || '';
+    if (!email.trim() || email.indexOf('@') === -1) { authErr('Indiquez une adresse email valide.'); return; }
+    authErr(''); b.disabled = true; b.textContent = 'Envoi\u2026';
+    fetch(BACKOFFICE_URL + '/.netlify/functions/portal-access-request', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ code: code, email: email.trim() }),
+    }).then(function (r) { return r.json(); }).then(function (res) {
+      b.disabled = false; b.textContent = 'Recevoir mon code';
+      if (res && res.ok) {
+        _pendingToken = res.session_token || null;
+        document.getElementById('auth-step1').classList.add('hide');
+        document.getElementById('auth-step2').classList.remove('hide');
+        if (!_pendingToken) authErr('Si cette adresse correspond \u00e0 nos dossiers, vous recevrez un code.');
+      } else { authErr('Impossible d\u2019envoyer le code. R\u00e9essayez.'); }
+    }).catch(function () { b.disabled = false; b.textContent = 'Recevoir mon code'; authErr('Connexion impossible.'); });
+  });
+
+  document.getElementById('auth-back').addEventListener('click', function () {
+    document.getElementById('auth-step2').classList.add('hide');
+    document.getElementById('auth-step1').classList.remove('hide');
+    authErr('');
+  });
+
+  document.getElementById('auth-verify').addEventListener('click', function () {
+    var b = this;
+    var otp = ((document.getElementById('auth-otp') || {}).value || '').trim();
+    if (otp.length < 6) { authErr('Saisissez le code \u00e0 6 chiffres.'); return; }
+    if (!_pendingToken) { authErr('Code invalide ou expir\u00e9. Recommencez.'); return; }
+    authErr(''); b.disabled = true; b.textContent = 'V\u00e9rification\u2026';
+    sb.rpc('verify_portal_access', { p_session_token: _pendingToken, p_otp: otp }).then(function (res) {
+      b.disabled = false; b.textContent = 'Acc\u00e9der \u00e0 mon espace';
+      var d = res.data || {};
+      if (d.ok) { setSession(_pendingToken); showView('loading'); load(); return; }
+      if (d.error === 'expired') authErr('Ce code a expir\u00e9. Demandez-en un nouveau.');
+      else if (d.error === 'too_many') authErr('Trop d\u2019essais. Demandez un nouveau code.');
+      else authErr('Code incorrect.');
+    }, function () { b.disabled = false; b.textContent = 'Acc\u00e9der \u00e0 mon espace'; authErr('Connexion impossible.'); });
   });
 
   load();
