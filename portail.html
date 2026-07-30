@@ -8,20 +8,21 @@
   * { box-sizing: border-box; margin: 0; padding: 0; }
   body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: #F5F3FF; color: #1F2937; line-height: 1.5; padding: 16px; }
   .wrap { max-width: 640px; margin: 16px auto; }
-  .head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 14px; }
+  .head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; }
   .logo { font-size: 24px; font-weight: 800; color: #6C3FE8; }
   .bell { position: relative; font-size: 22px; color: #6B7280; cursor: pointer; }
   .pastille { position: absolute; top: -6px; right: -8px; background: #DC2626; color: #fff; font-size: 10px; font-weight: 800; min-width: 17px; height: 17px; border-radius: 9px; display: flex; align-items: center; justify-content: center; padding: 0 4px; }
-  .sub { color: #6B7280; font-size: 13px; margin-bottom: 14px; }
-  .tabs { display: flex; gap: 6px; margin-bottom: 14px; }
-  .tab { flex: 1; padding: 9px; border-radius: 9px; border: 1.5px solid #E5E7EB; background: #fff; font-size: 12.5px; font-weight: 700; cursor: pointer; text-align: center; color: #6B7280; }
+  .sub { color: #6B7280; font-size: 13px; margin-bottom: 12px; }
+  .search { width: 100%; padding: 11px 13px; border: 1px solid #E5E7EB; border-radius: 10px; font-size: 13.5px; font-family: inherit; margin-bottom: 10px; }
+  .tabs { display: flex; gap: 6px; margin-bottom: 12px; flex-wrap: wrap; }
+  .tab { padding: 8px 12px; border-radius: 20px; border: 1.5px solid #E5E7EB; background: #fff; font-size: 12px; font-weight: 700; cursor: pointer; color: #6B7280; white-space: nowrap; }
   .tab.active { background: #6C3FE8; color: #fff; border-color: #6C3FE8; }
-  .tab .cnt { display: inline-block; margin-left: 4px; background: rgba(0,0,0,.12); border-radius: 10px; padding: 0 6px; font-size: 11px; }
-  .tab.active .cnt { background: rgba(255,255,255,.25); }
-  .tip { background: #EEF2FF; border: 1px solid #C7D2FE; border-radius: 10px; padding: 10px 12px; font-size: 12px; color: #3730A3; margin-bottom: 14px; line-height: 1.5; }
-  .card { background: #fff; border-radius: 14px; padding: 16px; box-shadow: 0 4px 16px rgba(76,29,149,.07); margin-bottom: 12px; }
+  .tab .cnt { display: inline-block; margin-left: 3px; opacity: .8; }
+  .tip { background: #EEF2FF; border: 1px solid #C7D2FE; border-radius: 10px; padding: 10px 12px; font-size: 12px; color: #3730A3; margin-bottom: 12px; line-height: 1.5; }
+  .card { background: #fff; border-radius: 14px; padding: 15px; box-shadow: 0 4px 16px rgba(76,29,149,.07); margin-bottom: 10px; cursor: pointer; transition: transform .1s; }
+  .card:active { transform: scale(.99); }
   .card.act { border-left: 4px solid #DC2626; }
-  .c-top { display: flex; justify-content: space-between; align-items: flex-start; gap: 10px; margin-bottom: 8px; }
+  .c-top { display: flex; justify-content: space-between; align-items: flex-start; gap: 10px; margin-bottom: 6px; }
   .c-obj { font-size: 15px; font-weight: 800; color: #111827; }
   .c-num { font-family: monospace; font-size: 11.5px; color: #6C3FE8; font-weight: 700; }
   .badge { font-size: 10.5px; font-weight: 800; padding: 3px 9px; border-radius: 20px; white-space: nowrap; }
@@ -30,23 +31,34 @@
   .b-approved { background: #DBEAFE; color: #1E40AF; }
   .b-topay { background: #FEF3C7; color: #B45309; }
   .b-paid { background: #DCFCE7; color: #15803D; }
-  .acct { background: #F5F3FF; border: 1px solid #DDD6FE; border-radius: 10px; padding: 11px; margin: 10px 0; }
-  .acct-num { font-size: 16px; font-weight: 800; color: #4C1D95; word-break: break-all; }
+  .c-meta { display: flex; justify-content: space-between; font-size: 12.5px; color: #6B7280; margin-top: 4px; }
+  .c-open { font-size: 11.5px; color: #6C3FE8; font-weight: 700; margin-top: 6px; }
+  .acct { background: #F5F3FF; border: 1.5px solid #DDD6FE; border-radius: 10px; padding: 13px; margin: 12px 0; }
+  .acct-lbl { font-size: 11px; color: #6D28D9; font-weight: 800; text-transform: uppercase; letter-spacing: .3px; }
+  .acct-num { font-size: 19px; font-weight: 800; color: #4C1D95; word-break: break-all; margin: 3px 0; }
   .acct-meta { font-size: 12px; color: #7C3AED; }
-  .row { display: flex; justify-content: space-between; font-size: 13px; padding: 3px 0; }
+  .row { display: flex; justify-content: space-between; font-size: 13px; padding: 4px 0; }
   .row .k { color: #6B7280; } .row .v { font-weight: 700; }
   .motif { background: #F9FAFB; border: 1px dashed #C4B5FD; border-radius: 8px; padding: 8px; font-family: monospace; font-size: 12px; font-weight: 700; color: #4C1D95; word-break: break-all; margin: 6px 0; }
   .btn { width: 100%; padding: 12px; border-radius: 10px; border: none; font-size: 14px; font-weight: 800; cursor: pointer; font-family: inherit; background: #6C3FE8; color: #fff; margin-top: 8px; }
   .btn-2 { background: #15803D; } .btn-3 { background: #C2410C; }
+  .btn-back { background: none; color: #6C3FE8; border: none; font-weight: 700; font-size: 13px; cursor: pointer; padding: 0; margin-bottom: 12px; }
   .btn-sm { font-size: 11px; color: #6C3FE8; background: none; border: none; cursor: pointer; padding: 0; font-weight: 700; }
-  .btns2 { display: flex; gap: 6px; }
-  .btns2 .btn { flex: 1; }
+  .btns2 { display: flex; gap: 6px; } .btns2 .btn { flex: 1; }
   .hide { display: none; }
   .msg { text-align: center; padding: 40px 10px; color: #6B7280; }
   .ico { font-size: 40px; margin-bottom: 10px; }
   label { font-size: 11.5px; font-weight: 700; color: #4B5563; display: block; margin-top: 8px; }
   input[type=text], input[type=date], input[type=number] { width: 100%; padding: 10px; border: 1px solid #E5E7EB; border-radius: 9px; font-size: 13px; font-family: inherit; margin-top: 4px; }
   input[type=file] { margin-top: 4px; font-size: 12.5px; }
+  .tl { list-style: none; padding: 0; margin: 8px 0; }
+  .tl li { position: relative; padding: 0 0 14px 22px; font-size: 13px; }
+  .tl li::before { content: ''; position: absolute; left: 4px; top: 3px; width: 9px; height: 9px; border-radius: 50%; background: #6C3FE8; }
+  .tl li.pending::before { background: #D1D5DB; }
+  .tl li::after { content: ''; position: absolute; left: 8px; top: 12px; bottom: 0; width: 1px; background: #E5E7EB; }
+  .tl li:last-child::after { display: none; }
+  .tl .t-label { font-weight: 700; color: #374151; }
+  .tl .t-date { font-size: 11.5px; color: #9CA3AF; }
   .foot { text-align: center; color: #9CA3AF; font-size: 11px; margin-top: 18px; }
 </style>
 </head>
@@ -61,14 +73,24 @@
   <div id="loading" class="msg">Chargement&#8230;</div>
   <div id="invalid" class="msg hide"><div class="ico">&#9888;&#65039;</div><div id="invalid-msg">Lien invalide. V&#233;rifiez votre code d'acc&#232;s.</div></div>
 
+  <!-- LISTE -->
   <div id="content" class="hide">
-    <div class="tip">&#128161; Enregistrez cette page dans vos favoris : vous y g&#233;rez tous vos march&#233;s Credigo (v&#233;rifications, paiements, preuves), &#224; tout moment.</div>
-    <div class="tabs">
-      <button class="tab active" id="tab-action" data-tab="action">Action requise<span class="cnt" id="cnt-action">0</span></button>
-      <button class="tab" id="tab-all" data-tab="all">Tous mes march&#233;s<span class="cnt" id="cnt-all">0</span></button>
+    <div class="tip">&#128161; Enregistrez cette page dans vos favoris : vous y g&#233;rez tous vos march&#233;s Credigo (v&#233;rifications, paiements, preuves).</div>
+    <input type="text" class="search" id="search" placeholder="Rechercher un march&#233; ou un num&#233;ro de contrat&#8230;">
+    <div class="tabs" id="tabs">
+      <button class="tab active" data-tab="action">Action requise<span class="cnt" id="cnt-action"></span></button>
+      <button class="tab" data-tab="all">Tous<span class="cnt" id="cnt-all"></span></button>
+      <button class="tab" data-tab="to_pay">&#192; r&#233;gler<span class="cnt" id="cnt-to_pay"></span></button>
+      <button class="tab" data-tab="paid">Pay&#233;s<span class="cnt" id="cnt-paid"></span></button>
     </div>
     <div id="list"></div>
-    <div id="empty" class="msg hide">Rien &#224; afficher ici pour le moment.</div>
+    <div id="empty" class="msg hide">Rien &#224; afficher ici.</div>
+  </div>
+
+  <!-- DETAIL -->
+  <div id="detail" class="hide">
+    <button class="btn-back" id="back">&#8592; Retour &#224; mes march&#233;s</button>
+    <div id="detail-body"></div>
   </div>
 
   <div class="foot">Ce lien vous est personnel. Ne le partagez pas. En cas de doute, contactez Credigo.</div>
@@ -88,14 +110,15 @@
   var BACKOFFICE_URL = 'https://credigo-backoffice.netlify.app';
   var allItems = [];
   var currentTab = 'action';
+  var searchTerm = '';
 
-  function show(id) { ['loading','invalid','content'].forEach(function (x) { var el = document.getElementById(x); if (el) el.classList.toggle('hide', x !== id); }); }
-  function fail(m) { if (m) document.getElementById('invalid-msg').textContent = m; show('invalid'); }
+  function showView(v) { ['loading','invalid','content','detail'].forEach(function (x) { var el = document.getElementById(x); if (el) el.classList.toggle('hide', x !== v); }); }
+  function fail(m) { if (m) document.getElementById('invalid-msg').textContent = m; showView('invalid'); }
   function fmt(n) { return new Intl.NumberFormat('fr-FR').format(Math.round(n || 0)) + ' FCFA'; }
   function dateFr(d) { if (!d) return '\u2014'; try { return new Date(d).toLocaleDateString('fr-FR', { day: '2-digit', month: 'long', year: 'numeric' }); } catch (e) { return d; } }
-  function fingerprint() {
-    try { var raw = [navigator.userAgent, navigator.language, screen.width + 'x' + screen.height, new Date().getTimezoneOffset()].join('|'); var h = 0; for (var i = 0; i < raw.length; i++) { h = ((h << 5) - h) + raw.charCodeAt(i); h |= 0; } return 'fp_' + Math.abs(h).toString(36); } catch (e) { return null; }
-  }
+  function dateShort(d) { if (!d) return ''; try { return new Date(d).toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit', year: '2-digit' }); } catch (e) { return ''; } }
+  function esc(s) { return String(s == null ? '' : s).replace(/[<>&"]/g, function (c) { return ({ '<':'&lt;','>':'&gt;','&':'&amp;','"':'&quot;' })[c]; }); }
+  function fingerprint() { try { var raw = [navigator.userAgent, navigator.language, screen.width + 'x' + screen.height, new Date().getTimezoneOffset()].join('|'); var h = 0; for (var i = 0; i < raw.length; i++) { h = ((h << 5) - h) + raw.charCodeAt(i); h |= 0; } return 'fp_' + Math.abs(h).toString(36); } catch (e) { return null; } }
 
   if (!code) { fail('Code d\u2019acc\u00e8s manquant.'); return; }
   if (!url || !key || url.indexOf('__') === 0 || !window.supabase) { fail('Service momentan\u00e9ment indisponible.'); return; }
@@ -104,19 +127,38 @@
   window.__clientIp = null;
   try { fetch('https://api.ipify.org?format=json').then(function (r) { return r.json(); }).then(function (d) { window.__clientIp = d && d.ip ? d.ip : null; }, function () {}); } catch (e) {}
 
+  var STATE_BADGE = {
+    to_verify: '<span class="badge b-verify">\u00c0 v\u00e9rifier</span>',
+    in_progress: '<span class="badge b-progress">En cours</span>',
+    approved: '<span class="badge b-approved">Approuv\u00e9</span>',
+    to_pay: '<span class="badge b-topay">\u00c0 r\u00e9gler</span>',
+    paid: '<span class="badge b-paid">Pay\u00e9 \u2713</span>',
+  };
+
   function load() {
     sb.rpc('get_donneur_portal', { p_code: code }).then(function (res) {
       if (res.error || !res.data || res.data.error) return fail('Lien invalide. V\u00e9rifiez votre code d\u2019acc\u00e8s.');
       var d = res.data;
       document.getElementById('sub').textContent = d.donneur_name ? ('Espace de ' + d.donneur_name) : 'Mon espace';
-      allItems = d.items || [];
+      // Déduplication par request_id (au cas où) : on garde une occurrence par contrat.
+      var seen = {}; allItems = [];
+      (d.items || []).forEach(function (it) {
+        var k = it.request_id || (it.contract_number + '|' + it.market_object);
+        if (seen[k]) return; seen[k] = true; allItems.push(it);
+      });
       var nAction = allItems.filter(function (it) { return it.action_required; }).length;
-      document.getElementById('cnt-action').textContent = nAction;
-      document.getElementById('cnt-all').textContent = allItems.length;
+      updateCounts();
       updatePastille(nAction);
-      render();
-      show('content');
+      renderList();
+      showView('content');
     }, function () { fail('Service momentan\u00e9ment indisponible.'); });
+  }
+
+  function updateCounts() {
+    document.getElementById('cnt-action').textContent = ' ' + allItems.filter(function (it) { return it.action_required; }).length;
+    document.getElementById('cnt-all').textContent = ' ' + allItems.length;
+    document.getElementById('cnt-to_pay').textContent = ' ' + allItems.filter(function (it) { return it.state === 'to_pay' || it.state === 'approved'; }).length;
+    document.getElementById('cnt-paid').textContent = ' ' + allItems.filter(function (it) { return it.state === 'paid'; }).length;
   }
 
   function updatePastille(n) {
@@ -128,112 +170,164 @@
     }
   }
 
-  document.querySelectorAll('.tab').forEach(function (t) {
-    t.addEventListener('click', function () {
-      currentTab = t.dataset.tab;
-      document.querySelectorAll('.tab').forEach(function (x) { x.classList.toggle('active', x === t); });
-      render();
+  // Filtrage liste selon onglet + recherche
+  function filtered() {
+    return allItems.filter(function (it) {
+      if (currentTab === 'action' && !it.action_required) return false;
+      if (currentTab === 'to_pay' && !(it.state === 'to_pay' || it.state === 'approved')) return false;
+      if (currentTab === 'paid' && it.state !== 'paid') return false;
+      if (searchTerm) {
+        var hay = ((it.contract_number || '') + ' ' + (it.market_object || '') + ' ' + (it.bank_name || '')).toLowerCase();
+        if (hay.indexOf(searchTerm) === -1) return false;
+      }
+      return true;
     });
-  });
+  }
 
-  var STATE_BADGE = {
-    to_verify: '<span class="badge b-verify">\u00c0 v\u00e9rifier</span>',
-    in_progress: '<span class="badge b-progress">En cours</span>',
-    approved: '<span class="badge b-approved">Financement approuv\u00e9</span>',
-    to_pay: '<span class="badge b-topay">\u00c0 r\u00e9gler</span>',
-    paid: '<span class="badge b-paid">Pay\u00e9 \u2713</span>',
-  };
-
-  function render() {
+  function renderList() {
     var list = document.getElementById('list');
     var empty = document.getElementById('empty');
-    var items = currentTab === 'action' ? allItems.filter(function (it) { return it.action_required; }) : allItems;
+    var items = filtered();
     list.innerHTML = '';
-    if (!items.length) { empty.classList.remove('hide'); empty.textContent = currentTab === 'action' ? 'Aucune action requise. Tout est \u00e0 jour !' : 'Aucun march\u00e9 pour le moment.'; return; }
+    if (!items.length) { empty.classList.remove('hide'); empty.textContent = currentTab === 'action' ? 'Aucune action requise. Tout est \u00e0 jour !' : (searchTerm ? 'Aucun r\u00e9sultat pour votre recherche.' : 'Aucun march\u00e9 ici.'); return; }
     empty.classList.add('hide');
 
+    var frag = document.createDocumentFragment();
     items.forEach(function (it) {
-      var gi = allItems.indexOf(it);
       var card = document.createElement('div');
       card.className = 'card' + (it.action_required ? ' act' : '');
-      var html = '<div class="c-top"><div><div class="c-obj">' + (it.market_object || 'March\u00e9') + '</div>'
-        + '<div class="c-num">' + (it.contract_number || '') + '</div></div>' + (STATE_BADGE[it.state] || '') + '</div>';
-
-      if (it.state === 'to_verify') {
-        html += '<div style="font-size:13px;color:#4B5563;margin:6px 0">Un march\u00e9 de <b>' + fmt(it.market_amount) + '</b> vous est pr\u00e9sent\u00e9. Merci de confirmer qu\u2019il est r\u00e9el.</div>'
-          + '<a class="btn" style="text-decoration:none;text-align:center;display:block" href="/c/' + it.solic_token + '">V\u00e9rifier ce march\u00e9</a>';
-      } else if (it.state === 'in_progress') {
-        html += '<div class="row"><span class="k">Montant</span><span class="v">' + fmt(it.market_amount) + '</span></div>'
-          + '<div style="font-size:12.5px;color:#6B7280;margin-top:6px">March\u00e9 confirm\u00e9. Nous recherchons un financement. Vous recevrez le compte de paiement d\u00e8s qu\u2019une banque aura approuv\u00e9.</div>';
-      } else if (it.state === 'approved' || it.state === 'to_pay') {
-        html += '<div class="acct"><div class="acct-num">' + (it.cantonnement_account || '\u2014') + '</div>'
-          + '<div class="acct-meta">' + (it.bank_name || '') + (it.cantonnement_label ? ' \u00b7 ' + it.cantonnement_label : '') + '</div></div>'
-          + '<div class="row"><span class="k">Montant \u00e0 r\u00e9gler</span><span class="v">' + fmt(it.amount_expected) + '</span></div>'
-          + '<div class="row"><span class="k">\u00c9ch\u00e9ance</span><span class="v">' + dateFr(it.date_payment) + '</span></div>'
-          + '<label>Motif \u00e0 indiquer sur le virement</label><div class="motif" id="motif-' + gi + '">' + (it.payment_motif || it.contract_number || '') + '</div>'
-          + '<button class="btn-sm" data-copy="' + gi + '">Copier le motif</button>';
-
-        if (!it.capacity_confirmed && !it.proof_submitted) {
-          html += '<div style="margin-top:10px;padding:10px;background:#F9FAFB;border-radius:9px">'
-            + '<div style="font-size:12.5px;font-weight:700;color:#374151;margin-bottom:6px">Pourrez-vous r\u00e9gler \u00e0 l\u2019\u00e9ch\u00e9ance ?</div>'
-            + '<div class="btns2"><button class="btn btn-2" data-cap-yes="' + gi + '">Oui, je confirme</button>'
-            + '<button class="btn btn-3" data-cap-new="' + gi + '">Autre date</button></div>'
-            + '<div class="hide" id="capnew-' + gi + '"><label>Nouvelle date</label><input type="date" id="capdate-' + gi + '">'
-            + '<button class="btn btn-3" data-cap-submit="' + gi + '">Valider cette date</button></div>'
-            + '<div class="hide" id="capdone-' + gi + '" style="font-size:12px;color:#15803D;font-weight:700;margin-top:6px"></div></div>';
-        } else if (it.capacity_confirmed && !it.proof_submitted) {
-          html += '<div style="margin-top:8px;font-size:12px;color:#15803D;font-weight:700">\u2713 Paiement confirm\u00e9' + (it.proposed_new_date ? ' \u2014 nouvelle date : ' + dateFr(it.proposed_new_date) : '') + '</div>';
-        }
-
-        if (!it.proof_submitted) {
-          html += '<button class="btn" data-pay="' + gi + '" style="margin-top:8px">J\u2019ai pay\u00e9 \u2014 envoyer ma preuve</button>'
-            + '<div class="hide" id="pf-' + gi + '" style="margin-top:8px">'
-            + '<label>Re\u00e7u / justificatif</label><input type="file" id="file-' + gi + '" accept="image/jpeg,image/png,image/webp,application/pdf">'
-            + '<label>R\u00e9f\u00e9rence du virement</label><input type="text" id="ref-' + gi + '" placeholder="R\u00e9f\u00e9rence">'
-            + '<div style="display:flex;gap:8px"><div style="flex:1"><label>Date</label><input type="date" id="pdate-' + gi + '"></div>'
-            + '<div style="flex:1"><label>Montant</label><input type="number" id="amt-' + gi + '" placeholder="FCFA"></div></div>'
-            + '<button class="btn" data-submit="' + gi + '">Envoyer ma preuve</button></div>';
-        } else {
-          html += '<div style="margin-top:8px;font-size:12.5px;color:#15803D;font-weight:700">\u2713 Votre preuve a \u00e9t\u00e9 re\u00e7ue. Merci.</div>';
-        }
-      } else if (it.state === 'paid') {
-        html += '<div class="row"><span class="k">Montant r\u00e9gl\u00e9</span><span class="v">' + fmt(it.amount_expected) + '</span></div>'
-          + '<div style="margin-top:6px;font-size:12.5px;color:#15803D;font-weight:700">\u2713 ' + (it.payment_status === 'verified' ? 'Paiement v\u00e9rifi\u00e9.' : 'Preuve re\u00e7ue, en cours de v\u00e9rification.') + '</div>';
-      }
-
-      card.innerHTML = html;
-      list.appendChild(card);
+      var amount = it.amount_expected || it.market_amount;
+      card.innerHTML =
+        '<div class="c-top"><div><div class="c-obj">' + esc(it.market_object || 'March\u00e9') + '</div>'
+        + '<div class="c-num">' + esc(it.contract_number || '') + '</div></div>' + (STATE_BADGE[it.state] || '') + '</div>'
+        + '<div class="c-meta"><span>' + fmt(amount) + '</span>' + (it.date_payment ? '<span>\u00c9ch. ' + dateShort(it.date_payment) + '</span>' : '') + '</div>'
+        + '<div class="c-open">Voir le d\u00e9tail et les actions \u2192</div>';
+      card.addEventListener('click', function () { openDetail(it.request_id); });
+      frag.appendChild(card);
     });
-
-    attachHandlers(list);
+    list.appendChild(frag);
   }
 
-  function attachHandlers(list) {
-    list.querySelectorAll('[data-copy]').forEach(function (b) { b.addEventListener('click', function () { try { navigator.clipboard.writeText(document.getElementById('motif-' + b.dataset.copy).textContent); b.textContent = 'Motif copi\u00e9 \u2713'; setTimeout(function () { b.textContent = 'Copier le motif'; }, 2000); } catch (e) {} }); });
-    list.querySelectorAll('[data-pay]').forEach(function (b) { b.addEventListener('click', function () { document.getElementById('pf-' + b.dataset.pay).classList.remove('hide'); b.classList.add('hide'); }); });
-    list.querySelectorAll('[data-cap-new]').forEach(function (b) { b.addEventListener('click', function () { document.getElementById('capnew-' + b.dataset.capNew).classList.remove('hide'); }); });
-    list.querySelectorAll('[data-cap-yes]').forEach(function (b) { b.addEventListener('click', function () { capConfirm(b.dataset.capYes, true, null); }); });
-    list.querySelectorAll('[data-cap-submit]').forEach(function (b) { b.addEventListener('click', function () { var nd = (document.getElementById('capdate-' + b.dataset.capSubmit) || {}).value || ''; if (!nd) { alert('Choisissez une date.'); return; } capConfirm(b.dataset.capSubmit, false, nd); }); });
-    list.querySelectorAll('[data-submit]').forEach(function (b) { b.addEventListener('click', function () { submitProof(b.dataset.submit, b); }); });
+  // Recherche + onglets
+  document.getElementById('search').addEventListener('input', function (e) { searchTerm = (e.target.value || '').toLowerCase().trim(); renderList(); });
+  document.querySelectorAll('.tab').forEach(function (t) {
+    t.addEventListener('click', function () { currentTab = t.dataset.tab; document.querySelectorAll('.tab').forEach(function (x) { x.classList.toggle('active', x === t); }); renderList(); });
+  });
+  document.getElementById('back').addEventListener('click', function () { showView('content'); });
+
+  // ── DÉTAIL D'UN CONTRAT ──
+  function openDetail(requestId) {
+    var body = document.getElementById('detail-body');
+    body.innerHTML = '<div class="msg">Chargement\u2026</div>';
+    showView('detail');
+    sb.rpc('get_donneur_contract_detail', { p_code: code, p_request_id: requestId }).then(function (res) {
+      if (res.error || !res.data || res.data.error) { body.innerHTML = '<div class="msg">Impossible d\u2019ouvrir ce march\u00e9.</div>'; return; }
+      renderDetail(res.data);
+    }, function () { body.innerHTML = '<div class="msg">Connexion impossible.</div>'; });
   }
 
-  function capConfirm(gi, canPay, newDate) {
-    var it = allItems[gi];
-    sb.rpc('confirm_payment_capacity', { p_token: it.pay_token, p_can_pay: canPay, p_new_date: newDate || null, p_ip: window.__clientIp || null, p_agent: navigator.userAgent, p_fingerprint: fingerprint() })
-      .then(function (res) { if (res.error || (res.data && res.data.error)) { alert('R\u00e9essayez.'); return; } load(); }, function () { alert('Connexion impossible.'); });
+  function renderDetail(d) {
+    var body = document.getElementById('detail-body');
+    var hasPay = !!d.pay_token && !!d.cantonnement_account;
+    var paid = d.payment_status === 'declared' || d.payment_status === 'verified';
+    var html = '<div class="card" style="cursor:default">'
+      + '<div class="c-top"><div><div class="c-obj">' + esc(d.market_object || 'March\u00e9') + '</div>'
+      + '<div class="c-num">' + esc(d.contract_number || '') + '</div></div></div>'
+      + '<div class="row"><span class="k">Montant du march\u00e9</span><span class="v">' + fmt(d.market_amount) + '</span></div>';
+
+    // Compte de cantonnement MIS EN AVANT (si disponible)
+    if (hasPay) {
+      html += '<div class="acct"><div class="acct-lbl">Compte sur lequel r\u00e9gler ce march\u00e9</div>'
+        + '<div class="acct-num">' + esc(d.cantonnement_account) + '</div>'
+        + '<div class="acct-meta">' + esc(d.bank_name || '') + (d.cantonnement_label ? ' \u00b7 ' + esc(d.cantonnement_label) : '') + '</div></div>'
+        + '<div class="row"><span class="k">Montant \u00e0 r\u00e9gler</span><span class="v">' + fmt(d.amount_expected) + '</span></div>'
+        + '<div class="row"><span class="k">\u00c9ch\u00e9ance</span><span class="v">' + dateFr(d.date_payment) + '</span></div>'
+        + '<label>Motif \u00e0 indiquer sur le virement</label><div class="motif" id="d-motif">' + esc(d.payment_motif || d.contract_number) + '</div>'
+        + '<button class="btn-sm" id="d-copy">Copier le motif</button>';
+    } else {
+      html += '<div style="font-size:12.5px;color:#6B7280;margin-top:8px">Le compte de paiement vous sera communiqu\u00e9 d\u00e8s qu\u2019une banque aura approuv\u00e9 le financement.</div>';
+    }
+    html += '</div>';
+
+    // Actions disponibles
+    if (d.solic_token && d.status !== 'confirmed' && d.status !== 'approved' && d.status !== 'disbursed' && d.status !== 'settled') {
+      // vérification encore possible : lien vers page dédiée
+    }
+    if (hasPay && !paid) {
+      html += '<div class="card" style="cursor:default"><div style="font-weight:800;font-size:14px;margin-bottom:8px">Vos actions</div>';
+      if (!d.capacity_confirmed) {
+        html += '<div style="font-size:12.5px;font-weight:700;color:#374151;margin-bottom:6px">Pourrez-vous r\u00e9gler \u00e0 l\u2019\u00e9ch\u00e9ance ?</div>'
+          + '<div class="btns2"><button class="btn btn-2" id="d-cap-yes">Oui, je confirme</button>'
+          + '<button class="btn btn-3" id="d-cap-new">Autre date</button></div>'
+          + '<div class="hide" id="d-capnew"><label>Nouvelle date</label><input type="date" id="d-capdate"><button class="btn btn-3" id="d-cap-submit">Valider cette date</button></div>';
+      } else {
+        html += '<div style="font-size:12px;color:#15803D;font-weight:700">\u2713 Paiement confirm\u00e9' + (d.proposed_new_date ? ' \u2014 nouvelle date : ' + dateFr(d.proposed_new_date) : '') + '</div>';
+      }
+      html += '<button class="btn" id="d-pay" style="margin-top:8px">J\u2019ai pay\u00e9 \u2014 envoyer ma preuve</button>'
+        + '<div class="hide" id="d-pf" style="margin-top:8px">'
+        + '<label>Re\u00e7u / justificatif</label><input type="file" id="d-file" accept="image/jpeg,image/png,image/webp,application/pdf">'
+        + '<label>R\u00e9f\u00e9rence du virement</label><input type="text" id="d-ref" placeholder="R\u00e9f\u00e9rence">'
+        + '<div style="display:flex;gap:8px"><div style="flex:1"><label>Date</label><input type="date" id="d-date"></div>'
+        + '<div style="flex:1"><label>Montant</label><input type="number" id="d-amt" placeholder="FCFA"></div></div>'
+        + '<button class="btn" id="d-submit">Envoyer ma preuve</button></div></div>';
+    } else if (paid) {
+      html += '<div class="card" style="cursor:default"><div style="font-size:13px;color:#15803D;font-weight:700">\u2713 ' + (d.payment_status === 'verified' ? 'Paiement v\u00e9rifi\u00e9.' : 'Preuve re\u00e7ue, en cours de v\u00e9rification.') + '</div></div>';
+    }
+
+    // Timeline des actions effectuées
+    html += '<div class="card" style="cursor:default"><div style="font-weight:800;font-size:14px;margin-bottom:8px">Historique des actions</div>';
+    var evs = d.events || [];
+    if (!evs.length) { html += '<div style="font-size:12.5px;color:#9CA3AF">Aucune action pour le moment.</div>'; }
+    else {
+      html += '<ul class="tl">';
+      evs.forEach(function (e) {
+        html += '<li' + (e.done ? '' : ' class="pending"') + '><div class="t-label">' + esc(e.label) + '</div>'
+          + '<div class="t-date">' + (e.at ? dateFr(e.at) : '') + (e.signer ? ' \u00b7 ' + esc(e.signer) : '') + '</div></li>';
+      });
+      html += '</ul>';
+    }
+    html += '</div>';
+
+    body.innerHTML = html;
+    attachDetailHandlers(d);
   }
 
-  function submitProof(gi, btn) {
-    var it = allItems[gi];
-    var file = (document.getElementById('file-' + gi) || {}).files; file = file && file[0];
-    var ref = (document.getElementById('ref-' + gi) || {}).value || '';
-    var date = (document.getElementById('pdate-' + gi) || {}).value || '';
-    var amt = (document.getElementById('amt-' + gi) || {}).value || '';
+  function attachDetailHandlers(d) {
+    var copy = document.getElementById('d-copy');
+    if (copy) copy.addEventListener('click', function () { try { navigator.clipboard.writeText(document.getElementById('d-motif').textContent); copy.textContent = 'Motif copi\u00e9 \u2713'; setTimeout(function () { copy.textContent = 'Copier le motif'; }, 2000); } catch (e) {} });
+
+    var capYes = document.getElementById('d-cap-yes');
+    if (capYes) capYes.addEventListener('click', function () { capConfirm(d.pay_token, true, null); });
+    var capNew = document.getElementById('d-cap-new');
+    if (capNew) capNew.addEventListener('click', function () { document.getElementById('d-capnew').classList.remove('hide'); });
+    var capSubmit = document.getElementById('d-cap-submit');
+    if (capSubmit) capSubmit.addEventListener('click', function () { var nd = (document.getElementById('d-capdate') || {}).value || ''; if (!nd) { alert('Choisissez une date.'); return; } capConfirm(d.pay_token, false, nd); });
+
+    var pay = document.getElementById('d-pay');
+    if (pay) pay.addEventListener('click', function () { document.getElementById('d-pf').classList.remove('hide'); pay.classList.add('hide'); });
+    var submit = document.getElementById('d-submit');
+    if (submit) submit.addEventListener('click', function () { submitProof(d.pay_token, d.request_id, submit); });
+  }
+
+  function capConfirm(token, canPay, newDate) {
+    sb.rpc('confirm_payment_capacity', { p_token: token, p_can_pay: canPay, p_new_date: newDate || null, p_ip: window.__clientIp || null, p_agent: navigator.userAgent, p_fingerprint: fingerprint() })
+      .then(function (res) { if (res.error || (res.data && res.data.error)) { alert('R\u00e9essayez.'); return; } load(); openDetailAfterReload(); }, function () { alert('Connexion impossible.'); });
+  }
+
+  var _reopenId = null;
+  function openDetailAfterReload() { /* la liste se recharge ; on rouvre le détail courant */ if (_reopenId) setTimeout(function () { openDetail(_reopenId); }, 300); }
+
+  function submitProof(token, requestId, btn) {
+    var file = (document.getElementById('d-file') || {}).files; file = file && file[0];
+    var ref = (document.getElementById('d-ref') || {}).value || '';
+    var date = (document.getElementById('d-date') || {}).value || '';
+    var amt = (document.getElementById('d-amt') || {}).value || '';
     if (!file && !ref.trim() && !amt) { alert('Joignez le re\u00e7u ou indiquez au moins la r\u00e9f\u00e9rence.'); return; }
     btn.disabled = true; btn.textContent = 'Envoi\u2026';
+    _reopenId = requestId;
     function send(b64, name, ctype) {
-      fetch(BACKOFFICE_URL + '/.netlify/functions/payment-proof-upload', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ token: it.pay_token, fileBase64: b64, fileName: name, contentType: ctype, reference: ref.trim() || null, date: date || null, amount: amt || null }) })
-        .then(function (r) { return r.json(); }).then(function (res) { if (res && res.ok) { load(); } else { btn.disabled = false; btn.textContent = 'Envoyer ma preuve'; alert((res && res.error) || 'Envoi impossible.'); } })
+      fetch(BACKOFFICE_URL + '/.netlify/functions/payment-proof-upload', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ token: token, fileBase64: b64, fileName: name, contentType: ctype, reference: ref.trim() || null, date: date || null, amount: amt || null }) })
+        .then(function (r) { return r.json(); }).then(function (res) { if (res && res.ok) { load(); openDetail(requestId); } else { btn.disabled = false; btn.textContent = 'Envoyer ma preuve'; alert((res && res.error) || 'Envoi impossible.'); } })
         .catch(function () { btn.disabled = false; btn.textContent = 'Envoyer ma preuve'; alert('Connexion impossible.'); });
     }
     if (file) {
@@ -248,9 +342,7 @@
   document.getElementById('bell').addEventListener('click', function () {
     if (!window.Notification) { alert('Votre navigateur ne g\u00e8re pas les notifications.'); return; }
     if (Notification.permission === 'granted') { alert('Notifications d\u00e9j\u00e0 activ\u00e9es.'); return; }
-    Notification.requestPermission().then(function (perm) {
-      if (perm === 'granted') { try { new Notification('Credigo', { body: 'Notifications activ\u00e9es. Vous serez pr\u00e9venu des actions \u00e0 faire.' }); } catch (e) {} }
-    });
+    Notification.requestPermission().then(function (perm) { if (perm === 'granted') { try { new Notification('Credigo', { body: 'Notifications activ\u00e9es.' }); } catch (e) {} } });
   });
 
   load();
