@@ -1,0 +1,338 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Credigo — Espace partenaire</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: #F5F3FF; color: #1F2937; line-height: 1.5; padding: 16px; }
+  .wrap { max-width: 660px; margin: 16px auto; }
+  .head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px; }
+  .logo { font-size: 24px; font-weight: 800; color: #6C3FE8; }
+  .sub { color: #6B7280; font-size: 13px; margin-bottom: 12px; }
+  .search { width: 100%; padding: 11px 13px; border: 1px solid #E5E7EB; border-radius: 10px; font-size: 13.5px; font-family: inherit; margin-bottom: 10px; }
+  .tabs { display: flex; gap: 6px; margin-bottom: 12px; flex-wrap: wrap; }
+  .tab { padding: 8px 12px; border-radius: 20px; border: 1.5px solid #E5E7EB; background: #fff; font-size: 12px; font-weight: 700; cursor: pointer; color: #6B7280; }
+  .tab.active { background: #6C3FE8; color: #fff; border-color: #6C3FE8; }
+  .tip { background: #EEF2FF; border: 1px solid #C7D2FE; border-radius: 10px; padding: 10px 12px; font-size: 12px; color: #3730A3; margin-bottom: 12px; line-height: 1.5; }
+  .card { background: #fff; border-radius: 14px; padding: 15px; box-shadow: 0 4px 16px rgba(76,29,149,.07); margin-bottom: 10px; }
+  .card.clickable { cursor: pointer; }
+  .card.act { border-left: 4px solid #DC2626; }
+  .c-top { display: flex; justify-content: space-between; align-items: flex-start; gap: 10px; margin-bottom: 6px; }
+  .c-obj { font-size: 15px; font-weight: 800; color: #111827; }
+  .c-num { font-family: monospace; font-size: 11.5px; color: #6C3FE8; font-weight: 700; }
+  .badge { font-size: 10.5px; font-weight: 800; padding: 3px 9px; border-radius: 20px; white-space: nowrap; }
+  .b-review { background: #FEE2E2; color: #B91C1C; }
+  .b-approved { background: #DCFCE7; color: #15803D; }
+  .b-refused { background: #F3F4F6; color: #6B7280; }
+  .b-pending { background: #E0E7FF; color: #3730A3; }
+  .row { display: flex; justify-content: space-between; font-size: 13px; padding: 3px 0; }
+  .row .k { color: #6B7280; } .row .v { font-weight: 700; text-align: right; }
+  .btn { width: 100%; padding: 12px; border-radius: 10px; border: none; font-size: 14px; font-weight: 800; cursor: pointer; font-family: inherit; background: #6C3FE8; color: #fff; margin-top: 8px; }
+  .btn-2 { background: #15803D; }
+  .btn-o { background: #fff; color: #6B7280; border: 1px solid #E5E7EB; }
+  .btn-back { background: none; color: #6C3FE8; border: none; font-weight: 700; font-size: 13px; cursor: pointer; padding: 0; margin-bottom: 12px; }
+  .hide { display: none; }
+  .msg { text-align: center; padding: 40px 10px; color: #6B7280; }
+  .ico { font-size: 40px; margin-bottom: 10px; }
+  label { font-size: 11.5px; font-weight: 700; color: #4B5563; display: block; margin-top: 8px; }
+  input[type=text], input[type=email] { width: 100%; padding: 10px; border: 1px solid #E5E7EB; border-radius: 9px; font-size: 13px; font-family: inherit; margin-top: 4px; }
+  input[type=file] { margin-top: 4px; font-size: 12.5px; }
+  .grid2 { display: flex; gap: 8px; } .grid2 > div { flex: 1; }
+  .ok-note { font-size: 12.5px; color: #15803D; font-weight: 700; margin-top: 6px; }
+  .foot { text-align: center; color: #9CA3AF; font-size: 11px; margin-top: 18px; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="head"><div class="logo">Credigo</div></div>
+  <div class="sub" id="sub">Espace partenaire</div>
+
+  <div id="loading" class="msg">Chargement&#8230;</div>
+  <div id="invalid" class="msg hide"><div class="ico">&#9888;&#65039;</div><div id="invalid-msg">Lien invalide.</div></div>
+
+  <div id="auth" class="hide">
+    <div class="card">
+      <div style="font-size:16px;font-weight:800;margin-bottom:6px">Accès à votre espace partenaire</div>
+      <div style="font-size:13px;color:#6B7280;line-height:1.6;margin-bottom:12px">Pour votre sécurité, confirmez l'adresse email de votre établissement. Nous vous enverrons un code à 6 chiffres.</div>
+      <div id="auth-step1">
+        <label>Adresse email de l'établissement</label>
+        <input type="text" id="auth-email" placeholder="contact@banque.ci" autocomplete="email">
+        <button class="btn" id="auth-send">Recevoir mon code</button>
+        <button class="btn btn-o" id="auth-have-code" style="color:#6C3FE8;border-color:#DDD6FE">J'ai déjà un code fourni par Credigo</button>
+      </div>
+      <div id="auth-step2" class="hide">
+        <div style="font-size:13px;color:#15803D;font-weight:700;margin-bottom:8px">Saisissez le code reçu.</div>
+        <label>Code à 6 chiffres</label>
+        <input type="text" id="auth-otp" placeholder="123456" inputmode="numeric" maxlength="6" style="letter-spacing:5px;font-size:18px;font-weight:800;text-align:center">
+        <button class="btn" id="auth-verify">Accéder à mon espace</button>
+        <button class="btn btn-o" id="auth-resend" style="color:#6C3FE8;border-color:#DDD6FE">Je n'ai rien reçu — renvoyer</button>
+        <button class="btn btn-o" id="auth-back">Changer d'adresse</button>
+      </div>
+      <div id="auth-err" style="font-size:12.5px;color:#B91C1C;font-weight:700;margin-top:8px"></div>
+    </div>
+  </div>
+
+  <div id="content" class="hide">
+    <div class="tip">&#128161; Enregistrez cette page dans vos favoris : vous y retrouvez tous les dossiers Credigo de votre établissement.</div>
+    <input type="text" class="search" id="search" placeholder="Rechercher un dossier, une entreprise&#8230;">
+    <div class="tabs">
+      <button class="tab active" data-tab="action">À traiter<span id="cnt-action"></span></button>
+      <button class="tab" data-tab="all">Tous<span id="cnt-all"></span></button>
+      <button class="tab" data-tab="approved">Accordés<span id="cnt-approved"></span></button>
+    </div>
+    <div id="list"></div>
+    <div id="empty" class="msg hide">Rien à afficher ici.</div>
+  </div>
+
+  <div id="detail" class="hide">
+    <button class="btn-back" id="back">&#8592; Retour aux dossiers</button>
+    <div id="detail-body"></div>
+  </div>
+
+  <div class="foot">Espace réservé à votre établissement. En cas de doute, contactez Credigo.</div>
+</div>
+
+<script src="/supabase.min.js"></script>
+<script>
+  window.CREDIGO_SUPABASE_URL = '__CREDIGO_SUPABASE_URL__';
+  window.CREDIGO_SUPABASE_ANON_KEY = '__CREDIGO_SUPABASE_ANON_KEY__';
+</script>
+<script>
+(function () {
+  var url = window.CREDIGO_SUPABASE_URL || '';
+  var key = window.CREDIGO_SUPABASE_ANON_KEY || '';
+  var sb = null;
+  var code = (location.pathname.split('/banque-portail/')[1] || '').split('?')[0].split('#')[0].trim();
+  var BACKOFFICE_URL = 'https://credigo-backoffice.netlify.app';
+  var allItems = [], currentTab = 'action', searchTerm = '', _pendingToken = null, _lastEmail = '';
+
+  function showView(v) { ['loading','invalid','auth','content','detail'].forEach(function (x) { var el = document.getElementById(x); if (el) el.classList.toggle('hide', x !== v); }); }
+  function fail(m) { if (m) document.getElementById('invalid-msg').textContent = m; showView('invalid'); }
+  function fmt(n) { return new Intl.NumberFormat('fr-FR').format(Math.round(n || 0)) + ' FCFA'; }
+  function dateFr(d) { if (!d) return '\u2014'; try { return new Date(d).toLocaleDateString('fr-FR', { day:'2-digit', month:'long', year:'numeric' }); } catch (e) { return d; } }
+  function esc(s) { return String(s == null ? '' : s).replace(/[<>&"]/g, function (c) { return ({'<':'&lt;','>':'&gt;','&':'&amp;','"':'&quot;'})[c]; }); }
+  function authErr(m) { document.getElementById('auth-err').textContent = m || ''; }
+  function sessKey() { return 'credigo_bank_' + code; }
+  function getSession() { try { return localStorage.getItem(sessKey()); } catch (e) { return null; } }
+  function setSession(t) { try { localStorage.setItem(sessKey(), t); } catch (e) {} }
+  function clearSession() { try { localStorage.removeItem(sessKey()); } catch (e) {} }
+
+  if (!code) { fail('Code d\u2019acc\u00e8s manquant.'); return; }
+  if (!url || !key || url.indexOf('__') === 0 || !window.supabase) { fail('Service momentan\u00e9ment indisponible.'); return; }
+  sb = window.supabase.createClient(url, key, { auth: { persistSession:false, autoRefreshToken:false, detectSessionInUrl:false } });
+
+  var STATE_BADGE = {
+    to_review: '<span class="badge b-review">\u00c0 traiter</span>',
+    approved: '<span class="badge b-approved">Accord\u00e9</span>',
+    refused: '<span class="badge b-refused">Refus\u00e9</span>',
+    pending: '<span class="badge b-pending">En cours</span>',
+  };
+
+  function load() {
+    var st = getSession();
+    if (!st) { showView('auth'); return; }
+    sb.rpc('get_bank_portal', { p_code: code, p_session_token: st }).then(function (res) {
+      var d = res.data || {};
+      if (d.error === 'auth_required') { clearSession(); showView('auth'); return; }
+      if (res.error || d.error) return fail('Lien invalide.');
+      document.getElementById('sub').textContent = d.bank_name ? ('Espace de ' + d.bank_name) : 'Espace partenaire';
+      allItems = d.items || [];
+      document.getElementById('cnt-action').textContent = ' ' + allItems.filter(function (i) { return i.action_required; }).length;
+      document.getElementById('cnt-all').textContent = ' ' + allItems.length;
+      document.getElementById('cnt-approved').textContent = ' ' + allItems.filter(function (i) { return i.state === 'approved'; }).length;
+      renderList();
+      showView('content');
+    }, function () { fail('Service momentan\u00e9ment indisponible.'); });
+  }
+
+  function filtered() {
+    return allItems.filter(function (it) {
+      if (currentTab === 'action' && !it.action_required) return false;
+      if (currentTab === 'approved' && it.state !== 'approved') return false;
+      if (searchTerm) {
+        var hay = ((it.contract_number||'') + ' ' + (it.market_object||'') + ' ' + (it.company||'') + ' ' + (it.entrepreneur||'')).toLowerCase();
+        if (hay.indexOf(searchTerm) === -1) return false;
+      }
+      return true;
+    });
+  }
+
+  function renderList() {
+    var list = document.getElementById('list'), empty = document.getElementById('empty');
+    var items = filtered();
+    list.innerHTML = '';
+    if (!items.length) { empty.classList.remove('hide'); empty.textContent = searchTerm ? 'Aucun r\u00e9sultat.' : 'Aucun dossier ici.'; return; }
+    empty.classList.add('hide');
+    var frag = document.createDocumentFragment();
+    items.forEach(function (it) {
+      var card = document.createElement('div');
+      card.className = 'card clickable' + (it.action_required ? ' act' : '');
+      card.innerHTML = '<div class="c-top"><div><div class="c-obj">' + esc(it.market_object || 'Dossier') + '</div>'
+        + '<div class="c-num">' + esc(it.contract_number || '') + '</div></div>' + (STATE_BADGE[it.state] || '') + '</div>'
+        + '<div class="row"><span class="k">Entreprise</span><span class="v">' + esc(it.company || it.entrepreneur || '\u2014') + '</span></div>'
+        + '<div class="row"><span class="k">Montant</span><span class="v">' + fmt(it.market_amount) + '</span></div>'
+        + (it.rib_sent ? '<div class="ok-note">\u2713 RIB transmis \u00e0 l\u2019entrepreneur</div>' : '')
+        + '<div style="font-size:11.5px;color:#6C3FE8;font-weight:700;margin-top:6px">Voir le dossier \u2192</div>';
+      card.addEventListener('click', function () { openDetail(it); });
+      frag.appendChild(card);
+    });
+    list.appendChild(frag);
+  }
+
+  document.getElementById('search').addEventListener('input', function (e) { searchTerm = (e.target.value||'').toLowerCase().trim(); renderList(); });
+  document.querySelectorAll('.tab').forEach(function (t) {
+    t.addEventListener('click', function () { currentTab = t.dataset.tab; document.querySelectorAll('.tab').forEach(function (x) { x.classList.toggle('active', x === t); }); renderList(); });
+  });
+  document.getElementById('back').addEventListener('click', function () { showView('content'); });
+
+  function openDetail(it) {
+    var body = document.getElementById('detail-body');
+    var html = '<div class="card"><div class="c-top"><div><div class="c-obj">' + esc(it.market_object || 'Dossier') + '</div>'
+      + '<div class="c-num">' + esc(it.contract_number || '') + '</div></div>' + (STATE_BADGE[it.state] || '') + '</div>'
+      + '<div class="row"><span class="k">Entreprise</span><span class="v">' + esc(it.company || '\u2014') + '</span></div>'
+      + '<div class="row"><span class="k">Dirigeant</span><span class="v">' + esc(it.entrepreneur || '\u2014') + '</span></div>'
+      + '<div class="row"><span class="k">Donneur d\u2019ordre</span><span class="v">' + esc(it.donneur_ordre_name || '\u2014') + '</span></div>'
+      + '<div class="row"><span class="k">Montant</span><span class="v">' + fmt(it.market_amount) + '</span></div>'
+      + (it.answered_at ? '<div class="row"><span class="k">R\u00e9pondu le</span><span class="v">' + dateFr(it.answered_at) + '</span></div>' : '')
+      + '</div>';
+
+    if (it.action_required && it.send_token) {
+      html += '<div class="card"><div style="font-weight:800;font-size:14px;margin-bottom:6px">Dossier \u00e0 traiter</div>'
+        + '<div style="font-size:12.5px;color:#6B7280;line-height:1.6;margin-bottom:8px">Consultez le dossier complet et donnez votre d\u00e9cision.</div>'
+        + '<a class="btn" style="display:block;text-align:center;text-decoration:none" href="/b/' + esc(it.send_token) + '">Ouvrir le dossier</a></div>';
+    }
+
+    // Transmission du RIB
+    html += '<div class="card"><div style="font-weight:800;font-size:14px;margin-bottom:4px">Coordonn\u00e9es bancaires de l\u2019entrepreneur</div>'
+      + '<div style="font-size:12.5px;color:#6B7280;line-height:1.6;margin-bottom:6px">Transmettez le RIB : les informations et le document seront envoy\u00e9s sur le compte Credigo de l\u2019entrepreneur, et conserv\u00e9s ici.</div>';
+    if (it.rib_sent) {
+      html += '<div class="ok-note">\u2713 RIB d\u00e9j\u00e0 transmis' + (it.holder_name ? ' \u2014 ' + esc(it.holder_name) : '') + (it.iban ? '<br>IBAN : ' + esc(it.iban) : '') + '</div>'
+        + '<button class="btn btn-o" id="rib-again" style="color:#6C3FE8;border-color:#DDD6FE">Mettre \u00e0 jour le RIB</button>';
+    }
+    html += '<div id="rib-form"' + (it.rib_sent ? ' class="hide"' : '') + '>'
+      + '<label>Titulaire du compte</label><input type="text" id="rib-holder" placeholder="Nom du titulaire" value="' + esc(it.holder_name || it.company || '') + '">'
+      + '<label>Num\u00e9ro de compte</label><input type="text" id="rib-account" placeholder="Num\u00e9ro de compte" value="' + esc(it.account_number || '') + '">'
+      + '<div class="grid2"><div><label>Code banque</label><input type="text" id="rib-bank"></div>'
+      + '<div><label>Code guichet</label><input type="text" id="rib-branch"></div></div>'
+      + '<div class="grid2"><div><label>Cl\u00e9 RIB</label><input type="text" id="rib-key"></div>'
+      + '<div><label>Devise</label><input type="text" id="rib-currency" value="XOF"></div></div>'
+      + '<label>IBAN</label><input type="text" id="rib-iban" placeholder="CI93 CI..." value="' + esc(it.iban || '') + '">'
+      + '<label>BIC / SWIFT</label><input type="text" id="rib-bic" placeholder="BIC">'
+      + '<label>RIB scann\u00e9 (image ou PDF)</label><input type="file" id="rib-file" accept="image/jpeg,image/png,image/webp,application/pdf">'
+      + '<button class="btn btn-2" id="rib-submit">Transmettre \u00e0 l\u2019entrepreneur</button></div></div>';
+
+    body.innerHTML = html;
+    showView('detail');
+
+    var again = document.getElementById('rib-again');
+    if (again) again.addEventListener('click', function () { document.getElementById('rib-form').classList.remove('hide'); again.classList.add('hide'); });
+    var submit = document.getElementById('rib-submit');
+    if (submit) submit.addEventListener('click', function () { submitRib(it, submit); });
+  }
+
+  function submitRib(it, btn) {
+    var v = function (id) { return ((document.getElementById(id) || {}).value || '').trim(); };
+    var holder = v('rib-holder'), account = v('rib-account');
+    if (!holder && !account) { alert('Indiquez au moins le titulaire et le num\u00e9ro de compte.'); return; }
+    var f = (document.getElementById('rib-file') || {}).files; f = f && f[0];
+    btn.disabled = true; btn.textContent = 'Envoi\u2026';
+
+    function send(b64, name, ctype) {
+      fetch(BACKOFFICE_URL + '/.netlify/functions/bank-rib-submit', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          code: code, sessionToken: getSession(), appUserId: it.app_user_id,
+          holderName: holder, accountNumber: account,
+          bankCode: v('rib-bank'), branchCode: v('rib-branch'), ribKey: v('rib-key'),
+          iban: v('rib-iban'), bic: v('rib-bic'), currency: v('rib-currency') || 'XOF',
+          fileBase64: b64, fileName: name, contentType: ctype,
+        }),
+      }).then(function (r) { return r.json(); }).then(function (res) {
+        if (res && res.ok) { alert('RIB transmis \u00e0 l\u2019entrepreneur.'); load(); }
+        else { btn.disabled = false; btn.textContent = 'Transmettre \u00e0 l\u2019entrepreneur'; alert((res && res.error) || 'Envoi impossible.'); }
+      }).catch(function () { btn.disabled = false; btn.textContent = 'Transmettre \u00e0 l\u2019entrepreneur'; alert('Connexion impossible.'); });
+    }
+
+    if (f) {
+      if (f.size > 8 * 1024 * 1024) { alert('Fichier trop volumineux (max 8 Mo).'); btn.disabled = false; btn.textContent = 'Transmettre \u00e0 l\u2019entrepreneur'; return; }
+      var reader = new FileReader();
+      reader.onload = function () { send(String(reader.result).split(',')[1], f.name, f.type); };
+      reader.onerror = function () { btn.disabled = false; btn.textContent = 'Transmettre \u00e0 l\u2019entrepreneur'; alert('Lecture impossible.'); };
+      reader.readAsDataURL(f);
+    } else { send(null, null, null); }
+  }
+
+  // ── Connexion ──
+  function sendCode(btn, labelIdle) {
+    var email = _lastEmail || ((document.getElementById('auth-email') || {}).value || '');
+    if (!email.trim() || email.indexOf('@') === -1) { authErr('Indiquez une adresse email valide.'); return; }
+    _lastEmail = email.trim(); authErr(''); btn.disabled = true; btn.textContent = 'Envoi\u2026';
+    fetch(BACKOFFICE_URL + '/.netlify/functions/bank-portal-access', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ code: code, email: _lastEmail }),
+    }).then(function (r) { return r.json(); }).then(function (res) {
+      btn.disabled = false; btn.textContent = labelIdle;
+      if (res && res.ok) {
+        _pendingToken = res.session_token || null;
+        document.getElementById('auth-step1').classList.add('hide');
+        document.getElementById('auth-step2').classList.remove('hide');
+        var o = document.getElementById('auth-otp'); if (o) { o.value = ''; o.focus(); }
+        if (!_pendingToken) authErr('Si cette adresse correspond \u00e0 celle enregistr\u00e9e, vous recevrez un code. Sinon, contactez Credigo.');
+      } else { authErr((res && res.error) || 'Impossible d\u2019envoyer le code.'); }
+    }).catch(function () { btn.disabled = false; btn.textContent = labelIdle; authErr('Connexion impossible.'); });
+  }
+
+  document.getElementById('auth-send').addEventListener('click', function () { sendCode(this, 'Recevoir mon code'); });
+  document.getElementById('auth-resend').addEventListener('click', function () { sendCode(this, 'Je n\u2019ai rien re\u00e7u \u2014 renvoyer'); });
+  document.getElementById('auth-have-code').addEventListener('click', function () {
+    _pendingToken = null;
+    document.getElementById('auth-step1').classList.add('hide');
+    document.getElementById('auth-step2').classList.remove('hide');
+    var o = document.getElementById('auth-otp'); if (o) { o.value = ''; o.focus(); }
+    authErr('');
+  });
+  document.getElementById('auth-back').addEventListener('click', function () {
+    document.getElementById('auth-step2').classList.add('hide');
+    document.getElementById('auth-step1').classList.remove('hide');
+    _lastEmail = ''; authErr('');
+  });
+  document.getElementById('auth-verify').addEventListener('click', function () {
+    var b = this, otp = ((document.getElementById('auth-otp') || {}).value || '').trim();
+    if (otp.length < 6) { authErr('Saisissez le code \u00e0 6 chiffres.'); return; }
+    authErr(''); b.disabled = true; b.textContent = 'V\u00e9rification\u2026';
+    function done() { b.disabled = false; b.textContent = 'Acc\u00e9der \u00e0 mon espace'; }
+    function tryManual() {
+      sb.rpc('verify_bank_portal_manual_code', { p_code: code, p_otp: otp }).then(function (r2) {
+        done(); var m = r2.data || {};
+        if (m.ok && m.session_token) { setSession(m.session_token); showView('loading'); load(); return; }
+        if (m.error === 'too_many') authErr('Trop d\u2019essais. Contactez Credigo.');
+        else if (m.error === 'expired') authErr('Ce code a expir\u00e9.');
+        else authErr('Code incorrect.');
+      }, function () { done(); authErr('Connexion impossible.'); });
+    }
+    if (!_pendingToken) { tryManual(); return; }
+    sb.rpc('verify_bank_portal_access', { p_session_token: _pendingToken, p_otp: otp }).then(function (res) {
+      var d = res.data || {};
+      if (d.ok) { done(); setSession(_pendingToken); showView('loading'); load(); return; }
+      tryManual();
+    }, function () { done(); authErr('Connexion impossible.'); });
+  });
+
+  // Lien de secours ?acces=
+  (function () {
+    var m = (location.search.match(/[?&]acces=([^&]+)/) || [])[1];
+    if (!m) { load(); return; }
+    showView('loading');
+    sb.rpc('consume_bank_portal_magic', { p_magic: decodeURIComponent(m) }).then(function (res) {
+      var d = res.data || {};
+      history.replaceState(null, '', location.pathname);
+      if (d.ok && d.session_token) { setSession(d.session_token); load(); }
+      else { showView('auth'); authErr(d.error === 'used' ? 'Ce lien a d\u00e9j\u00e0 \u00e9t\u00e9 utilis\u00e9.' : d.error === 'expired' ? 'Ce lien a expir\u00e9.' : 'Lien invalide.'); }
+    }, function () { showView('auth'); });
+  })();
+})();
+</script>
+</body>
+</html>

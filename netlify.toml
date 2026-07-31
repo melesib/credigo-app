@@ -34,3 +34,9 @@
   from = "/portail/*"
   to = "/portail.html"
   status = 200
+
+# Le portail permanent de la banque partenaire : /banque-portail/<code>.
+[[redirects]]
+  from = "/banque-portail/*"
+  to = "/banque-portail.html"
+  status = 200

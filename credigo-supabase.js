@@ -888,7 +888,7 @@
     if (!userId) return { accounts: [] };
     try {
       var res = await sb.from('entrepreneur_bank_accounts')
-        .select('id, bank_id, bank_name, account_number, status, created_by_bank, updated_at')
+        .select('id, bank_id, bank_name, account_number, status, created_by_bank, updated_at, holder_name, bank_code, branch_code, rib_key, iban, bic, currency, rib_path, rib_name, rib_sent_at')
         .eq('app_user_id', userId)
         .order('updated_at', { ascending: false });
       if (res.error) return { accounts: [] };
