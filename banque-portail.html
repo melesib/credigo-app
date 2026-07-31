@@ -76,6 +76,15 @@
 
   <div id="content" class="hide">
     <div class="tip">&#128161; Enregistrez cette page dans vos favoris : vous y retrouvez tous les dossiers Credigo de votre établissement.</div>
+    <div id="totaux" class="card hide" style="background:linear-gradient(135deg,#F5F3FF,#EEF2FF)">
+      <div style="font-size:12px;font-weight:800;color:#4C1D95;text-transform:uppercase;letter-spacing:.4px;margin-bottom:8px">Vue d'ensemble</div>
+      <div style="display:flex;gap:10px;flex-wrap:wrap">
+        <div style="flex:1;min-width:110px"><div style="font-size:11px;color:#6B7280">Encours</div><div style="font-size:17px;font-weight:800;color:#4C1D95" id="t-encours">&#8212;</div></div>
+        <div style="flex:1;min-width:110px"><div style="font-size:11px;color:#6B7280">Total d&#233;caiss&#233;</div><div style="font-size:17px;font-weight:800;color:#111827" id="t-decaisse">&#8212;</div></div>
+        <div style="flex:1;min-width:110px"><div style="font-size:11px;color:#6B7280">Sold&#233;</div><div style="font-size:17px;font-weight:800;color:#15803D" id="t-solde">&#8212;</div></div>
+      </div>
+      <div style="font-size:11.5px;color:#6B7280;margin-top:8px" id="t-counts"></div>
+    </div>
     <input type="text" class="search" id="search" placeholder="Rechercher un dossier, une entreprise&#8230;">
     <div class="tabs">
       <button class="tab active" data-tab="action">À traiter<span id="cnt-action"></span></button>
@@ -142,9 +151,39 @@
       document.getElementById('cnt-action').textContent = ' ' + allItems.filter(function (i) { return i.action_required; }).length;
       document.getElementById('cnt-all').textContent = ' ' + allItems.length;
       document.getElementById('cnt-approved').textContent = ' ' + allItems.filter(function (i) { return i.state === 'approved'; }).length;
+      renderTotaux(d.totaux);
       renderList();
       showView('content');
     }, function () { fail('Service momentan\u00e9ment indisponible.'); });
+  }
+
+  function renderTotaux(tx) {
+    var box = document.getElementById('totaux');
+    if (!box || !tx) return;
+    document.getElementById('t-encours').textContent = fmt(tx.encours);
+    document.getElementById('t-decaisse').textContent = fmt(tx.total_decaisse);
+    document.getElementById('t-solde').textContent = fmt(tx.total_solde);
+    document.getElementById('t-counts').textContent =
+      (tx.nb_dossiers || 0) + ' dossier' + ((tx.nb_dossiers||0) > 1 ? 's' : '')
+      + ' \u00b7 ' + (tx.nb_en_cours || 0) + ' pr\u00eat' + ((tx.nb_en_cours||0) > 1 ? 's' : '') + ' en cours'
+      + ' \u00b7 ' + (tx.nb_soldes || 0) + ' sold\u00e9' + ((tx.nb_soldes||0) > 1 ? 's' : '');
+    box.classList.remove('hide');
+  }
+
+  // Badge d'\u00e9tat du pr\u00eat (distinct de l'\u00e9tat du dossier).
+  function loanBadge(it) {
+    if (it.loan_state === 'settled') return '<span class="badge b-approved">Pr\u00eat sold\u00e9</span>';
+    if (it.loan_state === 'ongoing') return '<span class="badge" style="background:#FEF3C7;color:#B45309">Pr\u00eat en cours</span>';
+    return '';
+  }
+
+  function loanLines(it) {
+    var out = '';
+    if (it.disbursed_at) out += '<div class="row"><span class="k">D\u00e9caiss\u00e9 le</span><span class="v">' + dateFr(it.disbursed_at) + '</span></div>';
+    if (it.disbursed_amount) out += '<div class="row"><span class="k">Montant d\u00e9caiss\u00e9</span><span class="v">' + fmt(it.disbursed_amount) + '</span></div>';
+    if (it.date_payment) out += '<div class="row"><span class="k">\u00c9ch\u00e9ance</span><span class="v">' + dateFr(it.date_payment) + '</span></div>';
+    if (it.settled_at) out += '<div class="row"><span class="k">Sold\u00e9 le</span><span class="v" style="color:#15803D">' + dateFr(it.settled_at) + '</span></div>';
+    return out;
   }
 
   function filtered() {
@@ -173,6 +212,7 @@
         + '<div class="c-num">' + esc(it.contract_number || '') + '</div></div>' + (STATE_BADGE[it.state] || '') + '</div>'
         + '<div class="row"><span class="k">Entreprise</span><span class="v">' + esc(it.company || it.entrepreneur || '\u2014') + '</span></div>'
         + '<div class="row"><span class="k">Montant</span><span class="v">' + fmt(it.market_amount) + '</span></div>'
+        + (loanBadge(it) ? '<div style="margin-top:6px">' + loanBadge(it) + '</div>' : '')
         + (it.rib_sent ? '<div class="ok-note">\u2713 RIB transmis \u00e0 l\u2019entrepreneur</div>' : '')
         + '<div style="font-size:11.5px;color:#6C3FE8;font-weight:700;margin-top:6px">Voir le dossier \u2192</div>';
       card.addEventListener('click', function () { openDetail(it); });
@@ -196,6 +236,8 @@
       + '<div class="row"><span class="k">Donneur d\u2019ordre</span><span class="v">' + esc(it.donneur_ordre_name || '\u2014') + '</span></div>'
       + '<div class="row"><span class="k">Montant</span><span class="v">' + fmt(it.market_amount) + '</span></div>'
       + (it.answered_at ? '<div class="row"><span class="k">R\u00e9pondu le</span><span class="v">' + dateFr(it.answered_at) + '</span></div>' : '')
+      + loanLines(it)
+      + (loanBadge(it) ? '<div style="margin-top:8px">' + loanBadge(it) + '</div>' : '')
       + '</div>';
 
     if (it.action_required && it.send_token) {

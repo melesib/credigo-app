@@ -896,6 +896,15 @@
     } catch (e) { return { accounts: [] }; }
   };
 
+  // Lien signé pour ouvrir le RIB transmis par la banque (bucket privé).
+  window.credigoGetRibUrl = async function (ribPath) {
+    if (!supabaseReady || !ribPath) return { url: null };
+    try {
+      var signed = await sb.storage.from('attestations').createSignedUrl(ribPath, 60 * 60);
+      return { url: (signed.data && signed.data.signedUrl) || null };
+    } catch (e) { return { url: null }; }
+  };
+
   // L'entrepreneur enregistre/actualise son compte pour une banque donnée.
   window.credigoSaveBankAccount = async function (bankId, bankName, accountNumber, hasAccount) {
     if (!supabaseReady) return { error: 'Supabase non configuré.' };

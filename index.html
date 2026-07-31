@@ -1357,6 +1357,12 @@ textarea{resize:vertical;min-height:70px}
   <div id="ed-content"></div>
 </div>
 
+<!-- ═══ E-BANK-DETAIL : Coordonnées transmises par ma banque ═══ -->
+<div id="e-bank-detail" class="screen">
+  <div class="pg-title">Mes coordonnées bancaires</div>
+  <div id="ebd-content"></div>
+</div>
+
 <!-- ═══ E-SCORE : Mon score ═══ -->
 <div id="e-score" class="screen">
   <div class="pg-title">Mon score</div>
@@ -8664,6 +8670,95 @@ function drawAuthLogo() {
 /* ── Remplir les champs depuis la session ── */
 // Affiche les comptes bancaires de l'entrepreneur (un par banque) dans le
 // profil. Met en evidence les comptes crees par la banque.
+// Page dédiée : tous les détails bancaires transmis par la banque.
+var _bankAccountsCache = [];
+function openBankDetail(accountId) {
+  var a = null;
+  for (var i = 0; i < _bankAccountsCache.length; i++) {
+    if (String(_bankAccountsCache[i].id) === String(accountId)) { a = _bankAccountsCache[i]; break; }
+  }
+  var box = document.getElementById('ebd-content');
+  if (!box) return;
+  if (!a) { box.innerHTML = '<div style="padding:24px;text-align:center;color:#9CA3AF">Informations indisponibles.</div>'; showScreen('e-bank-detail'); return; }
+
+  function line(label, value, mono) {
+    if (!value) return '';
+    return '<div style="display:flex;justify-content:space-between;gap:10px;padding:9px 0;border-bottom:1px solid #F3F4F6">'
+      + '<span style="font-size:12.5px;color:#6B7280">' + label + '</span>'
+      + '<span style="font-size:13px;font-weight:700;text-align:right;' + (mono ? 'font-family:monospace;' : '') + 'word-break:break-all">' + value + '</span></div>';
+  }
+
+  var created = a.status === 'created' || a.created_by_bank;
+  var html = '<div class="card" style="padding:16px">'
+    + '<div style="display:flex;align-items:center;gap:8px;margin-bottom:10px">'
+    +   '<i class="ti ti-building-bank" style="color:#6C3FE8;font-size:20px"></i>'
+    +   '<div><div style="font-size:16px;font-weight:800">' + (a.bank_name || 'Ma banque') + '</div>'
+    +   '<div style="font-size:11.5px;color:#6B7280">' + (created ? 'Compte ouvert pour vous' : 'Compte existant') + '</div></div>'
+    + '</div>';
+
+  if (a.rib_sent_at) {
+    html += '<div style="background:#DCFCE7;border:1px solid #BBF7D0;border-radius:9px;padding:9px 11px;font-size:12px;color:#15803D;font-weight:700;margin-bottom:10px">'
+      + '<i class="ti ti-check" style="margin-right:4px"></i>Coordonnees transmises par votre banque</div>';
+  }
+
+  html += line('Titulaire', a.holder_name)
+    + line('Numero de compte', a.account_number, true)
+    + line('Code banque', a.bank_code, true)
+    + line('Code guichet', a.branch_code, true)
+    + line('Cle RIB', a.rib_key, true)
+    + line('IBAN', a.iban, true)
+    + line('BIC / SWIFT', a.bic, true)
+    + line('Devise', a.currency);
+
+  if (!a.holder_name && !a.iban && !a.account_number) {
+    html += '<div style="padding:16px;text-align:center;color:#9CA3AF;font-size:13px">Aucune coordonnee detaillee pour le moment. Votre banque vous les transmettra prochainement.</div>';
+  }
+
+  // Bouton de copie des coordonnées
+  if (a.account_number || a.iban) {
+    var toCopy = [];
+    if (a.holder_name) toCopy.push('Titulaire : ' + a.holder_name);
+    if (a.bank_name) toCopy.push('Banque : ' + a.bank_name);
+    if (a.account_number) toCopy.push('Compte : ' + a.account_number);
+    if (a.iban) toCopy.push('IBAN : ' + a.iban);
+    if (a.bic) toCopy.push('BIC : ' + a.bic);
+    html += '<button id="ebd-copy" data-copy="' + encodeURIComponent(toCopy.join('\n')) + '" style="width:100%;margin-top:12px;padding:11px;border-radius:10px;border:1px solid #E5E7EB;background:#fff;color:#6C3FE8;font-weight:800;font-size:13px;cursor:pointer;font-family:inherit">'
+      + '<i class="ti ti-copy" style="margin-right:4px"></i>Copier mes coordonnees</button>';
+  }
+
+  // RIB téléchargeable
+  if (a.rib_path) {
+    html += '<div id="ebd-rib" style="margin-top:10px"><div style="font-size:12px;color:#9CA3AF;text-align:center;padding:10px">Chargement du RIB...</div></div>';
+  }
+
+  html += '</div>';
+  box.innerHTML = html;
+  showScreen('e-bank-detail');
+
+  var copyBtn = document.getElementById('ebd-copy');
+  if (copyBtn) copyBtn.addEventListener('click', function () {
+    try {
+      navigator.clipboard.writeText(decodeURIComponent(copyBtn.dataset.copy));
+      copyBtn.innerHTML = '<i class="ti ti-check" style="margin-right:4px"></i>Coordonnees copiees';
+      setTimeout(function () { copyBtn.innerHTML = '<i class="ti ti-copy" style="margin-right:4px"></i>Copier mes coordonnees'; }, 2000);
+    } catch (e) {}
+  });
+
+  // Lien signé du RIB (bucket privé)
+  if (a.rib_path && typeof window.credigoGetRibUrl === 'function') {
+    window.credigoGetRibUrl(a.rib_path).then(function (r) {
+      var el = document.getElementById('ebd-rib');
+      if (!el) return;
+      if (r && r.url) {
+        el.innerHTML = '<a href="' + r.url + '" target="_blank" rel="noreferrer" style="display:block;text-align:center;padding:12px;border-radius:10px;background:#6C3FE8;color:#fff;text-decoration:none;font-weight:800;font-size:13px">'
+          + '<i class="ti ti-download" style="margin-right:4px"></i>Ouvrir mon RIB' + (a.rib_name ? ' (' + a.rib_name + ')' : '') + '</a>';
+      } else {
+        el.innerHTML = '<div style="font-size:12px;color:#9CA3AF;text-align:center;padding:8px">RIB indisponible pour le moment.</div>';
+      }
+    });
+  }
+}
+
 function renderBankAccounts() {
   var card = document.getElementById('e-bank-accounts-card');
   var list = document.getElementById('e-bank-accounts-list');
@@ -8674,6 +8769,7 @@ function renderBankAccounts() {
   }
   window.credigoGetBankAccounts().then(function (res) {
     var accts = (res && res.accounts) || [];
+    _bankAccountsCache = accts;
     if (!accts.length) { card.style.display = 'none'; return; }
     card.style.display = 'block';
     list.innerHTML = accts.map(function (a) {
@@ -8686,9 +8782,9 @@ function renderBankAccounts() {
       var num = a.account_number
         ? '<span style="font-family:monospace;font-weight:700;font-size:13px;color:#111827">' + a.account_number + '</span>'
         : '<span style="font-size:12px;color:#9CA3AF">Numero a venir</span>';
-      var contactHint = created
-        ? '<div style="font-size:11px;color:#15803D;margin-top:5px"><i class="ti ti-info-circle" style="margin-right:3px"></i>Contactez la banque pour recuperer vos identifiants d\'acces.</div>'
-        : '';
+      var contactHint = '<div style="margin-top:8px">'
+        + '<button onclick="openBankDetail(\'' + a.id + '\')" style="width:100%;padding:9px;border-radius:9px;border:1px solid #DDD6FE;background:#F5F3FF;color:#6C3FE8;font-weight:800;font-size:12px;cursor:pointer;font-family:inherit">'
+        + '<i class="ti ti-file-text" style="margin-right:4px"></i>Voir tous mes details bancaires</button></div>';
       return '<div style="padding:11px 13px;border:1px solid #EDECEF;border-radius:11px;background:#fff">'
         + '<div style="display:flex;justify-content:space-between;align-items:center;gap:8px">'
         +   '<span style="font-size:13px;font-weight:800;color:#111827"><i class="ti ti-building-bank" style="color:#6C3FE8;margin-right:5px"></i>' + (a.bank_name || 'Banque') + '</span>'
