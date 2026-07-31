@@ -69,6 +69,7 @@
     <div class="bell" id="bell" title="Activer les notifications">&#128276;<span class="pastille hide" id="pastille">0</span></div>
   </div>
   <div class="sub" id="sub">Mon espace</div>
+  <div id="notif-hint" class="hide" style="background:#FFF7ED;border:1px solid #FED7AA;border-radius:9px;padding:9px 11px;font-size:12px;color:#B45309;margin-bottom:12px;line-height:1.5"></div>
 
   <div id="loading" class="msg">Chargement&#8230;</div>
   <div id="invalid" class="msg hide"><div class="ico">&#9888;&#65039;</div><div id="invalid-msg">Lien invalide. V&#233;rifiez votre code d'acc&#232;s.</div></div>
@@ -197,8 +198,34 @@
     var p = document.getElementById('pastille');
     if (n > 0) { p.textContent = n; p.classList.remove('hide'); document.title = '(' + n + ') Credigo \u2014 Mon espace'; }
     else { p.classList.add('hide'); document.title = 'Credigo \u2014 Mon espace'; }
+    refreshBell();
     if (n > 0 && window.Notification && Notification.permission === 'granted' && !window.__notified) {
-      try { new Notification('Credigo', { body: n + ' action' + (n > 1 ? 's' : '') + ' en attente sur votre espace.' }); window.__notified = true; } catch (e) {}
+      try { new Notification('Credigo \u2014 Mon espace', {
+        body: n + ' action' + (n > 1 ? 's' : '') + ' en attente sur votre espace.',
+        tag: 'credigo-actions', requireInteraction: false
+      }); window.__notified = true; } catch (e) { console.warn('Notification refus\u00e9e', e); }
+    }
+  }
+
+  // Rend l'\u00e9tat des notifications VISIBLE : gris = non activ\u00e9, violet = activ\u00e9.
+  function refreshBell() {
+    var bell = document.getElementById('bell');
+    var hint = document.getElementById('notif-hint');
+    if (!bell) return;
+    var supported = !!window.Notification;
+    var perm = supported ? Notification.permission : 'unsupported';
+    if (perm === 'granted') {
+      bell.style.opacity = '1'; bell.title = 'Notifications activ\u00e9es';
+      if (hint) hint.classList.add('hide');
+    } else if (perm === 'denied') {
+      bell.style.opacity = '.35'; bell.title = 'Notifications bloqu\u00e9es dans votre navigateur';
+      if (hint) { hint.classList.remove('hide'); hint.textContent = 'Notifications bloqu\u00e9es. Autorisez-les via l\u2019ic\u00f4ne \u00e0 gauche de l\u2019adresse du site, puis rechargez.'; }
+    } else if (perm === 'unsupported') {
+      bell.style.opacity = '.35'; bell.title = 'Notifications non support\u00e9es';
+      if (hint) hint.classList.add('hide');
+    } else {
+      bell.style.opacity = '.55'; bell.title = 'Cliquez pour activer les notifications';
+      if (hint) { hint.classList.remove('hide'); hint.textContent = 'Activez les notifications (cloche en haut) pour \u00eatre pr\u00e9venu des actions \u00e0 faire.'; }
     }
   }
 
@@ -373,8 +400,22 @@
 
   document.getElementById('bell').addEventListener('click', function () {
     if (!window.Notification) { alert('Votre navigateur ne g\u00e8re pas les notifications.'); return; }
-    if (Notification.permission === 'granted') { alert('Notifications d\u00e9j\u00e0 activ\u00e9es.'); return; }
-    Notification.requestPermission().then(function (perm) { if (perm === 'granted') { try { new Notification('Credigo', { body: 'Notifications activ\u00e9es.' }); } catch (e) {} } });
+    if (Notification.permission === 'granted') {
+      try { new Notification('Credigo', { body: 'Les notifications fonctionnent bien.' }); } catch (e) {}
+      return;
+    }
+    if (Notification.permission === 'denied') {
+      alert('Les notifications sont bloqu\u00e9es pour ce site.\n\nPour les r\u00e9activer : cliquez sur l\u2019ic\u00f4ne \u00e0 gauche de l\u2019adresse du site (cadenas ou r\u00e9glages), autorisez les notifications, puis rechargez la page.');
+      return;
+    }
+    Notification.requestPermission().then(function (perm) {
+      refreshBell();
+      if (perm === 'granted') {
+        try { new Notification('Credigo', { body: 'Notifications activ\u00e9es. Vous serez pr\u00e9venu des actions \u00e0 faire.' }); } catch (e) {}
+      } else {
+        alert('Notifications non activ\u00e9es. Vous pourrez les activer plus tard via la cloche.');
+      }
+    });
   });
 
   // ── Connexion par email ──
@@ -398,7 +439,7 @@
         document.getElementById('auth-step2').classList.remove('hide');
         var o = document.getElementById('auth-otp'); if (o) { o.value = ''; o.focus(); }
         if (!_pendingToken) authErr('Si cette adresse correspond \u00e0 celle enregistr\u00e9e chez nous, vous recevrez un code. Sinon, contactez Credigo.');
-      } else { authErr('Impossible d\u2019envoyer le code. R\u00e9essayez.'); }
+      } else { authErr((res && res.error) ? res.error : 'Impossible d\u2019envoyer le code. R\u00e9essayez.'); }
     }).catch(function () { btn.disabled = false; btn.textContent = labelIdle; authErr('Connexion impossible.'); });
   }
 
