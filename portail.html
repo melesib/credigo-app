@@ -101,6 +101,15 @@
   <!-- LISTE -->
   <div id="content" class="hide">
     <div class="tip">&#128161; Enregistrez cette page dans vos favoris : vous y g&#233;rez tous vos march&#233;s Credigo (v&#233;rifications, paiements, preuves).</div>
+    <div id="totaux" class="card hide" style="background:linear-gradient(135deg,#F5F3FF,#EEF2FF);cursor:default">
+      <div style="font-size:12px;font-weight:800;color:#4C1D95;text-transform:uppercase;letter-spacing:.4px;margin-bottom:8px">Vue d'ensemble</div>
+      <div style="display:flex;gap:10px;flex-wrap:wrap">
+        <div style="flex:1;min-width:110px"><div style="font-size:11px;color:#6B7280">Reste &#224; r&#233;gler</div><div style="font-size:17px;font-weight:800;color:#B45309" id="t-areg">&#8212;</div></div>
+        <div style="flex:1;min-width:110px"><div style="font-size:11px;color:#6B7280">D&#233;j&#224; r&#233;gl&#233;</div><div style="font-size:17px;font-weight:800;color:#15803D" id="t-paye">&#8212;</div></div>
+      </div>
+      <div style="font-size:11.5px;color:#6B7280;margin-top:8px" id="t-counts"></div>
+      <div style="font-size:12px;color:#B45309;font-weight:700;margin-top:4px" id="t-echeance"></div>
+    </div>
     <input type="text" class="search" id="search" placeholder="Rechercher un march&#233; ou un num&#233;ro de contrat&#8230;">
     <div class="tabs" id="tabs">
       <button class="tab active" data-tab="action">Action requise<span class="cnt" id="cnt-action"></span></button>
@@ -183,6 +192,7 @@
       var nAction = allItems.filter(function (it) { return it.action_required; }).length;
       updateCounts();
       updatePastille(nAction);
+      renderTotaux(d.totaux);
       renderList();
       showView('content');
     }, function () { fail('Service momentan\u00e9ment indisponible.'); });
@@ -193,6 +203,25 @@
     document.getElementById('cnt-all').textContent = ' ' + allItems.length;
     document.getElementById('cnt-to_pay').textContent = ' ' + allItems.filter(function (it) { return it.state === 'to_pay' || it.state === 'approved'; }).length;
     document.getElementById('cnt-paid').textContent = ' ' + allItems.filter(function (it) { return it.state === 'paid'; }).length;
+  }
+
+  function renderTotaux(tx) {
+    var box = document.getElementById('totaux');
+    if (!box || !tx) return;
+    document.getElementById('t-areg').textContent = fmt(tx.total_a_regler);
+    document.getElementById('t-paye').textContent = fmt(tx.total_paye);
+    var parts = [];
+    if (tx.nb_marches) parts.push(tx.nb_marches + ' march\u00e9' + (tx.nb_marches > 1 ? 's' : ''));
+    if (tx.nb_a_verifier) parts.push(tx.nb_a_verifier + ' \u00e0 v\u00e9rifier');
+    if (tx.nb_en_cours) parts.push(tx.nb_en_cours + ' en cours');
+    if (tx.nb_a_regler) parts.push(tx.nb_a_regler + ' \u00e0 r\u00e9gler');
+    if (tx.nb_payes) parts.push(tx.nb_payes + ' pay\u00e9' + (tx.nb_payes > 1 ? 's' : ''));
+    document.getElementById('t-counts').textContent = parts.join(' \u00b7 ');
+    var ech = document.getElementById('t-echeance');
+    if (tx.prochaine_echeance) {
+      ech.textContent = 'Prochaine \u00e9ch\u00e9ance : ' + dateFr(tx.prochaine_echeance);
+    } else { ech.textContent = ''; }
+    box.classList.remove('hide');
   }
 
   function updatePastille(n) {
