@@ -330,8 +330,14 @@
         '<div class="c-top"><div><div class="c-obj">' + esc(it.market_object || 'March\u00e9') + '</div>'
         + '<div class="c-num">' + esc(it.contract_number || '') + '</div></div>' + (STATE_BADGE[it.state] || '') + '</div>'
         + '<div class="c-meta"><span>' + fmt(amount) + '</span>' + (it.date_payment ? '<span>\u00c9ch. ' + dateShort(it.date_payment) + '</span>' : '') + '</div>'
-        + '<div class="c-open">Voir le d\u00e9tail et les actions \u2192</div>';
-      card.addEventListener('click', function () { openDetail(it.request_id); });
+        + (it.state === 'to_verify' && it.solic_token
+            ? '<a href="/c/' + esc(it.solic_token) + '" class="verify-link" style="display:block;text-align:center;text-decoration:none;background:#6C3FE8;color:#fff;font-weight:800;font-size:13px;padding:10px;border-radius:9px;margin-top:8px">V\u00e9rifier ce march\u00e9</a>'
+            : '<div class="c-open">Voir le d\u00e9tail et les actions \u2192</div>');
+      card.addEventListener('click', function (e) {
+        // Le bouton de v\u00e9rification a son propre lien : on n'ouvre pas le d\u00e9tail.
+        if (e.target.closest && e.target.closest('.verify-link')) return;
+        openDetail(it.request_id);
+      });
       frag.appendChild(card);
     });
     list.appendChild(frag);
@@ -378,9 +384,13 @@
     }
     html += '</div>';
 
-    // Actions disponibles
-    if (d.solic_token && d.status !== 'confirmed' && d.status !== 'approved' && d.status !== 'disbursed' && d.status !== 'settled') {
-      // vérification encore possible : lien vers page dédiée
+    // Vérification du marché : action directe depuis le portail.
+    if (d.solic_token && !d.solic_answered) {
+      html += '<div class="card" style="cursor:default;border-left:4px solid #DC2626">'
+        + '<div style="font-weight:800;font-size:14px;margin-bottom:4px">Ce march\u00e9 attend votre v\u00e9rification</div>'
+        + '<div style="font-size:12.5px;color:#6B7280;line-height:1.6;margin-bottom:10px">Confirmez que ce march\u00e9 est r\u00e9el et donnez votre avis sur le prestataire. Sans cette \u00e9tape, le financement ne peut pas avancer.</div>'
+        + '<a class="btn" style="display:block;text-align:center;text-decoration:none" href="/c/' + esc(d.solic_token) + '">V\u00e9rifier ce march\u00e9</a>'
+        + '</div>';
     }
     if (hasPay && !paid) {
       html += '<div class="card" style="cursor:default"><div style="font-weight:800;font-size:14px;margin-bottom:8px">Vos actions</div>';
