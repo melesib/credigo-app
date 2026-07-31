@@ -1359,6 +1359,7 @@ textarea{resize:vertical;min-height:70px}
 
 <!-- ═══ E-BANK-DETAIL : Coordonnées transmises par ma banque ═══ -->
 <div id="e-bank-detail" class="screen">
+  <button onclick="showScreen('e-profile')" style="background:none;border:none;color:#6C3FE8;font-weight:700;font-size:13px;cursor:pointer;padding:0;margin-bottom:10px;font-family:inherit">&#8592; Retour au profil</button>
   <div class="pg-title">Mes coordonnées bancaires</div>
   <div id="ebd-content"></div>
 </div>
@@ -3081,7 +3082,7 @@ function closeSidebar() {
 }
 
 /* == SWITCH == */
-const ALL_SCREENS = ['e-home','e-submit','e-list','e-detail','e-score','e-references','e-notifs','e-profile','e-kyc','e-support','f-offers','f-portfolio','f-wallet','f-transactions','f-retraits','f-kyc','f-kyc-upload','f-profile','f-support'];
+const ALL_SCREENS = ['e-home','e-submit','e-list','e-detail','e-score','e-references','e-notifs','e-profile','e-bank-detail','e-kyc','e-support','f-offers','f-portfolio','f-wallet','f-transactions','f-retraits','f-kyc','f-kyc-upload','f-profile','f-support'];
 function hideAll() {
   ALL_SCREENS.forEach(id => { const el = document.getElementById(id); if (el) { el.style.display = 'none'; el.classList.remove('on'); } });
 }
@@ -8746,14 +8747,15 @@ function openBankDetail(accountId) {
 
   // Lien signé du RIB (bucket privé)
   if (a.rib_path && typeof window.credigoGetRibUrl === 'function') {
-    window.credigoGetRibUrl(a.rib_path).then(function (r) {
+    window.credigoGetRibUrl(a.id).then(function (r) {
       var el = document.getElementById('ebd-rib');
       if (!el) return;
       if (r && r.url) {
         el.innerHTML = '<a href="' + r.url + '" target="_blank" rel="noreferrer" style="display:block;text-align:center;padding:12px;border-radius:10px;background:#6C3FE8;color:#fff;text-decoration:none;font-weight:800;font-size:13px">'
           + '<i class="ti ti-download" style="margin-right:4px"></i>Ouvrir mon RIB' + (a.rib_name ? ' (' + a.rib_name + ')' : '') + '</a>';
       } else {
-        el.innerHTML = '<div style="font-size:12px;color:#9CA3AF;text-align:center;padding:8px">RIB indisponible pour le moment.</div>';
+        el.innerHTML = '<div style="font-size:12px;color:#9CA3AF;text-align:center;padding:8px">RIB indisponible pour le moment.'
+          + (r && r.error ? '<br><span style="font-size:11px">(' + r.error + ')</span>' : '') + '</div>';
       }
     });
   }

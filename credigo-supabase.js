@@ -896,13 +896,25 @@
     } catch (e) { return { accounts: [] }; }
   };
 
-  // Lien signé pour ouvrir le RIB transmis par la banque (bucket privé).
-  window.credigoGetRibUrl = async function (ribPath) {
-    if (!supabaseReady || !ribPath) return { url: null };
+  // Lien signé pour ouvrir le RIB transmis par la banque.
+  // Le bucket « attestations » est privé et réservé au staff : on passe par une
+  // fonction serveur qui vérifie que ce RIB appartient bien à l'utilisateur.
+  window.credigoGetRibUrl = async function (accountId) {
+    if (!supabaseReady || !accountId) return { url: null };
     try {
-      var signed = await sb.storage.from('attestations').createSignedUrl(ribPath, 60 * 60);
-      return { url: (signed.data && signed.data.signedUrl) || null };
-    } catch (e) { return { url: null }; }
+      var session = await sb.auth.getSession();
+      var token = session && session.data && session.data.session && session.data.session.access_token;
+      if (!token) return { url: null, error: 'session' };
+      var base = window.CREDIGO_BACKOFFICE_URL || 'https://credigo-backoffice.netlify.app';
+      var r = await fetch(base + '/.netlify/functions/entrepreneur-rib-url', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + token },
+        body: JSON.stringify({ accountId: accountId }),
+      });
+      var d = await r.json();
+      if (!r.ok) return { url: null, error: d && d.error };
+      return { url: d.url || null, name: d.name || null };
+    } catch (e) { return { url: null, error: e.message }; }
   };
 
   // L'entrepreneur enregistre/actualise son compte pour une banque donnée.
