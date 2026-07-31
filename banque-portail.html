@@ -173,10 +173,12 @@
     document.getElementById('t-encours').textContent = fmt(tx.encours);
     document.getElementById('t-decaisse').textContent = fmt(tx.total_decaisse);
     document.getElementById('t-solde').textContent = fmt(tx.total_solde);
-    document.getElementById('t-counts').textContent =
-      (tx.nb_dossiers || 0) + ' dossier' + ((tx.nb_dossiers||0) > 1 ? 's' : '')
-      + ' \u00b7 ' + (tx.nb_en_cours || 0) + ' pr\u00eat' + ((tx.nb_en_cours||0) > 1 ? 's' : '') + ' en cours'
-      + ' \u00b7 ' + (tx.nb_soldes || 0) + ' sold\u00e9' + ((tx.nb_soldes||0) > 1 ? 's' : '');
+    var parts = [];
+    if (tx.nb_dossiers) parts.push(tx.nb_dossiers + ' dossier' + (tx.nb_dossiers > 1 ? 's' : ''));
+    if (tx.nb_approuves) parts.push(tx.nb_approuves + ' approuv\u00e9' + (tx.nb_approuves > 1 ? 's' : ''));
+    if (tx.nb_en_cours) parts.push(tx.nb_en_cours + ' pr\u00eat' + (tx.nb_en_cours > 1 ? 's' : '') + ' en cours');
+    if (tx.nb_soldes) parts.push(tx.nb_soldes + ' sold\u00e9' + (tx.nb_soldes > 1 ? 's' : ''));
+    document.getElementById('t-counts').textContent = parts.join(' \u00b7 ');
     box.classList.remove('hide');
   }
 
