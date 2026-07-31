@@ -155,7 +155,11 @@
         // Trace la lecture (non bloquant) : Credigo saura que le fil a été ouvert.
         sb.rpc('track_partner_ticket_open', {
           p_type: type, p_code: code, p_session_token: getSession(), p_ticket_id: id,
-        }).then(function () {}, function () {});
+        }).then(function (r) {
+          var e = r && r.data && r.data.error;
+          if (e) console.warn('Suivi de lecture refusé :', e);
+          if (r && r.error) console.warn('Suivi de lecture indisponible :', r.error.message);
+        }, function (err) { console.warn('Suivi de lecture impossible :', err); });
         sb.rpc('get_partner_ticket_thread', {
           p_type: type, p_code: code, p_session_token: getSession(), p_ticket_id: id,
         }).then(function (res) {
