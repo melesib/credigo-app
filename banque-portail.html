@@ -79,7 +79,7 @@
     <div id="totaux" class="card hide" style="background:linear-gradient(135deg,#F5F3FF,#EEF2FF)">
       <div style="font-size:12px;font-weight:800;color:#4C1D95;text-transform:uppercase;letter-spacing:.4px;margin-bottom:8px">Vue d'ensemble</div>
       <div style="display:flex;gap:10px;flex-wrap:wrap">
-        <div style="flex:1;min-width:110px"><div style="font-size:11px;color:#6B7280">Encours</div><div style="font-size:17px;font-weight:800;color:#4C1D95" id="t-encours">&#8212;</div></div>
+        <div style="flex:1;min-width:110px"><div style="font-size:11px;color:#6B7280" id="t-encours-lbl">Encours</div><div style="font-size:17px;font-weight:800;color:#4C1D95" id="t-encours">&#8212;</div></div>
         <div style="flex:1;min-width:110px"><div style="font-size:11px;color:#6B7280">Total d&#233;caiss&#233;</div><div style="font-size:17px;font-weight:800;color:#111827" id="t-decaisse">&#8212;</div></div>
         <div style="flex:1;min-width:110px"><div style="font-size:11px;color:#6B7280">Sold&#233;</div><div style="font-size:17px;font-weight:800;color:#15803D" id="t-solde">&#8212;</div></div>
       </div>
@@ -170,11 +170,17 @@
   function renderTotaux(tx) {
     var box = document.getElementById('totaux');
     if (!box || !tx) return;
-    document.getElementById('t-encours').textContent = fmt(tx.encours);
+    // Tant qu'aucun décaissement n'est confirmé, l'indicateur pertinent est
+    // le montant ENGAGÉ (accords donnés) plutôt qu'un encours à zéro.
+    var hasDecaisse = (tx.total_decaisse || 0) > 0;
+    var lblEncours = document.getElementById('t-encours-lbl');
+    if (lblEncours) lblEncours.textContent = hasDecaisse ? 'Encours' : 'Engag\u00e9';
+    document.getElementById('t-encours').textContent = fmt(hasDecaisse ? tx.encours : tx.total_engage);
     document.getElementById('t-decaisse').textContent = fmt(tx.total_decaisse);
     document.getElementById('t-solde').textContent = fmt(tx.total_solde);
     var parts = [];
     if (tx.nb_dossiers) parts.push(tx.nb_dossiers + ' dossier' + (tx.nb_dossiers > 1 ? 's' : ''));
+    if (tx.nb_a_traiter) parts.push(tx.nb_a_traiter + ' \u00e0 traiter');
     if (tx.nb_approuves) parts.push(tx.nb_approuves + ' approuv\u00e9' + (tx.nb_approuves > 1 ? 's' : ''));
     if (tx.nb_en_cours) parts.push(tx.nb_en_cours + ' pr\u00eat' + (tx.nb_en_cours > 1 ? 's' : '') + ' en cours');
     if (tx.nb_soldes) parts.push(tx.nb_soldes + ' sold\u00e9' + (tx.nb_soldes > 1 ? 's' : ''));
