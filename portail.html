@@ -116,8 +116,10 @@
       <button class="tab" data-tab="all">Tous<span class="cnt" id="cnt-all"></span></button>
       <button class="tab" data-tab="to_pay">&#192; r&#233;gler<span class="cnt" id="cnt-to_pay"></span></button>
       <button class="tab" data-tab="paid">Pay&#233;s<span class="cnt" id="cnt-paid"></span></button>
+      <button class="tab" data-tab="support">Support<span class="cnt" id="cnt-support"></span></button>
     </div>
     <div id="list"></div>
+    <div id="support-box" class="hide"></div>
     <div id="empty" class="msg hide">Rien &#224; afficher ici.</div>
   </div>
 
@@ -131,6 +133,7 @@
 </div>
 
 <script src="/supabase.min.js"></script>
+<script src="/support-portail.js"></script>
 <script>
   window.CREDIGO_SUPABASE_URL = '__CREDIGO_SUPABASE_URL__';
   window.CREDIGO_SUPABASE_ANON_KEY = '__CREDIGO_SUPABASE_ANON_KEY__';
@@ -273,9 +276,38 @@
     });
   }
 
+  var _supportInit = false;
   function renderList() {
     var list = document.getElementById('list');
     var empty = document.getElementById('empty');
+    var supBox = document.getElementById('support-box');
+    var searchEl = document.getElementById('search');
+    var totBox = document.getElementById('totaux');
+
+    // Onglet Support : on masque la liste et on affiche les échanges.
+    if (currentTab === 'support') {
+      list.classList.add('hide'); empty.classList.add('hide');
+      if (searchEl) searchEl.classList.add('hide');
+      if (totBox) totBox.classList.add('hide');
+      if (supBox) supBox.classList.remove('hide');
+      if (!_supportInit && window.CredigoSupport) {
+        _supportInit = true;
+        window.CredigoSupport.init({
+          sb: sb, type: 'donneur', code: code, getSession: getSession,
+          containerId: 'support-box',
+          onBadge: function (n) {
+            var el = document.getElementById('cnt-support');
+            if (el) el.textContent = n ? ' ' + n : '';
+          },
+        });
+      }
+      return;
+    }
+    list.classList.remove('hide');
+    if (searchEl) searchEl.classList.remove('hide');
+    if (totBox) totBox.classList.remove('hide');
+    if (supBox) supBox.classList.add('hide');
+
     var items = filtered();
     list.innerHTML = '';
     if (!items.length) { empty.classList.remove('hide'); empty.textContent = currentTab === 'action' ? 'Aucune action requise. Tout est \u00e0 jour !' : (searchTerm ? 'Aucun r\u00e9sultat pour votre recherche.' : 'Aucun march\u00e9 ici.'); return; }

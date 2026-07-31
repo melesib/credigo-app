@@ -92,6 +92,7 @@
       <button class="tab" data-tab="approved">Accordés<span id="cnt-approved"></span></button>
     </div>
     <div id="list"></div>
+    <div id="support-box" class="hide"></div>
     <div id="empty" class="msg hide">Rien à afficher ici.</div>
   </div>
 
@@ -104,6 +105,7 @@
 </div>
 
 <script src="/supabase.min.js"></script>
+<script src="/support-portail.js"></script>
 <script>
   window.CREDIGO_SUPABASE_URL = '__CREDIGO_SUPABASE_URL__';
   window.CREDIGO_SUPABASE_ANON_KEY = '__CREDIGO_SUPABASE_ANON_KEY__';
@@ -198,8 +200,36 @@
     });
   }
 
+  var _supportInit = false;
   function renderList() {
     var list = document.getElementById('list'), empty = document.getElementById('empty');
+    var supBox = document.getElementById('support-box');
+    var searchEl = document.getElementById('search');
+    var totBox = document.getElementById('totaux');
+
+    if (currentTab === 'support') {
+      list.classList.add('hide'); empty.classList.add('hide');
+      if (searchEl) searchEl.classList.add('hide');
+      if (totBox) totBox.classList.add('hide');
+      if (supBox) supBox.classList.remove('hide');
+      if (!_supportInit && window.CredigoSupport) {
+        _supportInit = true;
+        window.CredigoSupport.init({
+          sb: sb, type: 'banque', code: code, getSession: getSession,
+          containerId: 'support-box',
+          onBadge: function (n) {
+            var el = document.getElementById('cnt-support');
+            if (el) el.textContent = n ? ' ' + n : '';
+          },
+        });
+      }
+      return;
+    }
+    list.classList.remove('hide');
+    if (searchEl) searchEl.classList.remove('hide');
+    if (totBox) totBox.classList.remove('hide');
+    if (supBox) supBox.classList.add('hide');
+
     var items = filtered();
     list.innerHTML = '';
     if (!items.length) { empty.classList.remove('hide'); empty.textContent = searchTerm ? 'Aucun r\u00e9sultat.' : 'Aucun dossier ici.'; return; }
