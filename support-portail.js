@@ -6,6 +6,22 @@
 (function () {
   window.CredigoSupport = {
     /**
+     * Compte les fils en attente du partenaire, sans rien afficher.
+     * Sert à alimenter la pastille dès l'ouverture du portail.
+     */
+    count: function (opts) {
+      return opts.sb.rpc('get_partner_tickets', {
+        p_type: opts.type, p_code: opts.code, p_session_token: opts.getSession(),
+      }).then(function (res) {
+        var d = res.data || {};
+        if (d.error) return 0;
+        return (d.items || []).filter(function (t) {
+          return t.status === 'waiting_partner' || t.unread;
+        }).length;
+      }, function () { return 0; });
+    },
+
+    /**
      * Initialise le module de support.
      * @param {object} opts
      *   sb            : client Supabase
@@ -57,7 +73,7 @@
           var d = res.data || {};
           if (d.error) { box.innerHTML = '<div style="text-align:center;padding:24px;color:#9CA3AF">Support indisponible.</div>'; return; }
           tickets = d.items || [];
-          onBadge(tickets.filter(function (t) { return t.status === 'waiting_partner'; }).length);
+          onBadge(tickets.filter(function (t) { return t.status === 'waiting_partner' || t.unread; }).length);
           renderList();
         }, function () {
           box.innerHTML = '<div style="text-align:center;padding:24px;color:#9CA3AF">Connexion impossible.</div>';
@@ -83,9 +99,9 @@
           tickets.forEach(function (t) {
             var sc = statusColor(t.status);
             html += '<div class="sup-card" data-id="' + t.id + '" style="background:#fff;border-radius:12px;padding:13px;margin-bottom:9px;box-shadow:0 4px 16px rgba(76,29,149,.07);cursor:pointer'
-              + (t.status === 'waiting_partner' ? ';border-left:4px solid #DC2626' : '') + '">'
+              + (t.status === 'waiting_partner' || t.unread ? ';border-left:4px solid #DC2626' : '') + '">'
               + '<div style="display:flex;justify-content:space-between;gap:8px;align-items:flex-start">'
-              +   '<div style="font-size:14px;font-weight:800;color:#111827">' + esc(t.subject) + '</div>'
+              +   '<div style="font-size:14px;font-weight:800;color:#111827">' + (t.unread ? '<span style="color:#DC2626">\u25cf </span>' : '') + esc(t.subject) + '</div>'
               +   '<span style="font-size:10px;font-weight:800;padding:3px 8px;border-radius:20px;white-space:nowrap;background:' + sc.bg + ';color:' + sc.c + '">' + statusLabel(t.status) + '</span>'
               + '</div>'
               + (t.contract_number ? '<div style="font-family:monospace;font-size:11px;color:#6C3FE8;font-weight:700;margin-top:2px">' + esc(t.contract_number) + '</div>' : '')
@@ -136,6 +152,10 @@
       function openThread(id) {
         openThreadId = id;
         box.innerHTML = '<div style="text-align:center;padding:24px;color:#9CA3AF">Chargement…</div>';
+        // Trace la lecture (non bloquant) : Credigo saura que le fil a été ouvert.
+        sb.rpc('track_partner_ticket_open', {
+          p_type: type, p_code: code, p_session_token: getSession(), p_ticket_id: id,
+        }).then(function () {}, function () {});
         sb.rpc('get_partner_ticket_thread', {
           p_type: type, p_code: code, p_session_token: getSession(), p_ticket_id: id,
         }).then(function (res) {

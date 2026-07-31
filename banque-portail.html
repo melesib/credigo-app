@@ -155,6 +155,13 @@
       document.getElementById('cnt-approved').textContent = ' ' + allItems.filter(function (i) { return i.state === 'approved'; }).length;
       renderTotaux(d.totaux);
       renderList();
+      if (window.CredigoSupport && window.CredigoSupport.count) {
+        window.CredigoSupport.count({ sb: sb, type: 'banque', code: code, getSession: getSession })
+          .then(function (n) {
+            var el = document.getElementById('cnt-support');
+            if (el) el.textContent = n ? ' ' + n : '';
+          });
+      }
       showView('content');
     }, function () { fail('Service momentan\u00e9ment indisponible.'); });
   }

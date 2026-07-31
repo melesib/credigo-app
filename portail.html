@@ -197,6 +197,14 @@
       updatePastille(nAction);
       renderTotaux(d.totaux);
       renderList();
+      // Pastille du support dès l'ouverture, sans attendre le clic sur l'onglet.
+      if (window.CredigoSupport && window.CredigoSupport.count) {
+        window.CredigoSupport.count({ sb: sb, type: 'donneur', code: code, getSession: getSession })
+          .then(function (n) {
+            var el = document.getElementById('cnt-support');
+            if (el) el.textContent = n ? ' ' + n : '';
+          });
+      }
       showView('content');
     }, function () { fail('Service momentan\u00e9ment indisponible.'); });
   }
