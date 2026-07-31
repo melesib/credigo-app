@@ -83,6 +83,7 @@
         <label>Votre adresse email</label>
         <input type="text" id="auth-email" placeholder="email@entreprise.ci" autocomplete="email">
         <button class="btn" id="auth-send">Recevoir mon code</button>
+        <button class="btn" id="auth-have-code" style="background:#fff;color:#6C3FE8;border:1px solid #DDD6FE">J'ai déjà un code fourni par Credigo</button>
       </div>
       <div id="auth-step2" class="hide">
         <div style="font-size:13px;color:#15803D;font-weight:700;margin-bottom:8px">Un code vient d’être envoyé à votre adresse.</div>
@@ -444,6 +445,14 @@
   }
 
   document.getElementById('auth-send').addEventListener('click', function () { sendCode(this, 'Recevoir mon code'); });
+  document.getElementById('auth-have-code').addEventListener('click', function () {
+    // Code communiqu\u00e9 par Credigo (t\u00e9l\u00e9phone/WhatsApp) : saisie directe.
+    _pendingToken = null;
+    document.getElementById('auth-step1').classList.add('hide');
+    document.getElementById('auth-step2').classList.remove('hide');
+    var o = document.getElementById('auth-otp'); if (o) { o.value = ''; o.focus(); }
+    authErr('');
+  });
   document.getElementById('auth-resend').addEventListener('click', function () { sendCode(this, 'Je n\u2019ai rien re\u00e7u \u2014 renvoyer le code'); });
 
   // Entrée = valider
@@ -462,19 +471,48 @@
     var b = this;
     var otp = ((document.getElementById('auth-otp') || {}).value || '').trim();
     if (otp.length < 6) { authErr('Saisissez le code \u00e0 6 chiffres.'); return; }
-    if (!_pendingToken) { authErr('Code invalide ou expir\u00e9. Recommencez.'); return; }
     authErr(''); b.disabled = true; b.textContent = 'V\u00e9rification\u2026';
+    function done() { b.disabled = false; b.textContent = 'Acc\u00e9der \u00e0 mon espace'; }
+    function tryManual() {
+      // Code fourni par Credigo au t\u00e9l\u00e9phone (secours si l'email n'arrive pas).
+      sb.rpc('verify_portal_manual_code', { p_code: code, p_otp: otp }).then(function (r2) {
+        done();
+        var m = r2.data || {};
+        if (m.ok && m.session_token) { setSession(m.session_token); showView('loading'); load(); return; }
+        if (m.error === 'too_many') authErr('Trop d\u2019essais. Contactez Credigo.');
+        else if (m.error === 'expired') authErr('Ce code a expir\u00e9. Demandez-en un nouveau.');
+        else authErr('Code incorrect.');
+      }, function () { done(); authErr('Connexion impossible.'); });
+    }
+    if (!_pendingToken) { tryManual(); return; }
     sb.rpc('verify_portal_access', { p_session_token: _pendingToken, p_otp: otp }).then(function (res) {
-      b.disabled = false; b.textContent = 'Acc\u00e9der \u00e0 mon espace';
       var d = res.data || {};
-      if (d.ok) { setSession(_pendingToken); showView('loading'); load(); return; }
-      if (d.error === 'expired') authErr('Ce code a expir\u00e9. Demandez-en un nouveau.');
-      else if (d.error === 'too_many') authErr('Trop d\u2019essais. Demandez un nouveau code.');
-      else authErr('Code incorrect.');
-    }, function () { b.disabled = false; b.textContent = 'Acc\u00e9der \u00e0 mon espace'; authErr('Connexion impossible.'); });
+      if (d.ok) { done(); setSession(_pendingToken); showView('loading'); load(); return; }
+      // Le code ne correspond pas \u00e0 l'envoi email : c'est peut-\u00eatre un code de secours.
+      tryManual();
+    }, function () { done(); authErr('Connexion impossible.'); });
   });
 
-  load();
+  // Lien de secours fourni par Credigo : ?acces=... ouvre directement la session.
+  (function () {
+    var m = (location.search.match(/[?&]acces=([^&]+)/) || [])[1];
+    if (!m) { load(); return; }
+    showView('loading');
+    sb.rpc('consume_portal_magic', { p_magic: decodeURIComponent(m) }).then(function (res) {
+      var d = res.data || {};
+      if (d.ok && d.session_token) {
+        setSession(d.session_token);
+        history.replaceState(null, '', location.pathname);  // retire le jeton de l'URL
+        load();
+      } else {
+        history.replaceState(null, '', location.pathname);
+        showView('auth');
+        authErr(d.error === 'used' ? 'Ce lien d\u2019acc\u00e8s a d\u00e9j\u00e0 \u00e9t\u00e9 utilis\u00e9. Demandez-en un nouveau ou connectez-vous par email.'
+              : d.error === 'expired' ? 'Ce lien d\u2019acc\u00e8s a expir\u00e9. Connectez-vous par email ou demandez un nouveau lien.'
+              : 'Lien d\u2019acc\u00e8s invalide. Connectez-vous par email.');
+      }
+    }, function () { showView('auth'); });
+  })();
 })();
 </script>
 </body>
