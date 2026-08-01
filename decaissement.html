@@ -203,26 +203,44 @@
 
     // Le justificatif part d'abord : la confirmation le rattache ensuite.
     function envoyer(proofPath, proofName) {
-      sb.rpc('confirm_bank_disbursement', {
+      var params = {
       p_token: token, p_amount: montant, p_reference: ref,
       p_disbursed_on: date || null, p_note: note || null,
       p_signer_name: nom, p_signer_role: role || null,
       p_signature: canvas ? canvas.toDataURL('image/png') : null,
       p_ip: window.__clientIp || null, p_agent: navigator.userAgent,
       p_fingerprint: fingerprint(), p_legal_version: 'CGDEC-2026-07',
-      p_proof_path: proofPath || null, p_proof_name: proofName || null,
-      }).then(function (res) {
-        b.disabled = false; b.textContent = 'Confirmer le d\u00e9caissement';
-        var d = res.data || {};
-        if (d.ok) { show('done'); return; }
-        if (d.error === 'already_confirmed') { show('done'); return; }
-        err(d.error === 'expired' ? 'Ce lien a expir\u00e9.'
-          : d.error === 'invalid_amount' ? 'Montant invalide.'
-          : 'Enregistrement impossible. R\u00e9essayez.');
-      }, function () {
-        b.disabled = false; b.textContent = 'Confirmer le d\u00e9caissement';
-        err('Connexion impossible.');
-      });
+      };
+      // Le justificatif n'existe qu'après la migration 0065 : on ne l'envoie
+      // que s'il y en a un, et on réessaie sans lui si la fonction le refuse.
+      if (proofPath) { params.p_proof_path = proofPath; params.p_proof_name = proofName || null; }
+
+      function appel(p, avecRepli) {
+        sb.rpc('confirm_bank_disbursement', p).then(function (res) {
+          var d = res.data || {};
+          if (res.error) {
+            // Signature inconnue : la base n'a pas encore les champs du
+            // justificatif. On renvoie sans, plutôt que de bloquer la banque.
+            if (avecRepli && p.p_proof_path !== undefined) {
+              var sans = {}; for (var k in p) if (k !== 'p_proof_path' && k !== 'p_proof_name') sans[k] = p[k];
+              appel(sans, false); return;
+            }
+            b.disabled = false; b.textContent = 'Confirmer le d\u00e9caissement';
+            err('Enregistrement impossible : ' + (res.error.message || 'erreur inconnue'));
+            return;
+          }
+          b.disabled = false; b.textContent = 'Confirmer le d\u00e9caissement';
+          if (d.ok) { show('done'); return; }
+          if (d.error === 'already_confirmed') { show('done'); return; }
+          err(d.error === 'expired' ? 'Ce lien a expir\u00e9.'
+            : d.error === 'invalid_amount' ? 'Montant invalide.'
+            : 'Enregistrement impossible. R\u00e9essayez.');
+        }, function () {
+          b.disabled = false; b.textContent = 'Confirmer le d\u00e9caissement';
+          err('Connexion impossible.');
+        });
+      }
+      appel(params, true);
     }
 
     if (f) {
