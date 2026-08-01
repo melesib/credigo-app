@@ -40,3 +40,9 @@
   from = "/banque-portail/*"
   to = "/banque-portail.html"
   status = 200
+
+# Confirmation de décaissement par la banque : /d/<jeton>.
+[[redirects]]
+  from = "/d/*"
+  to = "/decaissement.html"
+  status = 200

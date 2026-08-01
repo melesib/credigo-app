@@ -1,0 +1,219 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Credigo — Confirmation de décaissement</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: #F5F3FF; color: #1F2937; line-height: 1.5; padding: 20px; }
+  .wrap { max-width: 540px; margin: 24px auto; }
+  .card { background: #fff; border-radius: 16px; padding: 26px; box-shadow: 0 6px 24px rgba(76,29,149,.08); }
+  .logo { font-size: 25px; font-weight: 800; color: #6C3FE8; text-align: center; }
+  .sub { text-align: center; color: #6B7280; font-size: 12.5px; margin-bottom: 20px; }
+  h1 { font-size: 18px; margin-bottom: 10px; }
+  .lead { font-size: 14px; color: #4B5563; margin-bottom: 16px; line-height: 1.6; }
+  .row { display: flex; justify-content: space-between; padding: 8px 0; font-size: 14px; border-bottom: 1px solid #F3F4F6; gap: 10px; }
+  .row .k { color: #6B7280; } .row .v { font-weight: 700; text-align: right; }
+  .num { font-family: monospace; color: #6C3FE8; font-weight: 800; }
+  label { display: block; font-size: 12px; font-weight: 700; color: #4B5563; margin: 12px 0 4px; }
+  input[type=text], input[type=number], input[type=date], textarea {
+    width: 100%; padding: 11px; border: 1px solid #E5E7EB; border-radius: 10px; font-size: 13.5px; font-family: inherit; }
+  textarea { resize: vertical; }
+  .grid2 { display: flex; gap: 10px; } .grid2 > div { flex: 1; }
+  .sign-pad { width: 100%; height: 110px; border: 1.5px dashed #C4B5FD; border-radius: 10px; background: #fff; touch-action: none; margin-top: 4px; }
+  .btn { width: 100%; padding: 15px; border-radius: 11px; border: none; font-size: 15px; font-weight: 800; cursor: pointer; font-family: inherit; background: #15803D; color: #fff; margin-top: 14px; }
+  .btn-o { background: #fff; color: #6B7280; border: 1px solid #E5E7EB; margin-top: 8px; }
+  .hide { display: none; }
+  .msg { text-align: center; padding: 34px 10px; color: #6B7280; }
+  .ico { font-size: 42px; margin-bottom: 10px; }
+  .err { font-size: 12.5px; color: #B91C1C; font-weight: 700; margin-top: 8px; }
+  .note { font-size: 12px; color: #6B7280; line-height: 1.55; background: #F9FAFB; border-radius: 9px; padding: 10px; margin-top: 12px; }
+  .foot { text-align: center; color: #9CA3AF; font-size: 11px; margin-top: 16px; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="card">
+    <div class="logo">Credigo</div>
+    <div class="sub">Confirmation de d&#233;caissement</div>
+
+    <div id="loading" class="msg">Chargement&#8230;</div>
+    <div id="invalid" class="msg hide"><div class="ico">&#9888;&#65039;</div><div id="invalid-msg">Ce lien est invalide ou a expir&#233;.</div></div>
+
+    <div id="content" class="hide">
+      <h1 id="lead-title">Confirmez le versement des fonds</h1>
+      <div class="lead" id="lead">Vous avez accord&#233; ce financement. Merci d'indiquer le montant r&#233;ellement vers&#233; et la r&#233;f&#233;rence de l'op&#233;ration.</div>
+
+      <div class="row"><span class="k">Dossier</span><span class="v num" id="f-num">&#8212;</span></div>
+      <div class="row"><span class="k">March&#233;</span><span class="v" id="f-objet">&#8212;</span></div>
+      <div class="row"><span class="k">Entreprise</span><span class="v" id="f-ent">&#8212;</span></div>
+      <div class="row"><span class="k">Compte b&#233;n&#233;ficiaire</span><span class="v" id="f-compte">&#8212;</span></div>
+      <div class="row"><span class="k">Montant pr&#233;vu</span><span class="v" id="f-prevu">&#8212;</span></div>
+
+      <label>Montant r&#233;ellement vers&#233; (FCFA)</label>
+      <input type="number" id="i-montant" placeholder="Montant d&#233;caiss&#233;">
+
+      <div class="grid2">
+        <div><label>R&#233;f&#233;rence de l'op&#233;ration</label><input type="text" id="i-ref" placeholder="R&#233;f&#233;rence"></div>
+        <div><label>Date du versement</label><input type="date" id="i-date"></div>
+      </div>
+
+      <label>Observation (facultatif)</label>
+      <textarea id="i-note" rows="2" placeholder="Pr&#233;cision &#233;ventuelle&#8230;"></textarea>
+
+      <div class="grid2">
+        <div><label>Votre nom</label><input type="text" id="i-nom" placeholder="Nom et pr&#233;nom"></div>
+        <div><label>Votre fonction</label><input type="text" id="i-role" placeholder="Fonction"></div>
+      </div>
+
+      <label>Signature</label>
+      <canvas class="sign-pad" id="sign"></canvas>
+      <button type="button" id="sign-clear" style="background:none;border:none;color:#6C3FE8;font-size:11.5px;font-weight:700;cursor:pointer;padding:4px 0">Effacer la signature</button>
+
+      <div class="note">En confirmant, vous attestez que les fonds ont &#233;t&#233; vers&#233;s au b&#233;n&#233;ficiaire. Cette d&#233;claration est horodat&#233;e et conserv&#233;e.</div>
+
+      <button class="btn" id="btn-confirm">Confirmer le d&#233;caissement</button>
+      <div class="err" id="err"></div>
+    </div>
+
+    <div id="done" class="msg hide">
+      <div class="ico">&#10004;</div>
+      <div id="done-msg">Merci &#8212; le d&#233;caissement est enregistr&#233;. Le dossier passe en suivi de remboursement.</div>
+      <div id="done-actions" style="margin-top:18px"></div>
+    </div>
+
+    <div class="foot">Ce lien vous est r&#233;serv&#233;. En cas de doute, contactez Credigo.</div>
+  </div>
+</div>
+
+<script src="/supabase.min.js"></script>
+<script>
+  window.CREDIGO_SUPABASE_URL = '__CREDIGO_SUPABASE_URL__';
+  window.CREDIGO_SUPABASE_ANON_KEY = '__CREDIGO_SUPABASE_ANON_KEY__';
+</script>
+<script>
+(function () {
+  var url = window.CREDIGO_SUPABASE_URL || '';
+  var key = window.CREDIGO_SUPABASE_ANON_KEY || '';
+  var sb = null;
+  var token = (location.pathname.split('/d/')[1] || '').split('?')[0].split('#')[0].trim();
+
+  function show(id) { ['loading','invalid','content','done'].forEach(function (x) { var el = document.getElementById(x); if (el) el.classList.toggle('hide', x !== id); }); }
+  function fail(m) { if (m) document.getElementById('invalid-msg').textContent = m; show('invalid'); }
+  function fmt(n) { return new Intl.NumberFormat('fr-FR').format(Math.round(n || 0)) + ' FCFA'; }
+  function err(m) { document.getElementById('err').textContent = m || ''; }
+  function fingerprint() {
+    try { var raw = [navigator.userAgent, navigator.language, screen.width + 'x' + screen.height, new Date().getTimezoneOffset()].join('|');
+      var h = 0; for (var i = 0; i < raw.length; i++) { h = ((h << 5) - h) + raw.charCodeAt(i); h |= 0; }
+      return 'fp_' + Math.abs(h).toString(36); } catch (e) { return null; }
+  }
+
+  if (!token) { fail('Ce lien est incomplet.'); return; }
+  if (!url || !key || url.indexOf('__') === 0 || !window.supabase) { fail('Service momentan\u00e9ment indisponible.'); return; }
+  sb = window.supabase.createClient(url, key, { auth: { persistSession: false, autoRefreshToken: false, detectSessionInUrl: false } });
+
+  window.__clientIp = null;
+  try {
+    var _ipc = new AbortController();
+    setTimeout(function () { try { _ipc.abort(); } catch (e) {} }, 3000);
+    fetch('https://api.ipify.org?format=json', { signal: _ipc.signal }).then(function (r) { return r.json(); })
+      .then(function (d) { window.__clientIp = d && d.ip ? d.ip : null; }, function () {});
+  } catch (e) {}
+
+  // ── Signature ──
+  var canvas = document.getElementById('sign'), ctx = null, drawing = false, hasSign = false;
+  function initSign() {
+    if (!canvas) return;
+    var ratio = window.devicePixelRatio || 1;
+    canvas.width = canvas.offsetWidth * ratio;
+    canvas.height = canvas.offsetHeight * ratio;
+    ctx = canvas.getContext('2d');
+    ctx.scale(ratio, ratio);
+    ctx.lineWidth = 2; ctx.lineCap = 'round'; ctx.strokeStyle = '#111827';
+  }
+  function pos(e) {
+    var r = canvas.getBoundingClientRect();
+    var p = e.touches ? e.touches[0] : e;
+    return { x: p.clientX - r.left, y: p.clientY - r.top };
+  }
+  function start(e) { e.preventDefault(); drawing = true; hasSign = true; var q = pos(e); ctx.beginPath(); ctx.moveTo(q.x, q.y); }
+  function move(e) { if (!drawing) return; e.preventDefault(); var q = pos(e); ctx.lineTo(q.x, q.y); ctx.stroke(); }
+  function end() { drawing = false; }
+  if (canvas) {
+    canvas.addEventListener('mousedown', start); canvas.addEventListener('mousemove', move);
+    canvas.addEventListener('mouseup', end); canvas.addEventListener('mouseleave', end);
+    canvas.addEventListener('touchstart', start); canvas.addEventListener('touchmove', move);
+    canvas.addEventListener('touchend', end);
+    document.getElementById('sign-clear').addEventListener('click', function () {
+      if (ctx) ctx.clearRect(0, 0, canvas.width, canvas.height); hasSign = false;
+    });
+  }
+
+  // ── Chargement ──
+  sb.rpc('get_disbursement_confirm', { p_token: token }).then(function (res) {
+    var d = res.data || {};
+    if (res.error || d.error) {
+      return fail(d.error === 'expired' ? 'Ce lien a expir\u00e9. Contactez Credigo.' : 'Ce lien est invalide ou a expir\u00e9.');
+    }
+    if (d.confirmed) { show('done'); return; }
+    sb.rpc('track_disbursement_open', { p_token: token }).then(function () {}, function () {});
+
+    document.getElementById('f-num').textContent = d.contract_number || '\u2014';
+    document.getElementById('f-objet').textContent = d.market_object || '\u2014';
+    document.getElementById('f-ent').textContent = d.company || d.entrepreneur || '\u2014';
+    document.getElementById('f-compte').textContent = d.account_number || 'Non communiqu\u00e9';
+    var prevu = d.estimated_payout || d.market_amount;
+    document.getElementById('f-prevu').textContent = fmt(prevu);
+    var mi = document.getElementById('i-montant');
+    if (mi && prevu) mi.value = Math.round(prevu);
+    var di = document.getElementById('i-date');
+    if (di) di.value = new Date().toISOString().slice(0, 10);
+    if (d.bank_name) {
+      document.getElementById('lead').textContent =
+        d.bank_name + ' \u2014 vous avez accord\u00e9 ce financement. Merci d\u2019indiquer le montant r\u00e9ellement vers\u00e9 et la r\u00e9f\u00e9rence de l\u2019op\u00e9ration.';
+    }
+    show('content');
+    initSign();
+  }, function () { fail('Service momentan\u00e9ment indisponible.'); });
+
+  // ── Confirmation ──
+  document.getElementById('btn-confirm').addEventListener('click', function () {
+    var b = this;
+    var montant = parseFloat((document.getElementById('i-montant') || {}).value || '');
+    var ref = ((document.getElementById('i-ref') || {}).value || '').trim();
+    var date = (document.getElementById('i-date') || {}).value || '';
+    var note = ((document.getElementById('i-note') || {}).value || '').trim();
+    var nom = ((document.getElementById('i-nom') || {}).value || '').trim();
+    var role = ((document.getElementById('i-role') || {}).value || '').trim();
+
+    if (!montant || montant <= 0) { err('Indiquez le montant r\u00e9ellement vers\u00e9.'); return; }
+    if (!ref) { err('Indiquez la r\u00e9f\u00e9rence de l\u2019op\u00e9ration.'); return; }
+    if (nom.length < 3) { err('Indiquez votre nom.'); return; }
+    if (!hasSign) { err('Merci de signer.'); return; }
+
+    err(''); b.disabled = true; b.textContent = 'Enregistrement\u2026';
+    sb.rpc('confirm_bank_disbursement', {
+      p_token: token, p_amount: montant, p_reference: ref,
+      p_disbursed_on: date || null, p_note: note || null,
+      p_signer_name: nom, p_signer_role: role || null,
+      p_signature: canvas ? canvas.toDataURL('image/png') : null,
+      p_ip: window.__clientIp || null, p_agent: navigator.userAgent,
+      p_fingerprint: fingerprint(), p_legal_version: 'CGDEC-2026-07',
+    }).then(function (res) {
+      b.disabled = false; b.textContent = 'Confirmer le d\u00e9caissement';
+      var d = res.data || {};
+      if (d.ok) { show('done'); return; }
+      if (d.error === 'already_confirmed') { show('done'); return; }
+      err(d.error === 'expired' ? 'Ce lien a expir\u00e9.'
+        : d.error === 'invalid_amount' ? 'Montant invalide.'
+        : 'Enregistrement impossible. R\u00e9essayez.');
+    }, function () {
+      b.disabled = false; b.textContent = 'Confirmer le d\u00e9caissement';
+      err('Connexion impossible.');
+    });
+  });
+})();
+</script>
+</body>
+</html>
