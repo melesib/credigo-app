@@ -3392,7 +3392,11 @@ function openRealContrat(r){
       '<div style="font-size:11px;color:#9CA3AF;margin-top:6px">Estimation indicative, sujette à l\'examen de votre dossier.</div></div>';
   }
 
-  html += '<div id="ed-payment"></div>';
+  html += '<div id="ed-payment">'
+    + '<div class="card" style="margin-top:14px;opacity:.6">'
+    +   '<div style="font-size:13px;font-weight:800;margin-bottom:6px">Suivi du financement</div>'
+    +   '<div style="font-size:12.5px;color:#9CA3AF">Chargement\u2026</div>'
+    + '</div></div>';
   document.getElementById('ed-content').innerHTML=html;
   showScreen('e-detail');
 
@@ -3405,13 +3409,14 @@ function openRealContrat(r){
       // Trace explicite : un bloc absent doit avoir une raison identifiable.
       console.log('[Credigo] Etat du reglement', { requestId: r.id, res: res });
       if (!box) { console.warn('[Credigo] Conteneur ed-payment introuvable.'); return; }
+      box.innerHTML = '';
       if (res && res.error) {
         box.innerHTML = '<div class="card" style="margin-top:14px"><div style="font-size:12.5px;color:#9CA3AF">'
           + 'Suivi du r\u00e8glement indisponible pour le moment.</div></div>';
         console.warn('[Credigo] Erreur:', res.error);
         return;
       }
-      if (!p && !dec) { console.log('[Credigo] Ni decaissement ni instruction de paiement pour ce contrat.'); return; }
+      if (!p && !dec) { box.innerHTML = ''; console.log('[Credigo] Ni decaissement ni instruction de paiement pour ce contrat.'); return; }
 
       var htmlDec = '';
       if (dec) {
