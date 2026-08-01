@@ -945,6 +945,25 @@
     } catch (e) { return null; }
   };
 
+  // Lien signé vers une pièce jointe du support (bucket privé).
+  window.credigoGetSupportAttachment = async function (ticketId, path) {
+    if (!supabaseReady || !ticketId || !path) return { url: null };
+    try {
+      var session = await sb.auth.getSession();
+      var tok = session && session.data && session.data.session && session.data.session.access_token;
+      if (!tok) return { url: null, error: 'session' };
+      var base = window.CREDIGO_BACKOFFICE_URL || 'https://credigo-backoffice.netlify.app';
+      var r = await fetch(base + '/.netlify/functions/support-attachment-url', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + tok },
+        body: JSON.stringify({ ticketId: ticketId, path: path }),
+      });
+      var d = await r.json();
+      if (!r.ok) return { url: null, error: d && d.error };
+      return { url: d.url || null };
+    } catch (e) { return { url: null, error: e.message }; }
+  };
+
   window.credigoReplyTicket = async function (ticketId, message) {
     if (!supabaseReady || !ticketId || !message) return { error: 'Message vide.' };
     var userId = currentAppUserId();

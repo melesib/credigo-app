@@ -8881,6 +8881,7 @@ function renderMyTickets() {
             +   '<span style="font-size:10px;font-weight:800;padding:2px 8px;border-radius:20px;white-space:nowrap;background:' + s.bg + ';color:' + s.c + '">' + s.t + '</span>'
             + '</div>'
             + '<div style="font-size:11.5px;color:#9CA3AF;margin-top:4px">'
+            +   (t.has_attachment ? '<i class="ti ti-paperclip" style="margin-right:4px"></i>' : '')
             +   t.nb_messages + ' message' + (t.nb_messages > 1 ? 's' : '')
             +   ' \u00b7 ' + (function (d) { try { return new Date(d).toLocaleDateString('fr-FR', { day: '2-digit', month: 'short' }); } catch (e) { return ''; } })(t.last_message_at)
             + '</div></div>';
@@ -8906,6 +8907,9 @@ function openTicketThread(ticketId) {
       + '<div style="max-width:85%;background:#F5F3FF;border:1px solid #DDD6FE;border-radius:11px;padding:10px 12px">'
       +   '<div style="font-size:10.5px;font-weight:800;color:#6C3FE8;margin-bottom:3px">Vous</div>'
       +   '<div style="font-size:13px;white-space:pre-wrap;line-height:1.5">' + d.message + '</div>'
+      +   (d.attachment_path
+            ? '<div class="tk-file" data-path="' + encodeURIComponent(d.attachment_path) + '" style="margin-top:6px;font-size:11.5px;color:#6C3FE8;font-weight:700;cursor:pointer"><i class="ti ti-paperclip" style="margin-right:3px"></i>' + (d.attachment_name || 'Pi\u00e8ce jointe') + '</div>'
+            : '')
       + '</div></div>';
 
     (d.messages || []).forEach(function (m) {
@@ -8914,6 +8918,9 @@ function openTicketThread(ticketId) {
         + '<div style="max-width:85%;background:' + (mine ? '#F5F3FF' : '#F9FAFB') + ';border:1px solid ' + (mine ? '#DDD6FE' : '#F3F4F6') + ';border-radius:11px;padding:10px 12px">'
         +   '<div style="font-size:10.5px;font-weight:800;color:' + (mine ? '#6C3FE8' : '#15803D') + ';margin-bottom:3px">' + (mine ? 'Vous' : 'Credigo') + '</div>'
         +   '<div style="font-size:13px;white-space:pre-wrap;line-height:1.5">' + m.message + '</div>'
+        +   (m.attachment_path
+              ? '<div class="tk-file" data-path="' + encodeURIComponent(m.attachment_path) + '" style="margin-top:6px;font-size:11.5px;color:#6C3FE8;font-weight:700;cursor:pointer"><i class="ti ti-paperclip" style="margin-right:3px"></i>' + (m.attachment_name || 'Pi\u00e8ce jointe') + '</div>'
+              : '')
         +   '<div style="font-size:10px;color:#9CA3AF;margin-top:4px">' + (function (x) { try { return new Date(x).toLocaleString('fr-FR'); } catch (e) { return ''; } })(m.created_at) + '</div>'
         + '</div></div>';
     });
@@ -8931,6 +8938,20 @@ function openTicketThread(ticketId) {
       + '</div>';
 
     document.getElementById('tk-back').addEventListener('click', renderMyTickets);
+
+    // Ouverture d'une pièce jointe : le lien est généré à la demande.
+    Array.prototype.forEach.call(box.querySelectorAll('.tk-file'), function (el) {
+      el.addEventListener('click', function () {
+        var path = decodeURIComponent(el.dataset.path);
+        var libelle = el.innerHTML;
+        el.innerHTML = '<i class="ti ti-loader" style="margin-right:3px"></i>Ouverture\u2026';
+        window.credigoGetSupportAttachment(ticketId, path).then(function (r) {
+          el.innerHTML = libelle;
+          if (r && r.url) { window.open(r.url, '_blank', 'noopener'); }
+          else { toast('Pi\u00e8ce jointe indisponible.'); }
+        });
+      });
+    });
     var send = document.getElementById('tk-send');
     if (send) send.addEventListener('click', function () {
       var msg = (document.getElementById('tk-reply') || {}).value || '';
