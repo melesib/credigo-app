@@ -80,6 +80,17 @@
         <div class="row"><span class="k">Échéance de paiement</span><span class="v" id="f-echeance">—</span></div>
       </div>
 
+      <!-- Engagements en cours chez d'autres partenaires Credigo.
+           Transparence volontaire : la banque apprécie le risque réel. -->
+      <div class="box hide" id="engagements-box" style="background:#FFFBEB;border-color:#FDE68A">
+        <div class="box-title" style="color:#B45309">Engagements en cours chez nos partenaires</div>
+        <div id="engagements-synthese" style="font-size:12.5px;color:#78350F;line-height:1.7;margin-bottom:8px"></div>
+        <div id="engagements-liste"></div>
+        <div style="font-size:11px;color:#92400E;margin-top:8px;line-height:1.5">
+          Credigo vous communique ces informations pour que vous appr&#233;ciiez l'exposition totale de ce prestataire.
+        </div>
+      </div>
+
       <!-- Documents joints -->
       <div class="box" id="docs-box" style="display:none">
         <div class="box-title">Documents</div>
@@ -252,6 +263,73 @@
     document.getElementById('f-montant').textContent = fmt(d.market_amount);
     document.getElementById('f-avance').textContent = d.estimated_payout ? fmt(d.estimated_payout) : '\u2014';
     document.getElementById('f-echeance').textContent = dateFr(d.date_payment);
+    fillEngagements(d.engagements, d.engagements_synthese);
+  }
+
+  // Endettement du prestataire chez les autres partenaires Credigo.
+  function fillEngagements(liste, synth) {
+    var box = document.getElementById('engagements-box');
+    if (!box) return;
+    if (!synth || !synth.nb_engagements) {
+      // Absence d'engagement : c'est une information en soi, on l'affiche.
+      box.classList.remove('hide');
+      box.style.background = '#F0FDF4';
+      box.style.borderColor = '#BBF7D0';
+      box.querySelector('.box-title').style.color = '#15803D';
+      box.querySelector('.box-title').textContent = 'Aucun autre engagement en cours';
+      document.getElementById('engagements-synthese').innerHTML =
+        '<span style="color:#166534">Ce prestataire n\u2019a aucun financement en cours chez nos partenaires.</span>'
+        + (synth && synth.historique_soldes
+            ? '<br><span style="color:#166534">' + synth.historique_soldes + ' financement'
+              + (synth.historique_soldes > 1 ? 's' : '') + ' d\u00e9j\u00e0 rembours\u00e9'
+              + (synth.historique_soldes > 1 ? 's' : '') + '.</span>'
+            : '');
+      document.getElementById('engagements-liste').innerHTML = '';
+      return;
+    }
+
+    box.classList.remove('hide');
+    var s = document.getElementById('engagements-synthese');
+    s.innerHTML =
+      '<b>' + synth.nb_engagements + ' financement' + (synth.nb_engagements > 1 ? 's' : '')
+      + ' en cours</b> chez ' + synth.nb_partenaires + ' partenaire' + (synth.nb_partenaires > 1 ? 's' : '')
+      + '<br>Total engag\u00e9 : <b>' + fmt(synth.total_engage) + '</b>'
+      + (synth.total_decaisse ? ' \u00b7 d\u00e9j\u00e0 d\u00e9caiss\u00e9 : ' + fmt(synth.total_decaisse) : '')
+      + (synth.prochaine_echeance ? '<br>Prochaine \u00e9ch\u00e9ance : ' + dateFr(synth.prochaine_echeance) : '')
+      + (synth.nb_en_retard
+          ? '<br><span style="color:#B91C1C;font-weight:800">\u26a0 ' + synth.nb_en_retard
+            + ' \u00e9ch\u00e9ance' + (synth.nb_en_retard > 1 ? 's' : '') + ' d\u00e9pass\u00e9e'
+            + (synth.nb_en_retard > 1 ? 's' : '') + '</span>'
+          : '')
+      + (synth.historique_soldes
+          ? '<br><span style="color:#166534">' + synth.historique_soldes + ' financement'
+            + (synth.historique_soldes > 1 ? 's' : '') + ' d\u00e9j\u00e0 rembours\u00e9'
+            + (synth.historique_soldes > 1 ? 's' : '') + '</span>'
+          : '');
+
+    var l = document.getElementById('engagements-liste');
+    l.innerHTML = (liste || []).map(function (e) {
+      var retard = e.en_retard;
+      return '<div style="background:#fff;border:1px solid ' + (retard ? '#FECACA' : '#FDE68A')
+        + ';border-radius:9px;padding:9px 11px;margin-top:6px">'
+        + '<div style="display:flex;justify-content:space-between;gap:8px;align-items:flex-start">'
+        +   '<div style="font-size:12.5px;font-weight:700;color:#111827">' + (e.market_object || 'March\u00e9') + '</div>'
+        +   '<div style="font-size:12.5px;font-weight:800;white-space:nowrap">' + fmt(e.montant_finance) + '</div>'
+        + '</div>'
+        + '<div style="font-size:11.5px;color:#6B7280;margin-top:3px">'
+        +   (e.partenaire ? e.partenaire : 'Partenaire non pr\u00e9cis\u00e9')
+        +   (e.decaisse ? ' \u00b7 d\u00e9caiss\u00e9' : ' \u00b7 accord\u00e9')
+        +   (e.date_echeance ? ' \u00b7 \u00e9ch\u00e9ance ' + dateFr(e.date_echeance) : '')
+        + '</div>'
+        + (retard
+            ? '<div style="font-size:11.5px;color:#B91C1C;font-weight:700;margin-top:3px">\u26a0 En retard de '
+              + Math.abs(e.jours_restants || 0) + ' jour' + (Math.abs(e.jours_restants || 0) > 1 ? 's' : '') + '</div>'
+            : (e.jours_restants != null && e.jours_restants >= 0
+                ? '<div style="font-size:11.5px;color:#6B7280;margin-top:3px">\u00c9ch\u00e9ance dans '
+                  + e.jours_restants + ' jour' + (e.jours_restants > 1 ? 's' : '') + '</div>'
+                : ''))
+        + '</div>';
+    }).join('');
   }
 
   // 1) AFFICHAGE IMMEDIAT via le RPC leger (direct Supabase, rapide).
