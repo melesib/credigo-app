@@ -1182,6 +1182,9 @@ textarea{resize:vertical;min-height:70px}
 
 <!-- ═══ E-HOME : Tableau de bord ═══ -->
 <div id="e-home" class="screen on">
+  <!-- Astuce de sécurité, renouvelée à chaque visite. -->
+  <div id="e-astuce" style="display:none"></div>
+
   <div class="eh-hero">
     <div class="eh-hero-top">
       <div><div class="eh-hello">Bonjour,</div><div class="eh-name" id="eh-user-name">Bienvenue</div></div>
@@ -2290,8 +2293,26 @@ textarea{resize:vertical;min-height:70px}
   </div>
 
   <!-- Mes comptes bancaires (un par banque) -->
+  <!-- Sensibilisation : la première protection reste la vigilance du client. -->
+  <div class="card" style="background:#FFFBEB;border:1px solid #FDE68A">
+    <div style="display:flex;gap:10px;align-items:flex-start">
+      <div style="width:30px;height:30px;border-radius:9px;background:#FEF3C7;display:flex;align-items:center;justify-content:center;flex-shrink:0">
+        <i class="ti ti-shield-lock" style="color:#B45309;font-size:16px"></i>
+      </div>
+      <div>
+        <div style="font-size:13px;font-weight:800;color:#78350F;margin-bottom:4px">Protégez vos données</div>
+        <div style="font-size:12px;color:#92400E;line-height:1.6">
+          Credigo ne vous demandera <b>jamais</b> votre mot de passe, ni un code re&#231;u par SMS ou email.<br>
+          Ne communiquez vos coordonn&#233;es bancaires &#224; personne par t&#233;l&#233;phone ou WhatsApp, m&#234;me si l'on se pr&#233;sente comme un agent Credigo.<br>
+          En cas de doute, &#233;crivez-nous depuis le support de l'application.
+        </div>
+      </div>
+    </div>
+  </div>
+
   <div class="card" id="e-bank-accounts-card" style="display:none">
     <div class="card-title"><div class="ci"><i class="ti ti-building-bank" style="font-size:13px;color:#6C3FE8"></i></div>Mes comptes bancaires</div>
+    <div id="e-bank-quota"></div>
     <div id="e-bank-accounts-list" style="display:grid;gap:8px"></div>
   </div>
 
@@ -2554,6 +2575,11 @@ textarea{resize:vertical;min-height:70px}
 <div id="e-support" class="screen">
   <div class="pg-title">Support Credigo</div>
   <div class="pg-sub">Envoyez une requête — nous répondons via l'app, email et WhatsApp</div>
+
+  <div style="background:#EEF2FF;border:1px solid #C7D2FE;border-radius:10px;padding:10px 12px;margin-bottom:14px;font-size:11.5px;color:#3730A3;line-height:1.55">
+    <i class="ti ti-info-circle" style="margin-right:4px"></i>
+    Nos agents ne vous demanderont jamais votre mot de passe ni un code de v&#233;rification. Toute demande de ce type est une tentative de fraude.
+  </div>
 
 
   <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-bottom:16px">
@@ -3138,6 +3164,7 @@ function renderScreen(id) {
   if (id === 'e-notifs') renderENotifs();
   if (id === 'e-profile') renderBankAccounts();
   if (id === 'e-support') renderMyTickets();
+  if (id === 'e-home') renderAstuceSecurite();
   if (id === 'f-portfolio') renderFPortfolio();
   if (id === 'f-wallet') renderFWallet();
   if (id === 'f-transactions') renderTxList('f', 'all');
@@ -8840,6 +8867,42 @@ function openBankDetail(accountId) {
   }
 }
 
+// ── Sensibilisation à la sécurité ──
+// Un message unique finit par ne plus être lu : on fait tourner les
+// conseils, et on les affiche là où le client passe le plus souvent.
+var ASTUCES_SECURITE = [
+  { i: 'ti-shield-lock', t: 'Ne partagez jamais votre mot de passe',
+    d: 'Aucun agent Credigo ne vous le demandera, ni par téléphone, ni par message.' },
+  { i: 'ti-message-2', t: 'Méfiez-vous des messages non sollicités',
+    d: 'Un code reçu par SMS ne se communique à personne. Il ouvre votre compte.' },
+  { i: 'ti-building-bank', t: 'Vérifiez toujours un changement de RIB',
+    d: 'Si l\u2019on vous demande de virer sur un nouveau compte, appelez-nous pour confirmer.' },
+  { i: 'ti-device-mobile', t: 'Protégez votre téléphone',
+    d: 'Activez un code de déverrouillage : votre espace Credigo y est accessible.' },
+  { i: 'ti-link', t: 'Attention aux liens reçus',
+    d: 'Ouvrez toujours votre espace depuis l\u2019application, pas depuis un lien inconnu.' },
+  { i: 'ti-user-check', t: 'Un doute sur un interlocuteur ?',
+    d: 'Écrivez-nous depuis le support de l\u2019application : c\u2019est le seul canal sûr.' },
+];
+
+function renderAstuceSecurite() {
+  var box = document.getElementById('e-astuce');
+  if (!box) return;
+  var a = ASTUCES_SECURITE[Math.floor(Math.random() * ASTUCES_SECURITE.length)];
+  box.style.display = 'block';
+  box.innerHTML = '<div style="background:#FFFBEB;border:1px solid #FDE68A;border-radius:12px;padding:12px 14px;margin-bottom:14px;display:flex;gap:11px;align-items:flex-start">'
+    + '<div style="width:32px;height:32px;border-radius:9px;background:#FEF3C7;display:flex;align-items:center;justify-content:center;flex-shrink:0">'
+    +   '<i class="ti ' + a.i + '" style="color:#B45309;font-size:17px"></i></div>'
+    + '<div style="flex:1;min-width:0">'
+    +   '<div style="font-size:12.5px;font-weight:800;color:#78350F">' + a.t + '</div>'
+    +   '<div style="font-size:11.5px;color:#92400E;line-height:1.5;margin-top:2px">' + a.d + '</div>'
+    + '</div>'
+    + '<button onclick="document.getElementById(\'e-astuce\').style.display=\'none\'" '
+    +   'style="background:none;border:none;color:#B45309;cursor:pointer;padding:0;font-size:15px;line-height:1" '
+    +   'aria-label="Masquer">&times;</button>'
+    + '</div>';
+}
+
 // ── Mes requêtes de support et leurs réponses ──
 // (« Mes demandes » désigne les contrats ailleurs dans l'app.)
 var _ticketsCache = [];
@@ -8976,6 +9039,21 @@ function renderBankAccounts() {
     _bankAccountsCache = accts;
     if (!accts.length) { card.style.display = 'none'; return; }
     card.style.display = 'block';
+
+    // Quota : l'entrepreneur voit combien de comptes il peut encore ajouter.
+    if (typeof window.credigoGetBankQuota === 'function') {
+      window.credigoGetBankQuota().then(function (q) {
+        var el = document.getElementById('e-bank-quota');
+        if (!el || !q) return;
+        el.innerHTML = q.atteint
+          ? '<div style="background:#FEF3C7;border:1px solid #FDE68A;border-radius:9px;padding:9px 11px;font-size:11.5px;color:#B45309;line-height:1.5;margin-bottom:10px">'
+            + '<i class="ti ti-info-circle" style="margin-right:4px"></i>'
+            + 'Vous avez atteint votre limite de ' + q.max + ' comptes bancaires. Vous ne pouvez pas en poss\u00e9der davantage.</div>'
+          : '<div style="font-size:11px;color:#9CA3AF;margin-bottom:8px">'
+            + q.actuel + ' compte' + (q.actuel > 1 ? 's' : '') + ' sur ' + q.max
+            + ' \u00b7 vous pouvez en ajouter ' + q.restant + '</div>';
+      });
+    }
     list.innerHTML = accts.map(function (a) {
       var created = a.status === 'created' || a.created_by_bank;
       var pending = a.status === 'creation_pending';
