@@ -3400,8 +3400,29 @@ function openRealContrat(r){
   if (typeof window.credigoGetPaymentStatus === 'function') {
     window.credigoGetPaymentStatus(r.id).then(function (res) {
       var p = res && res.payment;
+      var dec = res && res.disbursement;
       var box = document.getElementById('ed-payment');
-      if (!box || !p) return;
+      if (!box || (!p && !dec)) return;
+
+      var htmlDec = '';
+      if (dec) {
+        // Le versement des fonds à l'entrepreneur : ce qui l'intéresse d'abord.
+        htmlDec = '<div class="card" style="margin-top:14px">'
+          + '<div style="font-size:13px;font-weight:800;margin-bottom:8px">Versement des fonds</div>'
+          + '<div style="background:#DCFCE7;border:1px solid #BBF7D0;border-radius:9px;padding:10px 12px;font-size:12.5px;font-weight:700;color:#15803D;margin-bottom:10px">'
+          +   '<i class="ti ti-check" style="margin-right:5px"></i>'
+          +   (dec.bank_name || 'Votre banque') + ' a vers\u00e9 les fonds'
+          + '</div>'
+          + (dec.amount ? '<div class="ed-inforow"><span class="k">Montant vers\u00e9</span><span class="v">' + fmtF(dec.amount) + '</span></div>' : '')
+          + (dec.reference ? '<div class="ed-inforow"><span class="k">R\u00e9f\u00e9rence</span><span class="v">' + dec.reference + '</span></div>' : '')
+          + (dec.disbursed_on ? '<div class="ed-inforow"><span class="k">Vers\u00e9 le</span><span class="v">' + (function(d){try{return new Date(d).toLocaleDateString('fr-FR',{day:'2-digit',month:'long',year:'numeric'});}catch(e){return d;}})(dec.disbursed_on) + '</span></div>' : '')
+          + (dec.proof_url
+              ? '<a href="' + dec.proof_url + '" target="_blank" rel="noreferrer" style="display:block;text-align:center;margin-top:10px;padding:11px;border-radius:10px;background:#15803D;color:#fff;text-decoration:none;font-weight:800;font-size:13px"><i class="ti ti-file-text" style="margin-right:4px"></i>Voir le justificatif de versement</a>'
+              : '<div style="font-size:11.5px;color:#9CA3AF;margin-top:8px">Aucun justificatif joint par la banque.</div>')
+          + '</div>';
+      }
+
+      if (!p) { box.innerHTML = htmlDec; return; }
 
       var etat = p.status === 'verified'
         ? { txt: 'Paiement reçu et vérifié', c: '#15803D', bg: '#DCFCE7', bd: '#BBF7D0', ic: 'ti-check' }
@@ -3416,14 +3437,15 @@ function openRealContrat(r){
       if (p.proof_amount) lignes += '<div class="ed-inforow"><span class="k">Montant viré</span><span class="v">' + fmtF(p.proof_amount) + '</span></div>';
       if (p.proof_date) lignes += '<div class="ed-inforow"><span class="k">Date du virement</span><span class="v">' + (function(d){try{return new Date(d).toLocaleDateString('fr-FR',{day:'2-digit',month:'long',year:'numeric'});}catch(e){return d;}})(p.proof_date) + '</span></div>';
 
-      box.innerHTML = '<div class="card" style="margin-top:14px">'
-        + '<div style="font-size:13px;font-weight:800;margin-bottom:8px">Règlement du marché</div>'
+      box.innerHTML = htmlDec
+        + '<div class="card" style="margin-top:14px">'
+        + '<div style="font-size:13px;font-weight:800;margin-bottom:8px">Règlement par votre client</div>'
         + '<div style="background:' + etat.bg + ';border:1px solid ' + etat.bd + ';border-radius:9px;padding:10px 12px;font-size:12.5px;font-weight:700;color:' + etat.c + ';margin-bottom:10px">'
         +   '<i class="ti ' + etat.ic + '" style="margin-right:5px"></i>' + etat.txt
         + '</div>'
         + lignes
         + (p.proof_url
-            ? '<a href="' + p.proof_url + '" target="_blank" rel="noreferrer" style="display:block;text-align:center;margin-top:10px;padding:11px;border-radius:10px;background:#6C3FE8;color:#fff;text-decoration:none;font-weight:800;font-size:13px"><i class="ti ti-file-text" style="margin-right:4px"></i>Voir la preuve de virement</a>'
+            ? '<a href="' + p.proof_url + '" target="_blank" rel="noreferrer" style="display:block;text-align:center;margin-top:10px;padding:11px;border-radius:10px;background:#6C3FE8;color:#fff;text-decoration:none;font-weight:800;font-size:13px"><i class="ti ti-file-text" style="margin-right:4px"></i>Voir la preuve de r\u00e8glement de votre client</a>'
             : '')
         + '</div>';
     });
