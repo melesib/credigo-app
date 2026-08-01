@@ -424,7 +424,7 @@
     var userId = currentAppUserId();
     if (!userId) return { locked: false, reason: null, canSubmitRequest: true };
 
-    var ACTIVE = ['submitted', 'under_review', 'awaiting_donneur', 'confirmed', 'approved'];
+    var ACTIVE = ['submitted', 'under_review', 'awaiting_donneur', 'confirmed', 'approved', 'disbursed'];
     try {
       var results = await Promise.all([
         sb.from('financing_requests').select('id').eq('app_user_id', userId).in('status', ACTIVE).limit(1),

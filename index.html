@@ -3265,14 +3265,17 @@ function reqStatusInfo(status){
     under_review:{label:'En vérification',cls:'check',etape:'Nos équipes examinent votre marché',prog:30},
     awaiting_donneur:{label:'Vérification client',cls:'check',etape:'Confirmation en cours chez votre client',prog:45},
     confirmed:{label:'Client confirmé',cls:'run',etape:'Votre client a confirmé le marché',prog:60},
-    approved:{label:'Approuvée',cls:'run',etape:'Demande approuvée pour financement',prog:70},
+    approved:{label:'Approuvée',cls:'run',etape:'Financement accordé, décaissement en préparation',prog:70},
+    disbursed:{label:'Fonds versés',cls:'run',etape:'Les fonds vous ont été versés. En attente du paiement de votre client.',prog:88},
+    settled:{label:'Soldé',cls:'done',etape:'Ce marché est réglé',prog:100},
+    // Anciens statuts, conservés pour les dossiers historiques.
     funding:{label:'Financement',cls:'run',etape:'Décaissement en cours',prog:80},
     executing:{label:'En cours',cls:'run',etape:'En attente du paiement de votre client',prog:88},
-    settled:{label:'Soldé',cls:'done',etape:'Ce marché est réglé',prog:100},
     rejected:{label:'Refusée',cls:'check',etape:'Demande non retenue',prog:0},
     cancelled:{label:'Annulée',cls:'check',etape:'Demande annulée',prog:0}
   };
-  return map[status]||map.submitted;
+  return map[status] || { label: status || 'En cours', cls: 'run',
+    etape: 'Votre dossier avance. Contactez-nous pour le détail.', prog: 50 };
 }
 // Transforme une demande Supabase en objet carte
 function reqToCard(r){
