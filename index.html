@@ -3389,8 +3389,42 @@ function openRealContrat(r){
       '<div style="font-size:11px;color:#9CA3AF;margin-top:6px">Estimation indicative, sujette à l\'examen de votre dossier.</div></div>';
   }
 
+  html += '<div id="ed-payment"></div>';
   document.getElementById('ed-content').innerHTML=html;
   showScreen('e-detail');
+
+  // Règlement par le donneur d'ordre : état et preuve de virement.
+  if (typeof window.credigoGetPaymentStatus === 'function') {
+    window.credigoGetPaymentStatus(r.id).then(function (res) {
+      var p = res && res.payment;
+      var box = document.getElementById('ed-payment');
+      if (!box || !p) return;
+
+      var etat = p.status === 'verified'
+        ? { txt: 'Paiement reçu et vérifié', c: '#15803D', bg: '#DCFCE7', bd: '#BBF7D0', ic: 'ti-check' }
+        : p.status === 'declared'
+        ? { txt: 'Preuve de virement reçue — vérification en cours', c: '#B45309', bg: '#FEF3C7', bd: '#FDE68A', ic: 'ti-clock' }
+        : { txt: 'Règlement attendu du donneur d\u2019ordre', c: '#3730A3', bg: '#E0E7FF', bd: '#C7D2FE', ic: 'ti-hourglass' };
+
+      var lignes = '';
+      if (p.amount_expected) lignes += '<div class="ed-inforow"><span class="k">Montant attendu</span><span class="v">' + fmtF(p.amount_expected) + '</span></div>';
+      if (p.date_payment) lignes += '<div class="ed-inforow"><span class="k">Échéance</span><span class="v">' + (function(d){try{return new Date(d).toLocaleDateString('fr-FR',{day:'2-digit',month:'long',year:'numeric'});}catch(e){return d;}})(p.date_payment) + '</span></div>';
+      if (p.reference) lignes += '<div class="ed-inforow"><span class="k">Référence du virement</span><span class="v">' + p.reference + '</span></div>';
+      if (p.proof_amount) lignes += '<div class="ed-inforow"><span class="k">Montant viré</span><span class="v">' + fmtF(p.proof_amount) + '</span></div>';
+      if (p.proof_date) lignes += '<div class="ed-inforow"><span class="k">Date du virement</span><span class="v">' + (function(d){try{return new Date(d).toLocaleDateString('fr-FR',{day:'2-digit',month:'long',year:'numeric'});}catch(e){return d;}})(p.proof_date) + '</span></div>';
+
+      box.innerHTML = '<div class="card" style="margin-top:14px">'
+        + '<div style="font-size:13px;font-weight:800;margin-bottom:8px">Règlement du marché</div>'
+        + '<div style="background:' + etat.bg + ';border:1px solid ' + etat.bd + ';border-radius:9px;padding:10px 12px;font-size:12.5px;font-weight:700;color:' + etat.c + ';margin-bottom:10px">'
+        +   '<i class="ti ' + etat.ic + '" style="margin-right:5px"></i>' + etat.txt
+        + '</div>'
+        + lignes
+        + (p.proof_url
+            ? '<a href="' + p.proof_url + '" target="_blank" rel="noreferrer" style="display:block;text-align:center;margin-top:10px;padding:11px;border-radius:10px;background:#6C3FE8;color:#fff;text-decoration:none;font-weight:800;font-size:13px"><i class="ti ti-file-text" style="margin-right:4px"></i>Voir la preuve de virement</a>'
+            : '')
+        + '</div>';
+    });
+  }
 }
 
 // ── Détail contrat ──

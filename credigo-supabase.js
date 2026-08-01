@@ -799,6 +799,26 @@
     return { request: res.data, events: (ev.data || []) };
   };
 
+  // État du règlement par le donneur d'ordre, avec la preuve de virement.
+  // Passe par une fonction serveur : le bucket des preuves est privé.
+  window.credigoGetPaymentStatus = async function (requestId) {
+    if (!supabaseReady || !requestId) return { payment: null };
+    try {
+      var session = await sb.auth.getSession();
+      var tok = session && session.data && session.data.session && session.data.session.access_token;
+      if (!tok) return { payment: null };
+      var base = window.CREDIGO_BACKOFFICE_URL || 'https://credigo-backoffice.netlify.app';
+      var r = await fetch(base + '/.netlify/functions/entrepreneur-payment-proof', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + tok },
+        body: JSON.stringify({ requestId: requestId }),
+      });
+      var d = await r.json();
+      if (!r.ok) return { payment: null, error: d && d.error };
+      return { payment: d.payment || null };
+    } catch (e) { return { payment: null, error: e.message }; }
+  };
+
   // Upload d'un document de demande vers le bucket "attestations" (réutilisé)
   // puis enregistrement dans request_documents.
   window.credigoUploadRequestDoc = async function (requestId, file, docType) {
