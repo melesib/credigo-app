@@ -802,11 +802,11 @@
   // État du règlement par le donneur d'ordre, avec la preuve de virement.
   // Passe par une fonction serveur : le bucket des preuves est privé.
   window.credigoGetPaymentStatus = async function (requestId) {
-    if (!supabaseReady || !requestId) return { payment: null };
+    if (!supabaseReady || !requestId) return { payment: null, disbursement: null };
     try {
       var session = await sb.auth.getSession();
       var tok = session && session.data && session.data.session && session.data.session.access_token;
-      if (!tok) return { payment: null };
+      if (!tok) return { payment: null, disbursement: null, error: 'session absente' };
       var base = window.CREDIGO_BACKOFFICE_URL || 'https://credigo-backoffice.netlify.app';
       var r = await fetch(base + '/.netlify/functions/entrepreneur-payment-proof', {
         method: 'POST',
@@ -814,9 +814,13 @@
         body: JSON.stringify({ requestId: requestId }),
       });
       var d = await r.json();
-      if (!r.ok) return { payment: null, error: d && d.error };
-      return { payment: d.payment || null };
-    } catch (e) { return { payment: null, error: e.message }; }
+      if (!r.ok) return { payment: null, disbursement: null, error: (d && d.error) || ('HTTP ' + r.status) };
+      // On transmet TOUT ce que renvoie le serveur : versement des fonds
+      // par la banque ET règlement par le donneur d'ordre.
+      return { payment: d.payment || null, disbursement: d.disbursement || null };
+    } catch (e) {
+      return { payment: null, disbursement: null, error: e.message };
+    }
   };
 
   // Upload d'un document de demande vers le bucket "attestations" (réutilisé)

@@ -3402,7 +3402,16 @@ function openRealContrat(r){
       var p = res && res.payment;
       var dec = res && res.disbursement;
       var box = document.getElementById('ed-payment');
-      if (!box || (!p && !dec)) return;
+      // Trace explicite : un bloc absent doit avoir une raison identifiable.
+      console.log('[Credigo] Etat du reglement', { requestId: r.id, res: res });
+      if (!box) { console.warn('[Credigo] Conteneur ed-payment introuvable.'); return; }
+      if (res && res.error) {
+        box.innerHTML = '<div class="card" style="margin-top:14px"><div style="font-size:12.5px;color:#9CA3AF">'
+          + 'Suivi du r\u00e8glement indisponible pour le moment.</div></div>';
+        console.warn('[Credigo] Erreur:', res.error);
+        return;
+      }
+      if (!p && !dec) { console.log('[Credigo] Ni decaissement ni instruction de paiement pour ce contrat.'); return; }
 
       var htmlDec = '';
       if (dec) {
