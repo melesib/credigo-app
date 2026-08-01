@@ -24,6 +24,7 @@
   .c-num { font-family: monospace; font-size: 11.5px; color: #6C3FE8; font-weight: 700; }
   .badge { font-size: 10.5px; font-weight: 800; padding: 3px 9px; border-radius: 20px; white-space: nowrap; }
   .b-review { background: #FEE2E2; color: #B91C1C; }
+  .b-disb { background: #FEF3C7; color: #B45309; }
   .b-approved { background: #DCFCE7; color: #15803D; }
   .b-refused { background: #F3F4F6; color: #6B7280; }
   .b-pending { background: #E0E7FF; color: #3730A3; }
@@ -137,6 +138,7 @@
 
   var STATE_BADGE = {
     to_review: '<span class="badge b-review">\u00c0 traiter</span>',
+    to_disburse: '<span class="badge b-disb">\u00c0 d\u00e9caisser</span>',
     approved: '<span class="badge b-approved">Accord\u00e9</span>',
     refused: '<span class="badge b-refused">Refus\u00e9</span>',
     pending: '<span class="badge b-pending">En cours</span>',
@@ -181,6 +183,7 @@
     var parts = [];
     if (tx.nb_dossiers) parts.push(tx.nb_dossiers + ' dossier' + (tx.nb_dossiers > 1 ? 's' : ''));
     if (tx.nb_a_traiter) parts.push(tx.nb_a_traiter + ' \u00e0 traiter');
+    if (tx.nb_a_decaisser) parts.push(tx.nb_a_decaisser + ' \u00e0 d\u00e9caisser');
     if (tx.nb_approuves) parts.push(tx.nb_approuves + ' approuv\u00e9' + (tx.nb_approuves > 1 ? 's' : ''));
     if (tx.nb_en_cours) parts.push(tx.nb_en_cours + ' pr\u00eat' + (tx.nb_en_cours > 1 ? 's' : '') + ' en cours');
     if (tx.nb_soldes) parts.push(tx.nb_soldes + ' sold\u00e9' + (tx.nb_soldes > 1 ? 's' : ''));
@@ -258,10 +261,16 @@
         + '<div class="c-num">' + esc(it.contract_number || '') + '</div></div>' + (STATE_BADGE[it.state] || '') + '</div>'
         + '<div class="row"><span class="k">Entreprise</span><span class="v">' + esc(it.company || it.entrepreneur || '\u2014') + '</span></div>'
         + '<div class="row"><span class="k">Montant</span><span class="v">' + fmt(it.market_amount) + '</span></div>'
+        + (it.disb_pending && it.disb_token
+            ? '<a href="/d/' + esc(it.disb_token) + '" class="disb-link" style="display:block;text-align:center;text-decoration:none;background:#166534;color:#fff;font-weight:800;font-size:13px;padding:10px;border-radius:9px;margin-top:8px">Confirmer le d\u00e9caissement</a>'
+            : '')
         + (loanBadge(it) ? '<div style="margin-top:6px">' + loanBadge(it) + '</div>' : '')
         + (it.rib_sent ? '<div class="ok-note">\u2713 RIB transmis \u00e0 l\u2019entrepreneur</div>' : '')
         + '<div style="font-size:11.5px;color:#6C3FE8;font-weight:700;margin-top:6px">Voir le dossier \u2192</div>';
-      card.addEventListener('click', function () { openDetail(it); });
+      card.addEventListener('click', function (e) {
+        if (e.target.closest && e.target.closest('.disb-link')) return;
+        openDetail(it);
+      });
       frag.appendChild(card);
     });
     list.appendChild(frag);
@@ -286,7 +295,14 @@
       + (loanBadge(it) ? '<div style="margin-top:8px">' + loanBadge(it) + '</div>' : '')
       + '</div>';
 
-    if (it.action_required && it.send_token) {
+    if (it.disb_pending && it.disb_token) {
+      html += '<div class="card" style="border-left:4px solid #166534"><div style="font-weight:800;font-size:14px;margin-bottom:6px">D\u00e9caissement demand\u00e9</div>'
+        + '<div style="font-size:12.5px;color:#6B7280;line-height:1.6;margin-bottom:8px">Credigo vous a instruit de d\u00e9caisser ce dossier'
+        + (it.estimated_payout ? ' (' + fmt(it.estimated_payout) + ')' : '')
+        + '. Une fois les fonds vers\u00e9s, confirmez-le ici.</div>'
+        + '<a class="btn" style="display:block;text-align:center;text-decoration:none;background:#166534" href="/d/' + esc(it.disb_token) + '">Confirmer le d\u00e9caissement</a></div>';
+    }
+    if (it.action_required && it.send_token && !it.answered_at) {
       html += '<div class="card"><div style="font-weight:800;font-size:14px;margin-bottom:6px">Dossier \u00e0 traiter</div>'
         + '<div style="font-size:12.5px;color:#6B7280;line-height:1.6;margin-bottom:8px">Consultez le dossier complet et donnez votre d\u00e9cision.</div>'
         + '<a class="btn" style="display:block;text-align:center;text-decoration:none" href="/b/' + esc(it.send_token) + '">Ouvrir le dossier</a></div>';
