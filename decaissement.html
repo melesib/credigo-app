@@ -59,6 +59,10 @@
         <div><label>Date du versement</label><input type="date" id="i-date"></div>
       </div>
 
+      <label>Justificatif de d&#233;caissement (avis d'op&#233;r&#233;, ordre de virement&#8230;)</label>
+      <input type="file" id="i-file" accept="image/jpeg,image/png,image/webp,application/pdf" style="width:100%;font-size:13px">
+      <div style="font-size:11px;color:#9CA3AF;margin-top:3px">Image ou PDF, 8&#160;Mo maximum. Facultatif mais recommand&#233;.</div>
+
       <label>Observation (facultatif)</label>
       <textarea id="i-note" rows="2" placeholder="Pr&#233;cision &#233;ventuelle&#8230;"></textarea>
 
@@ -193,25 +197,60 @@
     if (!hasSign) { err('Merci de signer.'); return; }
 
     err(''); b.disabled = true; b.textContent = 'Enregistrement\u2026';
-    sb.rpc('confirm_bank_disbursement', {
+
+    var fileInput = document.getElementById('i-file');
+    var f = fileInput && fileInput.files && fileInput.files[0];
+
+    // Le justificatif part d'abord : la confirmation le rattache ensuite.
+    function envoyer(proofPath, proofName) {
+      sb.rpc('confirm_bank_disbursement', {
       p_token: token, p_amount: montant, p_reference: ref,
       p_disbursed_on: date || null, p_note: note || null,
       p_signer_name: nom, p_signer_role: role || null,
       p_signature: canvas ? canvas.toDataURL('image/png') : null,
       p_ip: window.__clientIp || null, p_agent: navigator.userAgent,
       p_fingerprint: fingerprint(), p_legal_version: 'CGDEC-2026-07',
-    }).then(function (res) {
-      b.disabled = false; b.textContent = 'Confirmer le d\u00e9caissement';
-      var d = res.data || {};
-      if (d.ok) { show('done'); return; }
-      if (d.error === 'already_confirmed') { show('done'); return; }
-      err(d.error === 'expired' ? 'Ce lien a expir\u00e9.'
-        : d.error === 'invalid_amount' ? 'Montant invalide.'
-        : 'Enregistrement impossible. R\u00e9essayez.');
-    }, function () {
-      b.disabled = false; b.textContent = 'Confirmer le d\u00e9caissement';
-      err('Connexion impossible.');
-    });
+      p_proof_path: proofPath || null, p_proof_name: proofName || null,
+      }).then(function (res) {
+        b.disabled = false; b.textContent = 'Confirmer le d\u00e9caissement';
+        var d = res.data || {};
+        if (d.ok) { show('done'); return; }
+        if (d.error === 'already_confirmed') { show('done'); return; }
+        err(d.error === 'expired' ? 'Ce lien a expir\u00e9.'
+          : d.error === 'invalid_amount' ? 'Montant invalide.'
+          : 'Enregistrement impossible. R\u00e9essayez.');
+      }, function () {
+        b.disabled = false; b.textContent = 'Confirmer le d\u00e9caissement';
+        err('Connexion impossible.');
+      });
+    }
+
+    if (f) {
+      if (f.size > 8 * 1024 * 1024) {
+        b.disabled = false; b.textContent = 'Confirmer le d\u00e9caissement';
+        err('Fichier trop volumineux (max 8 Mo).'); return;
+      }
+      var reader = new FileReader();
+      reader.onload = function () {
+        fetch('https://credigo-backoffice.netlify.app/.netlify/functions/disbursement-proof-upload', {
+          method: 'POST', headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            token: token, fileBase64: String(reader.result).split(',')[1],
+            fileName: f.name, contentType: f.type,
+          }),
+        }).then(function (r) { return r.json(); }).then(function (res) {
+          // Le justificatif est facultatif : un échec n'empêche pas la confirmation.
+          envoyer(res && res.path ? res.path : null, f.name);
+        }).catch(function () { envoyer(null, null); });
+      };
+      reader.onerror = function () {
+        b.disabled = false; b.textContent = 'Confirmer le d\u00e9caissement';
+        err('Lecture du fichier impossible.');
+      };
+      reader.readAsDataURL(f);
+    } else {
+      envoyer(null, null);
+    }
   });
 })();
 </script>
