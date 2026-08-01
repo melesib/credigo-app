@@ -920,6 +920,47 @@
     } catch (e) { return { accounts: [] }; }
   };
 
+  // ── Support : mes demandes et leurs réponses ──
+  window.credigoGetMyTickets = async function () {
+    if (!supabaseReady) return { items: [] };
+    var userId = currentAppUserId();
+    if (!userId) return { items: [] };
+    try {
+      var res = await sb.rpc('get_my_tickets', { p_app_user_id: userId });
+      if (res.error) return { items: [], error: res.error.message };
+      return { items: (res.data && res.data.items) || [] };
+    } catch (e) { return { items: [], error: e.message }; }
+  };
+
+  window.credigoGetTicketThread = async function (ticketId) {
+    if (!supabaseReady || !ticketId) return null;
+    var userId = currentAppUserId();
+    if (!userId) return null;
+    try {
+      var res = await sb.rpc('get_my_ticket_thread', {
+        p_app_user_id: userId, p_ticket_id: ticketId,
+      });
+      if (res.error || !res.data || res.data.error) return null;
+      return res.data;
+    } catch (e) { return null; }
+  };
+
+  window.credigoReplyTicket = async function (ticketId, message) {
+    if (!supabaseReady || !ticketId || !message) return { error: 'Message vide.' };
+    var userId = currentAppUserId();
+    if (!userId) return { error: 'Session expirée.' };
+    try {
+      var res = await sb.rpc('reply_my_ticket', {
+        p_app_user_id: userId, p_ticket_id: ticketId, p_message: message,
+      });
+      if (res.error) return { error: res.error.message };
+      var d = res.data || {};
+      if (d.error === 'closed') return { error: 'Cette demande est clôturée. Ouvrez-en une nouvelle.' };
+      if (d.error) return { error: 'Envoi impossible.' };
+      return { ok: true };
+    } catch (e) { return { error: e.message }; }
+  };
+
   // Lien signé pour ouvrir le RIB transmis par la banque.
   // Le bucket « attestations » est privé et réservé au staff : on passe par une
   // fonction serveur qui vérifie que ce RIB appartient bien à l'utilisateur.

@@ -2555,6 +2555,9 @@ textarea{resize:vertical;min-height:70px}
   <div class="pg-title">Support Credigo</div>
   <div class="pg-sub">Envoyez une requête — nous répondons via l'app, email et WhatsApp</div>
 
+  <!-- Mes demandes en cours : le client suit ses échanges. -->
+  <div id="e-my-tickets" style="margin-bottom:16px"></div>
+
   <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-bottom:16px">
     <div style="background:#EEE8FF;border-radius:12px;padding:13px;text-align:center;border:1.5px solid #C4B5FD">
       <i class="ti ti-device-mobile" style="font-size:22px;color:#6C3FE8;display:block;margin-bottom:5px"></i>
@@ -3140,6 +3143,7 @@ function renderScreen(id) {
   if (id === 'e-references') renderEReferences();
   if (id === 'e-notifs') renderENotifs();
   if (id === 'e-profile') renderBankAccounts();
+  if (id === 'e-support') renderMyTickets();
   if (id === 'f-portfolio') renderFPortfolio();
   if (id === 'f-wallet') renderFWallet();
   if (id === 'f-transactions') renderTxList('f', 'all');
@@ -5952,13 +5956,21 @@ function sendSupportRequest(portal) {
     timestamp: ts,
   };
 
-  // ── Envoyer au BO Admin ──────────────────────────────────────────────────
-  /* fetch('https://api.credigo.ci/v1/support/ticket', {
-       method:'POST',
-       headers:{'Content-Type':'application/json','Authorization':'Bearer USER_TOKEN'},
-       body: JSON.stringify(ticket)
-     }); */
-  console.log('[CREDIGO SUPPORT → BO]', ticket);
+  // ── Enregistrement réel du ticket ──
+  // L'appel était resté en commentaire : les demandes n'étaient jamais
+  // transmises. Le client croyait avoir écrit, personne ne recevait rien.
+  if (typeof window.credigoCreateTicket === 'function') {
+    window.credigoCreateTicket(cat, subj, msg, prioVal).then(function (res) {
+      if (res && res.error) { toast('Envoi impossible. R\u00e9essayez.'); return; }
+      toast('Votre demande a bien \u00e9t\u00e9 envoy\u00e9e.');
+      document.getElementById('support-subject-' + portal).value = '';
+      document.getElementById('support-message-' + portal).value = '';
+      if (portal === 'e' && typeof renderMyTickets === 'function') renderMyTickets();
+    });
+  } else {
+    toast('Service indisponible. R\u00e9essayez plus tard.');
+  }
+  
 
   // ── Envoyer via WhatsApp Business API ───────────────────────────────────
   /* fetch('https://api.credigo.ci/v1/whatsapp/send', {
@@ -8832,6 +8844,105 @@ function openBankDetail(accountId) {
       }
     });
   }
+}
+
+// ── Mes demandes de support et leurs réponses ──
+var _ticketsCache = [];
+function renderMyTickets() {
+  var box = document.getElementById('e-my-tickets');
+  if (!box || typeof window.credigoGetMyTickets !== 'function') return;
+
+  window.credigoGetMyTickets().then(function (res) {
+    var items = (res && res.items) || [];
+    _ticketsCache = items;
+    if (!items.length) { box.innerHTML = ''; return; }
+
+    var STATUTS = {
+      open: { t: 'En attente de réponse', bg: '#FEF3C7', c: '#B45309' },
+      in_progress: { t: 'Réponse envoyée', bg: '#DBEAFE', c: '#1E40AF' },
+      resolved: { t: 'Résolue', bg: '#DCFCE7', c: '#15803D' },
+      closed: { t: 'Clôturée', bg: '#F3F4F6', c: '#6B7280' },
+    };
+
+    var nonLues = items.filter(function (t) { return t.unread; }).length;
+
+    box.innerHTML = '<div class="card">'
+      + '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">'
+      +   '<div style="font-size:13px;font-weight:800">Mes demandes</div>'
+      +   (nonLues ? '<span style="font-size:10.5px;font-weight:800;background:#DC2626;color:#fff;border-radius:20px;padding:2px 9px">'
+            + nonLues + ' r\u00e9ponse' + (nonLues > 1 ? 's' : '') + '</span>' : '')
+      + '</div>'
+      + items.map(function (t) {
+          var s = STATUTS[t.status] || STATUTS.open;
+          return '<div class="ticket-item" data-tid="' + t.id + '" style="padding:11px;border:1px solid ' + (t.unread ? '#FECACA' : '#F3F4F6') + ';border-radius:10px;margin-bottom:8px;cursor:pointer;background:' + (t.unread ? '#FEF2F2' : '#fff') + '">'
+            + '<div style="display:flex;justify-content:space-between;gap:8px;align-items:flex-start">'
+            +   '<div style="font-size:13.5px;font-weight:700;color:#111827">'
+            +     (t.unread ? '<span style="color:#DC2626">\u25cf </span>' : '') + t.subject + '</div>'
+            +   '<span style="font-size:10px;font-weight:800;padding:2px 8px;border-radius:20px;white-space:nowrap;background:' + s.bg + ';color:' + s.c + '">' + s.t + '</span>'
+            + '</div>'
+            + '<div style="font-size:11.5px;color:#9CA3AF;margin-top:4px">'
+            +   t.nb_messages + ' message' + (t.nb_messages > 1 ? 's' : '')
+            +   ' \u00b7 ' + (function (d) { try { return new Date(d).toLocaleDateString('fr-FR', { day: '2-digit', month: 'short' }); } catch (e) { return ''; } })(t.last_message_at)
+            + '</div></div>';
+        }).join('')
+      + '</div>';
+
+    Array.prototype.forEach.call(box.querySelectorAll('.ticket-item'), function (el) {
+      el.addEventListener('click', function () { openTicketThread(el.dataset.tid); });
+    });
+  });
+}
+
+function openTicketThread(ticketId) {
+  var box = document.getElementById('e-my-tickets');
+  if (!box || typeof window.credigoGetTicketThread !== 'function') return;
+  box.innerHTML = '<div class="card"><div style="text-align:center;padding:20px;color:#9CA3AF">Chargement\u2026</div></div>';
+
+  window.credigoGetTicketThread(ticketId).then(function (d) {
+    if (!d) { renderMyTickets(); return; }
+    var closed = d.status === 'closed';
+
+    var msgs = '<div style="display:flex;justify-content:flex-end;margin-bottom:9px">'
+      + '<div style="max-width:85%;background:#F5F3FF;border:1px solid #DDD6FE;border-radius:11px;padding:10px 12px">'
+      +   '<div style="font-size:10.5px;font-weight:800;color:#6C3FE8;margin-bottom:3px">Vous</div>'
+      +   '<div style="font-size:13px;white-space:pre-wrap;line-height:1.5">' + d.message + '</div>'
+      + '</div></div>';
+
+    (d.messages || []).forEach(function (m) {
+      var mine = m.side === 'client';
+      msgs += '<div style="display:flex;' + (mine ? 'justify-content:flex-end' : '') + ';margin-bottom:9px">'
+        + '<div style="max-width:85%;background:' + (mine ? '#F5F3FF' : '#F9FAFB') + ';border:1px solid ' + (mine ? '#DDD6FE' : '#F3F4F6') + ';border-radius:11px;padding:10px 12px">'
+        +   '<div style="font-size:10.5px;font-weight:800;color:' + (mine ? '#6C3FE8' : '#15803D') + ';margin-bottom:3px">' + (mine ? 'Vous' : 'Credigo') + '</div>'
+        +   '<div style="font-size:13px;white-space:pre-wrap;line-height:1.5">' + m.message + '</div>'
+        +   '<div style="font-size:10px;color:#9CA3AF;margin-top:4px">' + (function (x) { try { return new Date(x).toLocaleString('fr-FR'); } catch (e) { return ''; } })(m.created_at) + '</div>'
+        + '</div></div>';
+    });
+
+    box.innerHTML = '<div class="card">'
+      + '<button id="tk-back" style="background:none;border:none;color:#6C3FE8;font-weight:700;font-size:12.5px;cursor:pointer;padding:0;margin-bottom:10px;font-family:inherit">\u2190 Mes demandes</button>'
+      + '<div style="font-size:14px;font-weight:800;margin-bottom:10px">' + d.subject + '</div>'
+      + msgs
+      + (closed
+          ? '<div style="font-size:12.5px;color:#6B7280;text-align:center;padding:10px">Cette demande est cl\u00f4tur\u00e9e.</div>'
+          : '<div style="border-top:1px solid #F3F4F6;padding-top:10px;margin-top:6px">'
+            + '<textarea id="tk-reply" rows="3" placeholder="Votre r\u00e9ponse\u2026" style="width:100%;padding:10px;border:1px solid #E5E7EB;border-radius:9px;font-size:13px;font-family:inherit;resize:vertical"></textarea>'
+            + '<button id="tk-send" style="width:100%;margin-top:8px;padding:11px;border-radius:10px;border:none;background:#6C3FE8;color:#fff;font-weight:800;font-size:13px;cursor:pointer;font-family:inherit">Envoyer</button>'
+            + '</div>')
+      + '</div>';
+
+    document.getElementById('tk-back').addEventListener('click', renderMyTickets);
+    var send = document.getElementById('tk-send');
+    if (send) send.addEventListener('click', function () {
+      var msg = (document.getElementById('tk-reply') || {}).value || '';
+      if (!msg.trim()) { toast('\u00c9crivez votre message.'); return; }
+      send.disabled = true; send.textContent = 'Envoi\u2026';
+      window.credigoReplyTicket(ticketId, msg.trim()).then(function (r) {
+        send.disabled = false; send.textContent = 'Envoyer';
+        if (r && r.ok) { openTicketThread(ticketId); }
+        else { toast((r && r.error) || 'Envoi impossible.'); }
+      });
+    });
+  });
 }
 
 function renderBankAccounts() {
