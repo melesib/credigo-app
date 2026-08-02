@@ -1068,7 +1068,7 @@ textarea{resize:vertical;min-height:70px}
     <canvas id="selfie-canvas" style="display:none"></canvas>
     <div style="display:flex;gap:10px;margin-top:16px;justify-content:center">
       <button type="button" onclick="closeSelfieCapture()" style="flex:1;max-width:130px;padding:12px;border-radius:11px;border:1.5px solid #4B5563;background:transparent;color:#E5E7EB;font-family:inherit;font-size:13px;font-weight:700;cursor:pointer">Annuler</button>
-      <button type="button" id="selfie-shoot-btn" onclick="takeSelfie()" style="flex:1;max-width:170px;padding:12px;border-radius:11px;border:none;background:#6C3FE8;color:#fff;font-family:inherit;font-size:13px;font-weight:800;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:6px"><i class="ti ti-camera"></i> Prendre la photo</button>
+      <button type="button" id="selfie-shoot-btn" onclick="takeSelfie()" style="flex:1;max-width:170px;padding:12px;border-radius:11px;border:none;background:#6C3FE8;color:#fff;font-family:inherit;font-size:13px;font-weight:800;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:6px"><i class="ti ti-camera-selfie"></i> Prendre la photo</button>
     </div>
   </div>
 </div>
@@ -1222,7 +1222,7 @@ textarea{resize:vertical;min-height:70px}
 
   <!-- Bandeau de reprise de brouillon -->
   <div id="wiz-draft-banner" style="display:none;align-items:center;gap:10px;background:#EFF6FF;border:1px solid #BFDBFE;border-radius:12px;padding:11px 14px;margin:0 16px 8px">
-    <i class="ti ti-history" style="font-size:20px;color:#1E40AF;flex-shrink:0"></i>
+    <i class="ti ti-clock" style="font-size:20px;color:#1E40AF;flex-shrink:0"></i>
     <div style="flex:1;font-size:12.5px;color:#1E3A8A;line-height:1.4">Vous avez une demande commencée. Voulez-vous la reprendre ?</div>
     <button class="wdb-resume" style="font-size:12px;font-weight:800;color:#fff;background:#6C3FE8;border:none;border-radius:8px;padding:7px 12px;cursor:pointer;font-family:inherit">Reprendre</button>
     <button class="wdb-discard" style="font-size:12px;font-weight:700;color:#6B7280;background:none;border:none;cursor:pointer;font-family:inherit">Ignorer</button>
@@ -1641,7 +1641,7 @@ textarea{resize:vertical;min-height:70px}
       </div>
         <div class="kyc-doc-row" id="kdoc-cni-verso">
         <div class="kyc-doc-info">
-          <div class="kyc-doc-icon" style="background:#EEE8FF"><i class="ti ti-id-badge-2" style="font-size:18px;color:#6C3FE8"></i></div>
+          <div class="kyc-doc-icon" style="background:#EEE8FF"><i class="ti ti-id" style="font-size:18px;color:#6C3FE8"></i></div>
           <div class="kyc-doc-text">
             <div class="kyc-doc-title">Pièce d'identité — verso *</div>
             <div class="kyc-doc-sub">Face arrière de votre CNI · PDF ou image · Max 5 MB</div>
@@ -1666,7 +1666,7 @@ textarea{resize:vertical;min-height:70px}
         </div>
         <div class="kyc-doc-actions">
           <button type="button" class="kyc-upload-btn" onclick="openSelfieCapture('kdoc-selfie')">
-            <i class="ti ti-camera"></i> Prendre un selfie
+            <i class="ti ti-camera-selfie"></i> Prendre un selfie
           </button>
           <label class="kyc-upload-alt" title="Téléverser une photo">
             <i class="ti ti-upload"></i>
@@ -2027,7 +2027,7 @@ textarea{resize:vertical;min-height:70px}
       </div>
         <div class="kyc-doc-row" id="fkdoc-cni-verso">
         <div class="kyc-doc-info">
-          <div class="kyc-doc-icon" style="background:#EEE8FF"><i class="ti ti-id-badge-2" style="font-size:18px;color:#6C3FE8"></i></div>
+          <div class="kyc-doc-icon" style="background:#EEE8FF"><i class="ti ti-id" style="font-size:18px;color:#6C3FE8"></i></div>
           <div class="kyc-doc-text">
             <div class="kyc-doc-title">Pièce d'identité — verso *</div>
             <div class="kyc-doc-sub">Face arrière de votre CNI · PDF ou image</div>
@@ -2048,7 +2048,7 @@ textarea{resize:vertical;min-height:70px}
           </div>
         </div>
         <div class="kyc-doc-actions">
-          <button type="button" class="kyc-upload-btn" onclick="openSelfieCapture('fkdoc-selfie')"><i class="ti ti-camera"></i> Prendre un selfie</button>
+          <button type="button" class="kyc-upload-btn" onclick="openSelfieCapture('fkdoc-selfie')"><i class="ti ti-camera-selfie"></i> Prendre un selfie</button>
           <label class="kyc-upload-alt" title="Téléverser une photo"><i class="ti ti-upload"></i><input type="file" accept=".jpg,.jpeg,.png" onchange="handleKycUpload(this,'fkdoc-selfie')" style="display:none"></label>
           <span class="kyc-status-badge pending">En attente</span>
         </div>
@@ -3719,7 +3719,7 @@ function paintRefs(refs){
     return '<div class="ref-card'+(refused?' ref-card-refused':'')+'"><div class="ref-card-top"><div><div class="ref-card-name">'+(r.contact_name||'—')+'</div>'+
       (r.organization?'<div class="ref-card-org">'+r.organization+'</div>':'')+'</div><div style="display:flex;flex-direction:column;align-items:flex-end;gap:5px">'+statusPill(r.status)+pointsBadge(r.status,'reference')+'</div></div>'+
       (r.market_object?'<div class="ref-card-market"><i class="ti ti-briefcase"></i> '+r.market_object+'</div>':'')+
-      (r.competence_label?'<div style="display:inline-flex;align-items:center;gap:5px;margin-top:6px;font-size:11.5px;font-weight:700;color:#6C3FE8;background:#F5F3FF;padding:3px 10px;border-radius:20px"><i class="ti ti-tag"></i> '+r.competence_label+'</div>':'')+
+      (r.competence_label?'<div style="display:inline-flex;align-items:center;gap:5px;margin-top:6px;font-size:11.5px;font-weight:700;color:#6C3FE8;background:#F5F3FF;padding:3px 10px;border-radius:20px"><i class="ti ti-file-text"></i> '+r.competence_label+'</div>':'')+
       (refused?refusalBlock(r.verification_note,'reference'):'')+'</div>';
   }).join('');
 }
@@ -4738,7 +4738,7 @@ const CONTRATS = [
 const TX_E = [
   {titre:'Financement reçu – Route N4',        dir:'in',  methode:'Credigo Escrow', montant:35000000, date:'08 juin 2026', statut:'done',    ib:'#D1FAE5',ic:'#059669',ii:'ti-arrow-down-circle'},
   {titre:'Remboursement mensuel – Route N4',   dir:'out', methode:'Orange Money',   montant:5833333,  date:'05 juin 2026', statut:'done',    ib:'#FEE2E2',ic:'#DC2626',ii:'ti-arrow-up-circle'},
-  {titre:'Approv. portefeuille via Wave',       dir:'in',  methode:'Wave',           montant:1000000,  date:'01 juin 2026', statut:'done',    ib:'#EEE8FF',ic:'#6C3FE8',ii:'ti-plus-circle'},
+  {titre:'Approv. portefeuille via Wave',       dir:'in',  methode:'Wave',           montant:1000000,  date:'01 juin 2026', statut:'done',    ib:'#EEE8FF',ic:'#6C3FE8',ii:'ti-circle-plus'},
   {titre:'Remboursement – Route N4',           dir:'out', methode:'Orange Money',   montant:5833333,  date:'05 mai 2026',  statut:'pending', ib:'#FEF3C7',ic:'#D97706',ii:'ti-arrow-up-circle'},
   
 ];
@@ -8830,7 +8830,7 @@ function openBankDetail(accountId) {
     if (a.iban) toCopy.push('IBAN : ' + a.iban);
     if (a.bic) toCopy.push('BIC : ' + a.bic);
     html += '<button id="ebd-copy" data-copy="' + encodeURIComponent(toCopy.join('\n')) + '" style="width:100%;margin-top:12px;padding:11px;border-radius:10px;border:1px solid #E5E7EB;background:#fff;color:#6C3FE8;font-weight:800;font-size:13px;cursor:pointer;font-family:inherit">'
-      + '<i class="ti ti-copy" style="margin-right:4px"></i>Copier mes coordonnees</button>';
+      + '<i class="ti ti-file-text" style="margin-right:4px"></i>Copier mes coordonnees</button>';
   }
 
   // RIB téléchargeable
@@ -8847,7 +8847,7 @@ function openBankDetail(accountId) {
     try {
       navigator.clipboard.writeText(decodeURIComponent(copyBtn.dataset.copy));
       copyBtn.innerHTML = '<i class="ti ti-check" style="margin-right:4px"></i>Coordonnees copiees';
-      setTimeout(function () { copyBtn.innerHTML = '<i class="ti ti-copy" style="margin-right:4px"></i>Copier mes coordonnees'; }, 2000);
+      setTimeout(function () { copyBtn.innerHTML = '<i class="ti ti-file-text" style="margin-right:4px"></i>Copier mes coordonnees'; }, 2000);
     } catch (e) {}
   });
 
@@ -8858,7 +8858,7 @@ function openBankDetail(accountId) {
       if (!el) return;
       if (r && r.url) {
         el.innerHTML = '<a href="' + r.url + '" target="_blank" rel="noreferrer" style="display:block;text-align:center;padding:12px;border-radius:10px;background:#6C3FE8;color:#fff;text-decoration:none;font-weight:800;font-size:13px">'
-          + '<i class="ti ti-download" style="margin-right:4px"></i>Ouvrir mon RIB' + (a.rib_name ? ' (' + a.rib_name + ')' : '') + '</a>';
+          + '<i class="ti ti-arrow-down-circle" style="margin-right:4px"></i>Ouvrir mon RIB' + (a.rib_name ? ' (' + a.rib_name + ')' : '') + '</a>';
       } else {
         el.innerHTML = '<div style="font-size:12px;color:#9CA3AF;text-align:center;padding:8px">RIB indisponible pour le moment.'
           + (r && r.error ? '<br><span style="font-size:11px">(' + r.error + ')</span>' : '') + '</div>';
@@ -8873,13 +8873,13 @@ function openBankDetail(accountId) {
 var ASTUCES_SECURITE = [
   { i: 'ti-shield-lock', t: 'Ne partagez jamais votre mot de passe',
     d: 'Aucun agent Credigo ne vous le demandera, ni par téléphone, ni par message.' },
-  { i: 'ti-message-2', t: 'Méfiez-vous des messages non sollicités',
+  { i: 'ti-message-dots', t: 'Méfiez-vous des messages non sollicités',
     d: 'Un code reçu par SMS ne se communique à personne. Il ouvre votre compte.' },
   { i: 'ti-building-bank', t: 'Vérifiez toujours un changement de RIB',
     d: 'Si l\u2019on vous demande de virer sur un nouveau compte, appelez-nous pour confirmer.' },
   { i: 'ti-device-mobile', t: 'Protégez votre téléphone',
     d: 'Activez un code de déverrouillage : votre espace Credigo y est accessible.' },
-  { i: 'ti-link', t: 'Attention aux liens reçus',
+  { i: 'ti-external-link', t: 'Attention aux liens reçus',
     d: 'Ouvrez toujours votre espace depuis l\u2019application, pas depuis un lien inconnu.' },
   { i: 'ti-user-check', t: 'Un doute sur un interlocuteur ?',
     d: 'Écrivez-nous depuis le support de l\u2019application : c\u2019est le seul canal sûr.' },
@@ -9004,7 +9004,7 @@ function openTicketThread(ticketId) {
       el.addEventListener('click', function () {
         var path = decodeURIComponent(el.dataset.path);
         var libelle = el.innerHTML;
-        el.innerHTML = '<i class="ti ti-loader" style="margin-right:3px"></i>Ouverture\u2026';
+        el.innerHTML = '<i class="ti ti-loader-2" style="margin-right:3px"></i>Ouverture\u2026';
         window.credigoGetSupportAttachment(ticketId, path).then(function (r) {
           el.innerHTML = libelle;
           if (r && r.url) { window.open(r.url, '_blank', 'noopener'); }
