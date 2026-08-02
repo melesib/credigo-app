@@ -46,3 +46,9 @@
   from = "/d/*"
   to = "/decaissement.html"
   status = 200
+
+# Confirmation de remboursement par la banque : /r/<jeton>.
+[[redirects]]
+  from = "/r/*"
+  to = "/remboursement.html"
+  status = 200
