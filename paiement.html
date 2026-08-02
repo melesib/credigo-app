@@ -70,6 +70,34 @@
       </div>
 
       <button class="btn" id="btn-ack">J'ai bien reçu ces coordonnées</button>
+      <button class="btn btn-o" id="btn-goto-proof" style="border-color:#BBF7D0;color:#166534;font-weight:800">J'ai d&#233;j&#224; r&#233;gl&#233; ce march&#233;</button>
+    </div>
+
+    <!-- Déclaration de paiement : accessible à tout moment, avant comme
+         après l'échéance. Un donneur d'ordre qui paie en avance doit
+         pouvoir le signaler sans attendre. -->
+    <div id="proof-step" class="hide">
+      <h1 style="font-size:17px;margin-bottom:6px">D&#233;clarer mon r&#232;glement</h1>
+      <div class="lead" style="margin-bottom:14px">Indiquez les informations de votre virement. Nous les transmettrons &#224; la banque pour v&#233;rification.</div>
+
+      <div class="row"><span class="k">Dossier</span><span class="v" id="proof-num">&#8212;</span></div>
+      <div class="row"><span class="k">Montant attendu</span><span class="v" id="proof-attendu">&#8212;</span></div>
+
+      <label>R&#233;f&#233;rence du virement</label>
+      <input type="text" id="proof-ref" placeholder="R&#233;f&#233;rence figurant sur votre avis">
+
+      <div class="grid2">
+        <div><label>Date du virement</label><input type="date" id="proof-date"></div>
+        <div><label>Montant vir&#233; (FCFA)</label><input type="number" id="proof-amount" placeholder="Montant"></div>
+      </div>
+
+      <label>Justificatif (avis de virement, re&#231;u&#8230;)</label>
+      <input type="file" id="proof-file" accept="image/jpeg,image/png,image/webp,application/pdf" style="width:100%;font-size:13px">
+      <div style="font-size:11px;color:#9CA3AF;margin-top:3px">Image ou PDF, 8&#160;Mo maximum. Fortement recommand&#233; : il acc&#233;l&#232;re la v&#233;rification.</div>
+
+      <button class="btn" id="btn-proof" style="background:#166534">Envoyer ma d&#233;claration</button>
+      <button class="btn btn-o" id="btn-proof-back">Retour</button>
+      <div class="err" id="proof-err"></div>
     </div>
 
     <div id="done" class="msg hide">
@@ -107,7 +135,7 @@
   var sb = null;
   var token = (location.pathname.split('/p/')[1] || '').split('?')[0].split('#')[0].trim();
 
-  function show(id) { ['loading','invalid','content','done'].forEach(function (x) { var el = document.getElementById(x); if (el) el.classList.toggle('hide', x !== id); }); }
+  function show(id) { ['loading','invalid','content','proof-step','done'].forEach(function (x) { var el = document.getElementById(x); if (el) el.classList.toggle('hide', x !== id); }); }
   // Rappel des coordonnées après confirmation : le donneur d'ordre quitte
   // cette page pour effectuer son virement, autant qu'il ait tout sous les yeux.
   function remplirRecap() {
@@ -180,6 +208,100 @@
         if (res.error) { b.disabled = false; b.textContent = 'J\u2019ai bien reçu ces coordonnées'; alert('Réessayez.'); return; }
         show('done'); fillPortalActions();
       }, function () { b.disabled = false; b.textContent = 'J\u2019ai bien reçu ces coordonnées'; alert('Connexion impossible.'); });
+  });
+
+  // ── Déclaration de règlement ──
+  // Le donneur d'ordre peut signaler son paiement quand il le souhaite,
+  // y compris avant l'échéance.
+  var goProof = document.getElementById('btn-goto-proof');
+  if (goProof) goProof.addEventListener('click', function () {
+    var p = window.__paiement || {};
+    var n = document.getElementById('proof-num');
+    if (n) n.textContent = window.__num || '\u2014';
+    var a = document.getElementById('proof-attendu');
+    if (a) a.textContent = p.montant ? fmt(p.montant) : '\u2014';
+    // Pré-remplissage : la date du jour et le montant attendu sont les
+    // valeurs les plus probables.
+    var d = document.getElementById('proof-date');
+    if (d && !d.value) d.value = new Date().toISOString().slice(0, 10);
+    var m = document.getElementById('proof-amount');
+    if (m && !m.value && p.montant) m.value = Math.round(p.montant);
+    show('proof-step');
+  });
+
+  var proofBack = document.getElementById('btn-proof-back');
+  if (proofBack) proofBack.addEventListener('click', function () { show('content'); });
+
+  var proofBtn = document.getElementById('btn-proof');
+  if (proofBtn) proofBtn.addEventListener('click', function () {
+    var ref = (document.getElementById('proof-ref') || {}).value || '';
+    var dateV = (document.getElementById('proof-date') || {}).value || '';
+    var montant = (document.getElementById('proof-amount') || {}).value || '';
+    var fileInput = document.getElementById('proof-file');
+    var file = fileInput && fileInput.files && fileInput.files[0];
+    var err = document.getElementById('proof-err');
+
+    if (!ref.trim()) { err.textContent = 'Indiquez la r\u00e9f\u00e9rence de votre virement.'; return; }
+    if (!montant || Number(montant) <= 0) { err.textContent = 'Indiquez le montant vir\u00e9.'; return; }
+
+    err.textContent = '';
+    proofBtn.disabled = true; proofBtn.textContent = 'Envoi\u2026';
+
+    function terminer(cheminFichier, nomFichier) {
+      sb.rpc('submit_payment_proof', {
+        p_token: token,
+        p_reference: ref.trim(),
+        p_date: dateV || null,
+        p_amount: Number(montant),
+        p_path: cheminFichier || null,
+        p_name: nomFichier || null,
+        p_ip: window.__clientIp || null,
+      }).then(function (res) {
+        proofBtn.disabled = false; proofBtn.textContent = 'Envoyer ma d\u00e9claration';
+        var d2 = res.data || {};
+        if (res.error || d2.error) {
+          err.textContent = 'Enregistrement impossible. R\u00e9essayez.';
+          return;
+        }
+        var msg = document.getElementById('done-msg');
+        if (msg) {
+          msg.textContent = 'Merci, votre d\u00e9claration de r\u00e8glement est enregistr\u00e9e. '
+            + 'Nous v\u00e9rifions aupr\u00e8s de la banque et vous informerons d\u00e8s confirmation.';
+        }
+        show('done'); fillPortalActions();
+      }, function () {
+        proofBtn.disabled = false; proofBtn.textContent = 'Envoyer ma d\u00e9claration';
+        err.textContent = 'Connexion impossible.';
+      });
+    }
+
+    if (file) {
+      if (file.size > 8 * 1024 * 1024) {
+        proofBtn.disabled = false; proofBtn.textContent = 'Envoyer ma d\u00e9claration';
+        err.textContent = 'Fichier trop volumineux (max 8\u00a0Mo).'; return;
+      }
+      var reader = new FileReader();
+      reader.onload = function () {
+        fetch('https://credigo-backoffice.netlify.app/.netlify/functions/payment-proof-upload', {
+          method: 'POST', headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            token: token, fileBase64: String(reader.result).split(',')[1],
+            fileName: file.name, contentType: file.type,
+          }),
+        }).then(function (r) { return r.json(); }).then(function (res) {
+          // Le justificatif est un plus : son échec ne doit pas bloquer
+          // la déclaration elle-même.
+          terminer(res && res.path, file.name);
+        }).catch(function () { terminer(null, null); });
+      };
+      reader.onerror = function () {
+        proofBtn.disabled = false; proofBtn.textContent = 'Envoyer ma d\u00e9claration';
+        err.textContent = 'Lecture du fichier impossible.';
+      };
+      reader.readAsDataURL(file);
+    } else {
+      terminer(null, null);
+    }
   });
 
   function fillPortalActions() {
