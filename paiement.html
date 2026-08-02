@@ -134,7 +134,6 @@
     document.getElementById('p-motif').textContent = d.payment_motif || d.contract_number || '—';
     window.__motif = d.payment_motif || '';
     window.__num = d.contract_number || '';
-    document.getElementById('proof-num').textContent = d.contract_number || '';
     show('content');
   }, function () { fail('Service momentanément indisponible.'); });
 
@@ -167,63 +166,10 @@
     try { navigator.clipboard.writeText(m); copyBtn.textContent = 'Motif copié ✓'; setTimeout(function () { copyBtn.textContent = 'Copier le motif'; }, 2000); } catch (e) {}
   });
 
-  // Aller à l'étape de soumission de preuve
-  var goProof = document.getElementById('btn-goto-proof');
-  if (goProof) goProof.addEventListener('click', function () {
-    document.getElementById('proof-num').textContent = window.__num || '';
-    show('proof-step');
-  });
-  var proofBack = document.getElementById('btn-proof-back');
-  if (proofBack) proofBack.addEventListener('click', function () { show('done'); });
+  // La soumission de preuve se fait depuis le portail du donneur d'ordre :
+  // le bloc correspondant a été retiré de cette page.
 
   // Soumettre la preuve de virement (fichier + infos)
-  var proofBtn = document.getElementById('btn-proof');
-  if (proofBtn) proofBtn.addEventListener('click', function () {
-    var fileInput = document.getElementById('proof-file');
-    var ref = (document.getElementById('proof-ref') || {}).value || '';
-    var date = (document.getElementById('proof-date') || {}).value || '';
-    var amount = (document.getElementById('proof-amount') || {}).value || '';
-    var file = fileInput && fileInput.files && fileInput.files[0];
-
-    if (!file && !ref.trim() && !amount) {
-      alert('Merci de joindre le reçu ou d\u2019indiquer au moins la référence du virement.');
-      return;
-    }
-    proofBtn.disabled = true; proofBtn.textContent = 'Envoi…';
-
-    function sendProof(fileBase64, fileName, contentType) {
-      var BACKOFFICE_URL = 'https://credigo-backoffice.netlify.app';
-      fetch(BACKOFFICE_URL + '/.netlify/functions/payment-proof-upload', {
-        method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ token: token, fileBase64: fileBase64, fileName: fileName, contentType: contentType, reference: ref.trim() || null, date: date || null, amount: amount || null }),
-      }).then(function (r) { return r.json(); }).then(function (res) {
-        if (res && res.ok) {
-          document.getElementById('done-msg').textContent = 'Votre preuve de virement a bien été reçue. Nous procédons au rapprochement. Merci.';
-          var gp = document.getElementById('btn-goto-proof'); if (gp) gp.style.display = 'none';
-          show('done');
-        } else {
-          proofBtn.disabled = false; proofBtn.textContent = 'Envoyer ma preuve de virement';
-          alert((res && res.error) || 'Envoi impossible. Réessayez.');
-        }
-      }).catch(function () {
-        proofBtn.disabled = false; proofBtn.textContent = 'Envoyer ma preuve de virement';
-        alert('Connexion impossible. Réessayez.');
-      });
-    }
-
-    if (file) {
-      if (file.size > 8 * 1024 * 1024) { alert('Fichier trop volumineux (max 8 Mo).'); proofBtn.disabled = false; proofBtn.textContent = 'Envoyer ma preuve de virement'; return; }
-      var reader = new FileReader();
-      reader.onload = function () {
-        var b64 = String(reader.result).split(',')[1];
-        sendProof(b64, file.name, file.type);
-      };
-      reader.onerror = function () { proofBtn.disabled = false; proofBtn.textContent = 'Envoyer ma preuve de virement'; alert('Lecture du fichier impossible.'); };
-      reader.readAsDataURL(file);
-    } else {
-      sendProof(null, null, null);
-    }
-  });
 })();
 </script>
 </body>
