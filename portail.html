@@ -379,7 +379,9 @@
 
   function renderDetail(d) {
     var body = document.getElementById('detail-body');
-    var hasPay = !!d.pay_token && !!d.cantonnement_account;
+    // Le jeton suffit : un compte de cantonnement manquant ne doit pas
+    // empêcher le donneur d'ordre de déclarer son règlement.
+    var hasPay = !!d.pay_token;
     var paid = d.payment_status === 'declared' || d.payment_status === 'verified';
     var html = '<div class="card" style="cursor:default">'
       + '<div class="c-top"><div><div class="c-obj">' + esc(d.market_object || 'March\u00e9') + '</div>'
@@ -408,23 +410,44 @@
         + '<a class="btn" style="display:block;text-align:center;text-decoration:none" href="/c/' + esc(d.solic_token) + '">V\u00e9rifier ce march\u00e9</a>'
         + '</div>';
     }
+    // Un marché approuvé sans instruction envoyée doit quand même pouvoir
+    // être déclaré payé : le donneur peut régler avant qu'on le sollicite.
+    // La déclaration nécessite une instruction de paiement : sans elle,
+    // il n'existe pas de jeton pour rattacher la preuve. On le dit
+    // clairement plutôt que d'afficher un formulaire inopérant.
+    var enAttenteCoordonnees = !hasPay
+      && (d.status === 'approved' || d.status === 'disbursed');
+
+    if (enAttenteCoordonnees && !paid) {
+      html += '<div class="card" style="cursor:default;background:#EFF6FF;border:1px solid #BFDBFE">'
+        + '<div style="font-weight:800;font-size:14px;margin-bottom:6px;color:#1E3A8A">R\u00e8glement \u00e0 venir</div>'
+        + '<div style="font-size:12.5px;color:#1E40AF;line-height:1.6">'
+        + 'Les coordonn\u00e9es de paiement ne vous ont pas encore \u00e9t\u00e9 transmises. '
+        + 'Vous les recevrez prochainement et pourrez alors d\u00e9clarer votre r\u00e8glement.'
+        + '</div></div>';
+    }
+
     if (hasPay && !paid) {
       html += '<div class="card" style="cursor:default"><div style="font-weight:800;font-size:14px;margin-bottom:8px">Vos actions</div>';
+      // Déclarer un règlement déjà effectué prime sur la question de
+      // capacité : un donneur qui a payé n'a plus à se prononcer dessus.
+      html += '<button class="btn" id="d-pay" style="background:#166534;margin-bottom:10px">J\u2019ai pay\u00e9 \u2014 d\u00e9clarer mon r\u00e8glement</button>'
+        + '<div class="hide" id="d-pf" style="margin-bottom:10px">'
+        + '<label>Re\u00e7u / justificatif</label><input type="file" id="d-file" accept="image/jpeg,image/png,image/webp,application/pdf">'
+        + '<label>R\u00e9f\u00e9rence du virement</label><input type="text" id="d-ref" placeholder="R\u00e9f\u00e9rence">'
+        + '<div style="display:flex;gap:8px"><div style="flex:1"><label>Date</label><input type="date" id="d-date"></div>'
+        + '<div style="flex:1"><label>Montant</label><input type="number" id="d-amt" placeholder="FCFA"></div></div>'
+        + '<button class="btn" id="d-submit" style="background:#166534">Envoyer ma d\u00e9claration</button></div>';
+
       if (!d.capacity_confirmed) {
-        html += '<div style="font-size:12.5px;font-weight:700;color:#374151;margin-bottom:6px">Pourrez-vous r\u00e9gler \u00e0 l\u2019\u00e9ch\u00e9ance ?</div>'
+        html += '<div style="font-size:12.5px;font-weight:700;color:#374151;margin-bottom:6px;padding-top:8px;border-top:1px solid #F3F4F6">Pourrez-vous r\u00e9gler \u00e0 l\u2019\u00e9ch\u00e9ance ?</div>'
           + '<div class="btns2"><button class="btn btn-2" id="d-cap-yes">Oui, je confirme</button>'
           + '<button class="btn btn-3" id="d-cap-new">Autre date</button></div>'
           + '<div class="hide" id="d-capnew"><label>Nouvelle date</label><input type="date" id="d-capdate"><button class="btn btn-3" id="d-cap-submit">Valider cette date</button></div>';
       } else {
         html += '<div style="font-size:12px;color:#15803D;font-weight:700">\u2713 Paiement confirm\u00e9' + (d.proposed_new_date ? ' \u2014 nouvelle date : ' + dateFr(d.proposed_new_date) : '') + '</div>';
       }
-      html += '<button class="btn" id="d-pay" style="margin-top:8px">J\u2019ai pay\u00e9 \u2014 envoyer ma preuve</button>'
-        + '<div class="hide" id="d-pf" style="margin-top:8px">'
-        + '<label>Re\u00e7u / justificatif</label><input type="file" id="d-file" accept="image/jpeg,image/png,image/webp,application/pdf">'
-        + '<label>R\u00e9f\u00e9rence du virement</label><input type="text" id="d-ref" placeholder="R\u00e9f\u00e9rence">'
-        + '<div style="display:flex;gap:8px"><div style="flex:1"><label>Date</label><input type="date" id="d-date"></div>'
-        + '<div style="flex:1"><label>Montant</label><input type="number" id="d-amt" placeholder="FCFA"></div></div>'
-        + '<button class="btn" id="d-submit">Envoyer ma preuve</button></div></div>';
+      html += '</div>';
     } else if (paid) {
       html += '<div class="card" style="cursor:default"><div style="font-size:13px;color:#15803D;font-weight:700">\u2713 ' + (d.payment_status === 'verified' ? 'Paiement v\u00e9rifi\u00e9.' : 'Preuve re\u00e7ue, en cours de v\u00e9rification.') + '</div></div>';
     }
