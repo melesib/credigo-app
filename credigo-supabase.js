@@ -771,6 +771,17 @@
 
   window.credigoGetBanques = async function () {
     if (!supabaseReady) return { banques: [] };
+    // Les banques sont classées par performance réelle : l'entrepreneur
+    // voit d'abord celles qui répondent vite et acceptent souvent.
+    try {
+      var r = await sb.rpc('get_banques_avec_score');
+      if (!r.error && r.data && r.data.banques) {
+        return { banques: r.data.banques };
+      }
+    } catch (e) { /* on retombe sur la liste simple */ }
+
+    // Repli : si le scoring est indisponible, mieux vaut une liste sans
+    // score qu'aucune banque du tout.
     var res = await sb.from('banques_partenaires')
       .select('id, name, short_name, logo_url, logo_fit')
       .eq('is_active', true)
@@ -1002,6 +1013,19 @@
   };
 
   // L'entrepreneur enregistre/actualise son compte pour une banque donnée.
+  // Quota de comptes bancaires : consulté avant la saisie, pour prévenir
+  // l'entrepreneur plutôt que de le laisser échouer au dernier moment.
+  window.credigoGetBankQuota = async function () {
+    if (!supabaseReady) return null;
+    var userId = currentAppUserId();
+    if (!userId) return null;
+    try {
+      var res = await sb.rpc('get_bank_accounts_quota', { p_app_user_id: userId });
+      if (res.error) return null;
+      return res.data || null;
+    } catch (e) { return null; }
+  };
+
   window.credigoSaveBankAccount = async function (bankId, bankName, accountNumber, hasAccount) {
     if (!supabaseReady) return { error: 'Supabase non configuré.' };
     var userId = currentAppUserId();
@@ -1017,9 +1041,23 @@
       var res = await sb.from('entrepreneur_bank_accounts')
         .upsert(payload, { onConflict: 'app_user_id,bank_id' })
         .select().single();
-      if (res.error) return { error: res.error.message };
+      if (res.error) {
+        // Le garde-fou en base renvoie un message explicite : on le
+        // transmet tel quel plutôt qu'une erreur technique.
+        var msg = String(res.error.message || '');
+        if (msg.indexOf('LIMITE_COMPTES') !== -1) {
+          return { error: msg.replace(/^.*LIMITE_COMPTES:\s*/, ''), limite: true };
+        }
+        return { error: res.error.message };
+      }
       return { account: res.data };
-    } catch (e) { return { error: e.message }; }
+    } catch (e) {
+      var m = String(e.message || '');
+      if (m.indexOf('LIMITE_COMPTES') !== -1) {
+        return { error: m.replace(/^.*LIMITE_COMPTES:\s*/, ''), limite: true };
+      }
+      return { error: e.message };
+    }
   };
 
 

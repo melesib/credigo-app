@@ -4113,9 +4113,47 @@ function loadBanques(){
               +'<span style="font-size:11px;color:#6B7280">Frais ~ '+fmtF(o.fraisTotaux)+'</span></div>';
           }
         }
+        // Performance du partenaire : l'entrepreneur choisit en connaissance
+        // de cause plutôt qu'au hasard de l'ordre d'affichage.
+        var perfLigne = '';
+        if (b.libelle) {
+          var couleurs = {
+            excellent: { c:'#15803D', bg:'#DCFCE7' },
+            bon:       { c:'#0369A1', bg:'#E0F2FE' },
+            moyen:     { c:'#B45309', bg:'#FEF3C7' },
+            faible:    { c:'#B91C1C', bg:'#FEE2E2' },
+          };
+          var st = couleurs[b.classe] || { c:'#6B7280', bg:'#F3F4F6' };
+          perfLigne = '<div style="display:flex;gap:6px;align-items:center;margin-top:4px;flex-wrap:wrap">'
+            + (b.score != null
+                ? '<span style="font-size:10.5px;font-weight:800;padding:2px 7px;border-radius:20px;background:'
+                  + st.bg + ';color:' + st.c + '">' + b.score + '/100</span>'
+                : '<span style="font-size:10.5px;font-weight:700;padding:2px 7px;border-radius:20px;background:#F3F4F6;color:#6B7280">Nouveau</span>')
+            + '<span style="font-size:11px;color:#6B7280">' + (b.motif || b.libelle) + '</span>'
+            + '</div>';
+        }
+
         return '<div class="wiz-bank" onclick="wizPickBank(\''+(b.name.replace(/'/g,"\\'"))+'\',this,\''+b.id+'\')" data-bank="'+encodeURIComponent(b.name)+'" data-bank-id="'+b.id+'">'+logo+
-          '<div class="wb-info"><div class="n">'+b.name+'</div>'+tegLigne+'</div><div class="wb-radio"></div></div>';
+          '<div class="wb-info"><div class="n">'+b.name+'</div>'+tegLigne+perfLigne+'</div><div class="wb-radio"></div></div>';
       }).join('');
+      // Explication du classement : un score sans contexte inquiète plus
+      // qu'il n'informe.
+      if (banques.some(function(b){ return b.score != null; })) {
+        var noteScore = document.getElementById('f-banks-score-note');
+        if (!noteScore) {
+          noteScore = document.createElement('div');
+          noteScore.id = 'f-banks-score-note';
+          noteScore.style.cssText = 'font-size:11.5px;color:#6B7280;line-height:1.5;'
+            + 'background:#F9FAFB;border:1px solid #F3F4F6;border-radius:9px;'
+            + 'padding:9px 11px;margin-bottom:10px';
+          noteScore.innerHTML = '<i class="ti ti-info-circle" style="margin-right:4px"></i>'
+            + 'Les banques sont class\u00e9es selon leur rapidit\u00e9 de r\u00e9ponse et '
+            + 'leur taux d\u2019acceptation sur nos derniers dossiers. Vous restez libre '
+            + 'de choisir celle qui vous convient.';
+          wrap.parentNode.insertBefore(noteScore, wrap);
+        }
+      }
+
       // Réapplique l'état de sélection (rangs) après re-render.
       if(typeof wizRenderBankSelection==='function') wizRenderBankSelection();
       // Note de comparaison au-dessus de la liste
