@@ -23,6 +23,7 @@
   .num { font-family: monospace; color: #6C3FE8; font-weight: 800; }
   .warn { font-size: 13px; color: #B45309; background: #FFF7ED; border-radius: 8px; padding: 11px; margin: 14px 0; line-height: 1.5; }
   .btn { width: 100%; padding: 15px; border-radius: 11px; border: none; font-size: 15px; font-weight: 800; cursor: pointer; font-family: inherit; background: #15803D; color: #fff; margin-top: 14px; }
+  .sign-pad { width: 100%; height: 110px; border: 1.5px dashed #C4B5FD; border-radius: 10px; background: #fff; touch-action: none; margin-top: 4px; }
   .hide { display: none; }
   .msg { text-align: center; padding: 30px 10px; color: #6B7280; }
   .ico { font-size: 42px; margin-bottom: 10px; }
@@ -94,6 +95,17 @@
       <label>Justificatif (avis de virement, re&#231;u&#8230;)</label>
       <input type="file" id="proof-file" accept="image/jpeg,image/png,image/webp,application/pdf" style="width:100%;font-size:13px">
       <div style="font-size:11px;color:#9CA3AF;margin-top:3px">Image ou PDF, 8&#160;Mo maximum. Fortement recommand&#233; : il acc&#233;l&#232;re la v&#233;rification.</div>
+
+      <label>Votre nom</label>
+      <input type="text" id="proof-nom" placeholder="Nom et pr&#233;nom du d&#233;clarant">
+
+      <label>Signature</label>
+      <canvas class="sign-pad" id="proof-sign"></canvas>
+      <button type="button" id="proof-sign-clear" style="background:none;border:none;color:#6C3FE8;font-size:11.5px;font-weight:700;cursor:pointer;padding:4px 0;width:auto">Effacer la signature</button>
+
+      <div style="font-size:11.5px;color:#6B7280;line-height:1.55;background:#F9FAFB;border-radius:9px;padding:10px;margin-top:10px">
+        En signant, vous d&#233;clarez avoir effectu&#233; ce virement. Cette d&#233;claration est horodat&#233;e et conserv&#233;e.
+      </div>
 
       <button class="btn" id="btn-proof" style="background:#166534">Envoyer ma d&#233;claration</button>
       <button class="btn btn-o" id="btn-proof-back">Retour</button>
@@ -222,6 +234,48 @@
       }, function () { b.disabled = false; b.textContent = 'J\u2019ai bien reçu ces coordonnées'; alert('Connexion impossible.'); });
   });
 
+  // ── Signature de la déclaration ──
+  // Déclarer un règlement engage : la signature vaut preuve en cas de
+  // contestation ultérieure de la banque.
+  var pCanvas = document.getElementById('proof-sign'), pCtx = null, pDraw = false, pSigne = false;
+  function initProofSign() {
+    if (!pCanvas) return;
+    var ratio = window.devicePixelRatio || 1;
+    pCanvas.width = pCanvas.offsetWidth * ratio;
+    pCanvas.height = pCanvas.offsetHeight * ratio;
+    pCtx = pCanvas.getContext('2d');
+    pCtx.scale(ratio, ratio);
+    pCtx.lineWidth = 2; pCtx.lineCap = 'round'; pCtx.strokeStyle = '#111827';
+  }
+  function pPos(e) {
+    var r = pCanvas.getBoundingClientRect();
+    var p = e.touches ? e.touches[0] : e;
+    return { x: p.clientX - r.left, y: p.clientY - r.top };
+  }
+  if (pCanvas) {
+    pCanvas.addEventListener('mousedown', function (e) { e.preventDefault(); pDraw = true; pSigne = true; var q = pPos(e); pCtx.beginPath(); pCtx.moveTo(q.x, q.y); });
+    pCanvas.addEventListener('mousemove', function (e) { if (!pDraw) return; e.preventDefault(); var q = pPos(e); pCtx.lineTo(q.x, q.y); pCtx.stroke(); });
+    pCanvas.addEventListener('mouseup', function () { pDraw = false; });
+    pCanvas.addEventListener('mouseleave', function () { pDraw = false; });
+    pCanvas.addEventListener('touchstart', function (e) { e.preventDefault(); pDraw = true; pSigne = true; var q = pPos(e); pCtx.beginPath(); pCtx.moveTo(q.x, q.y); });
+    pCanvas.addEventListener('touchmove', function (e) { if (!pDraw) return; e.preventDefault(); var q = pPos(e); pCtx.lineTo(q.x, q.y); pCtx.stroke(); });
+    pCanvas.addEventListener('touchend', function () { pDraw = false; });
+    var pClear = document.getElementById('proof-sign-clear');
+    if (pClear) pClear.addEventListener('click', function () {
+      if (pCtx) pCtx.clearRect(0, 0, pCanvas.width, pCanvas.height); pSigne = false;
+    });
+  }
+
+  function empreinte() {
+    try {
+      var raw = [navigator.userAgent, navigator.language, screen.width + 'x' + screen.height,
+                 new Date().getTimezoneOffset()].join('|');
+      var x = 0;
+      for (var i = 0; i < raw.length; i++) { x = ((x << 5) - x) + raw.charCodeAt(i); x |= 0; }
+      return 'fp_' + Math.abs(x).toString(36);
+    } catch (e) { return null; }
+  }
+
   // ── Déclaration de règlement ──
   // Le donneur d'ordre peut signaler son paiement quand il le souhaite,
   // y compris avant l'échéance.
@@ -239,6 +293,7 @@
     var m = document.getElementById('proof-amount');
     if (m && !m.value && p.montant) m.value = Math.round(p.montant);
     show('proof-step');
+    initProofSign();
   });
 
   var proofBack = document.getElementById('btn-proof-back');
@@ -255,6 +310,9 @@
 
     if (!ref.trim()) { err.textContent = 'Indiquez la r\u00e9f\u00e9rence de votre virement.'; return; }
     if (!montant || Number(montant) <= 0) { err.textContent = 'Indiquez le montant vir\u00e9.'; return; }
+    var nom = ((document.getElementById('proof-nom') || {}).value || '').trim();
+    if (nom.length < 3) { err.textContent = 'Indiquez votre nom.'; return; }
+    if (!pSigne) { err.textContent = 'Merci de signer votre d\u00e9claration.'; return; }
 
     err.textContent = '';
     proofBtn.disabled = true; proofBtn.textContent = 'Envoi\u2026';
@@ -268,6 +326,11 @@
         p_path: cheminFichier || null,
         p_name: nomFichier || null,
         p_ip: window.__clientIp || null,
+        p_signer_name: nom,
+        p_signature: pCanvas ? pCanvas.toDataURL('image/png') : null,
+        p_agent: navigator.userAgent,
+        p_fingerprint: empreinte(),
+        p_legal_version: 'CGPAY-2026-08',
       }).then(function (res) {
         proofBtn.disabled = false; proofBtn.textContent = 'Envoyer ma d\u00e9claration';
         var d2 = res.data || {};

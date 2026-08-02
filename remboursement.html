@@ -52,6 +52,25 @@
       <div class="row"><span class="k">Montant attendu</span><span class="v" id="f-prevu">&#8212;</span></div>
       <div id="f-declare" style="background:#EFF6FF;border:1px solid #BFDBFE;border-radius:9px;padding:10px 12px;margin-top:10px;font-size:12.5px;color:#1E3A8A;line-height:1.6"></div>
 
+      <!-- La banque doit pouvoir dire qu'elle n'a rien reçu : c'est le cas
+           le plus délicat, et l'ignorer reviendrait à la bloquer. -->
+      <label>Que constatez-vous ?</label>
+      <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:4px">
+        <button type="button" class="rep-opt" data-rep="confirme"
+          style="flex:1;min-width:140px;padding:12px;border-radius:10px;border:1.5px solid #BBF7D0;background:#F0FDF4;color:#15803D;font-weight:800;font-size:13px;cursor:pointer;font-family:inherit;width:auto">
+          Fonds bien re&#231;us
+        </button>
+        <button type="button" class="rep-opt" data-rep="partiel"
+          style="flex:1;min-width:140px;padding:12px;border-radius:10px;border:1.5px solid #E5E7EB;background:#fff;color:#B45309;font-weight:800;font-size:13px;cursor:pointer;font-family:inherit;width:auto">
+          Montant diff&#233;rent
+        </button>
+        <button type="button" class="rep-opt" data-rep="non_recu"
+          style="flex:1;min-width:140px;padding:12px;border-radius:10px;border:1.5px solid #E5E7EB;background:#fff;color:#B91C1C;font-weight:800;font-size:13px;cursor:pointer;font-family:inherit;width:auto">
+          Rien re&#231;u
+        </button>
+      </div>
+
+      <div id="bloc-montant">
       <label>Montant r&#233;ellement re&#231;u (FCFA)</label>
       <input type="number" id="i-montant" placeholder="Montant re&#231;u">
 
@@ -60,7 +79,17 @@
         <div><label>Date de r&#233;ception</label><input type="date" id="i-date"></div>
       </div>
 
-      <label>Justificatif de r&#233;ception (avis de cr&#233;dit, relev&#233;&#8230;)</label>
+      </div>
+
+      <div id="bloc-motif" class="hide">
+        <label>Que constatez-vous exactement ?</label>
+        <textarea id="i-motif" rows="3" placeholder="Exemple : aucun virement de ce montant sur la p&#233;riode, ou montant re&#231;u inf&#233;rieur&#8230;"></textarea>
+        <div style="font-size:11.5px;color:#B45309;line-height:1.5;margin-top:4px">
+          Cette information sera transmise imm&#233;diatement &#224; nos &#233;quipes.
+        </div>
+      </div>
+
+      <label>Justificatif (avis de cr&#233;dit, relev&#233;&#8230;)</label>
       <input type="file" id="i-file" accept="image/jpeg,image/png,image/webp,application/pdf" style="width:100%;font-size:13px">
       <div style="font-size:11px;color:#9CA3AF;margin-top:3px">Image ou PDF, 8&#160;Mo maximum. Facultatif mais recommand&#233;.</div>
 
@@ -155,6 +184,42 @@
     });
   }
 
+  // ── Choix de la réponse ──
+  // Selon ce que la banque constate, les champs demandés changent : inutile
+  // d'exiger un montant si elle n'a rien reçu.
+  var reponse = 'confirme';
+  function majReponse(val) {
+    reponse = val;
+    Array.prototype.forEach.call(document.querySelectorAll('.rep-opt'), function (b) {
+      var actif = b.dataset.rep === val;
+      var couleurs = {
+        confirme: { bd: '#BBF7D0', bg: '#F0FDF4', c: '#15803D' },
+        partiel:  { bd: '#FDE68A', bg: '#FFFBEB', c: '#B45309' },
+        non_recu: { bd: '#FECACA', bg: '#FEF2F2', c: '#B91C1C' },
+      }[b.dataset.rep];
+      b.style.borderColor = actif ? couleurs.bd : '#E5E7EB';
+      b.style.background = actif ? couleurs.bg : '#fff';
+      b.style.borderWidth = actif ? '2px' : '1.5px';
+    });
+    var bm = document.getElementById('bloc-montant');
+    var bmo = document.getElementById('bloc-motif');
+    // « Rien reçu » : aucun montant à saisir.
+    if (bm) bm.classList.toggle('hide', val === 'non_recu');
+    // Un écart ou une absence doit être expliqué.
+    if (bmo) bmo.classList.toggle('hide', val === 'confirme');
+    var btn = document.getElementById('btn-confirm');
+    if (btn) {
+      btn.textContent = val === 'confirme' ? 'Confirmer la r\u00e9ception'
+        : val === 'partiel' ? 'Signaler ce montant'
+        : 'Signaler que rien n\u2019a \u00e9t\u00e9 re\u00e7u';
+      btn.style.background = val === 'confirme' ? '#166534'
+        : val === 'partiel' ? '#B45309' : '#B91C1C';
+    }
+  }
+  Array.prototype.forEach.call(document.querySelectorAll('.rep-opt'), function (b) {
+    b.addEventListener('click', function () { majReponse(b.dataset.rep); });
+  });
+
   // ── Chargement ──
   sb.rpc('get_repayment_confirm', { p_token: token }).then(function (res) {
     var d = res.data || {};
@@ -210,8 +275,13 @@
     var nom = ((document.getElementById('i-nom') || {}).value || '').trim();
     var role = ((document.getElementById('i-role') || {}).value || '').trim();
 
-    if (!montant || montant <= 0) { err('Indiquez le montant r\u00e9ellement vers\u00e9.'); return; }
-    if (!ref) { err('Indiquez la r\u00e9f\u00e9rence de l\u2019op\u00e9ration.'); return; }
+    var motif = ((document.getElementById('i-motif') || {}).value || '').trim();
+    if (reponse !== 'non_recu') {
+      if (!montant || montant <= 0) { err('Indiquez le montant re\u00e7u.'); return; }
+    }
+    if (reponse !== 'confirme' && !motif) {
+      err('Pr\u00e9cisez ce que vous constatez.'); return;
+    }
     if (nom.length < 3) { err('Indiquez votre nom.'); return; }
     if (!hasSign) { err('Merci de signer.'); return; }
 
@@ -249,7 +319,15 @@
             return;
           }
           b.disabled = false; b.textContent = 'Confirmer la r\u00e9ception';
-          if (d.ok) { show('done'); return; }
+          if (d.ok) {
+          var msg = document.getElementById('done-msg');
+          if (msg) {
+            msg.textContent = d.solde
+              ? 'Merci \u2014 le remboursement est enregistr\u00e9. Ce dossier est d\u00e9sormais sold\u00e9.'
+              : 'Merci \u2014 votre constat est enregistr\u00e9. Nos \u00e9quipes vont contacter le donneur d\u2019ordre.';
+          }
+          show('done'); return;
+        }
           if (d.error === 'already_confirmed') { show('done'); return; }
           err(d.error === 'expired' ? 'Ce lien a expir\u00e9.'
             : d.error === 'invalid_amount' ? 'Montant invalide.'
