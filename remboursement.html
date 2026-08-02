@@ -224,7 +224,7 @@
     function envoyer(proofPath, proofName) {
       var params = {
       p_token: token, p_amount: montant, p_reference: ref,
-      p_disbursed_on: date || null, p_note: note || null,
+      p_received_on: date || null, p_note: note || null,
       p_signer_name: nom, p_signer_role: role || null,
       p_signature: canvas ? canvas.toDataURL('image/png') : null,
       p_ip: window.__clientIp || null, p_agent: navigator.userAgent,

@@ -171,12 +171,11 @@
       document.getElementById('done-msg').textContent = 'Votre preuve de virement a bien été reçue. Nous procédons au rapprochement. Merci.';
       show('done'); fillPortalActions(); return;
     }
-    if (d.acknowledged) {
-      // Coordonnées déjà reçues : on propose directement la soumission de preuve.
-      window.__motif = d.payment_motif || '';
-      window.__num = d.contract_number || '';
-      show('done'); fillPortalActions(); return;
-    }
+    // Coordonnées déjà reçues : la page reste utilisable. Le donneur d'ordre
+    // doit pouvoir les reconsulter et déclarer son règlement quand il veut.
+    // Sauter à l'écran final le privait de ces deux possibilités.
+    window.__dejaAccuse = !!d.acknowledged;
+
     sb.rpc('track_payment_open', { p_token: token }).then(function () {}, function () {});
 
     document.getElementById('p-bank').textContent = d.bank_name ? ('Compte de cantonnement — ' + d.bank_name) : 'Compte de cantonnement';
@@ -197,6 +196,19 @@
       echeance: d.date_payment,
       motif: d.payment_motif || d.contract_number || '',
     };
+    // Si les coordonnées ont déjà été reçues, on masque l'accusé de
+    // réception et on met en avant la déclaration de règlement.
+    if (window.__dejaAccuse) {
+      var ack = document.getElementById('btn-ack');
+      if (ack) ack.classList.add('hide');
+      var go = document.getElementById('btn-goto-proof');
+      if (go) {
+        go.className = 'btn';
+        go.style.background = '#166534';
+        go.style.color = '#fff';
+        go.style.borderColor = 'transparent';
+      }
+    }
     show('content');
   }, function () { fail('Service momentanément indisponible.'); });
 
