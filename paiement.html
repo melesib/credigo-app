@@ -74,7 +74,20 @@
 
     <div id="done" class="msg hide">
       <div class="ico">✓</div>
-      <div id="done-msg">Merci — votre réception est bien enregistrée. Vous réglerez ce marché sur le compte indiqué, à l'échéance. Vous serez rappelé avant la date, et vous confirmerez le paiement depuis votre espace personnel.</div>
+      <div id="done-msg">Merci, nous avons bien enregistr&#233; que vous avez re&#231;u les coordonn&#233;es de paiement.</div>
+
+      <!-- Rappel des coordonnées : le donneur d'ordre quitte cette page pour
+           faire son virement. Les lui redonner ici évite un aller-retour. -->
+      <div id="done-recap" style="text-align:left;background:#F9FAFB;border:1px solid #E5E7EB;border-radius:11px;padding:13px 15px;margin-top:16px;font-size:13px;line-height:1.8"></div>
+
+      <div style="text-align:left;background:#FFFBEB;border:1px solid #FDE68A;border-radius:10px;padding:11px 13px;margin-top:12px;font-size:12.5px;color:#78350F;line-height:1.6">
+        <b>&#192; retenir</b><br>
+        Indiquez bien le motif ci-dessus lors de votre virement : c'est ce qui nous permet
+        d'identifier votre r&#232;glement.<br>
+        Nous vous rappellerons avant l'&#233;ch&#233;ance. Vous pourrez confirmer votre paiement
+        depuis votre espace, o&#249; vous retrouverez aussi tous vos march&#233;s.
+      </div>
+
       <div id="done-actions" style="margin-top:18px"></div>
     </div>
 
@@ -95,6 +108,20 @@
   var token = (location.pathname.split('/p/')[1] || '').split('?')[0].split('#')[0].trim();
 
   function show(id) { ['loading','invalid','content','done'].forEach(function (x) { var el = document.getElementById(x); if (el) el.classList.toggle('hide', x !== id); }); }
+  // Rappel des coordonnées après confirmation : le donneur d'ordre quitte
+  // cette page pour effectuer son virement, autant qu'il ait tout sous les yeux.
+  function remplirRecap() {
+    var box = document.getElementById('done-recap');
+    var p = window.__paiement;
+    if (!box || !p) return;
+    var lignes = [];
+    if (p.compte) lignes.push('<b>Compte</b><br>' + p.compte + (p.banque ? ' &#8212; ' + p.banque : ''));
+    if (p.montant) lignes.push('<b>Montant</b><br>' + fmt(p.montant));
+    if (p.echeance) lignes.push('<b>&#192; r&#233;gler avant le</b><br>' + dateFr(p.echeance));
+    if (p.motif) lignes.push('<b>Motif du virement</b><br><span style="font-family:monospace;color:#6C3FE8">' + p.motif + '</span>');
+    box.innerHTML = lignes.join('<div style="height:9px"></div>');
+  }
+
   function fail(msg) { if (msg) document.getElementById('invalid-msg').textContent = msg; show('invalid'); }
   function fmt(n) { return new Intl.NumberFormat('fr-FR').format(Math.round(n || 0)) + ' FCFA'; }
   function dateFr(d) { if (!d) return '—'; try { return new Date(d).toLocaleDateString('fr-FR', { day: '2-digit', month: 'long', year: 'numeric' }); } catch (e) { return d; } }
@@ -134,6 +161,14 @@
     document.getElementById('p-motif').textContent = d.payment_motif || d.contract_number || '—';
     window.__motif = d.payment_motif || '';
     window.__num = d.contract_number || '';
+    // Conservé pour le récapitulatif affiché après confirmation.
+    window.__paiement = {
+      banque: d.bank_name || '',
+      compte: d.cantonnement_account || '',
+      montant: d.amount_expected,
+      echeance: d.date_payment,
+      motif: d.payment_motif || d.contract_number || '',
+    };
     show('content');
   }, function () { fail('Service momentanément indisponible.'); });
 
@@ -148,6 +183,9 @@
   });
 
   function fillPortalActions() {
+    // Le récapitulatif accompagne toujours l'écran de confirmation, quel que
+    // soit le chemin emprunté pour y arriver.
+    remplirRecap();
     sb.rpc('portal_code_from_payment', { p_token: token }).then(function (res) {
       var actions = document.getElementById('done-actions');
       if (!actions) return;
