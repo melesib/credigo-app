@@ -332,10 +332,26 @@
         + '<div class="c-meta"><span>' + fmt(amount) + '</span>' + (it.date_payment ? '<span>\u00c9ch. ' + dateShort(it.date_payment) + '</span>' : '') + '</div>'
         + (it.state === 'to_verify' && it.solic_token
             ? '<a href="/c/' + esc(it.solic_token) + '" class="verify-link" style="display:block;text-align:center;text-decoration:none;background:#6C3FE8;color:#fff;font-weight:800;font-size:13px;padding:10px;border-radius:9px;margin-top:8px">V\u00e9rifier ce march\u00e9</a>'
-            : '<div class="c-open">Voir le d\u00e9tail et les actions \u2192</div>');
+            : (it.state === 'to_pay' && it.pay_token
+                ? (function () {
+                    // Un marché à régler mérite un bouton direct : obliger à
+                    // ouvrir le détail ajoute une étape sans valeur.
+                    var ech = it.date_payment ? new Date(it.date_payment) : null;
+                    var jours = ech ? Math.floor((Date.now() - ech.getTime()) / 86400000) : null;
+                    var retard = jours != null && jours > 0;
+                    return (retard
+                        ? '<div style="font-size:11.5px;color:#B91C1C;font-weight:700;margin-top:8px">'
+                          + '\u26a0 \u00c9ch\u00e9ance d\u00e9pass\u00e9e de ' + jours + ' jour' + (jours > 1 ? 's' : '') + '</div>'
+                        : '')
+                      + '<a href="/p/' + esc(it.pay_token) + '" class="pay-link" style="display:block;text-align:center;text-decoration:none;background:'
+                      + (retard ? '#B91C1C' : '#166534')
+                      + ';color:#fff;font-weight:800;font-size:13px;padding:10px;border-radius:9px;margin-top:'
+                      + (retard ? '6' : '8') + 'px">R\u00e9gler ce march\u00e9</a>';
+                  })()
+                : '<div class="c-open">Voir le d\u00e9tail et les actions \u2192</div>'));
       card.addEventListener('click', function (e) {
         // Le bouton de v\u00e9rification a son propre lien : on n'ouvre pas le d\u00e9tail.
-        if (e.target.closest && e.target.closest('.verify-link')) return;
+        if (e.target.closest && (e.target.closest('.verify-link') || e.target.closest('.pay-link'))) return;
         openDetail(it.request_id);
       });
       frag.appendChild(card);
