@@ -120,7 +120,7 @@
            faire son virement. Les lui redonner ici évite un aller-retour. -->
       <div id="done-recap" style="text-align:left;background:#F9FAFB;border:1px solid #E5E7EB;border-radius:11px;padding:13px 15px;margin-top:16px;font-size:13px;line-height:1.8"></div>
 
-      <div style="text-align:left;background:#FFFBEB;border:1px solid #FDE68A;border-radius:10px;padding:11px 13px;margin-top:12px;font-size:12.5px;color:#78350F;line-height:1.6">
+      <div id="done-conseil" style="text-align:left;background:#FFFBEB;border:1px solid #FDE68A;border-radius:10px;padding:11px 13px;margin-top:12px;font-size:12.5px;color:#78350F;line-height:1.6">
         <b>&#192; retenir</b><br>
         Indiquez bien le motif ci-dessus lors de votre virement : c'est ce qui nous permet
         d'identifier votre r&#232;glement.<br>
@@ -180,7 +180,30 @@
     }
     var d = res.data;
     if (d.proof_submitted || d.payment_status === 'declared' || d.payment_status === 'verified') {
-      document.getElementById('done-msg').textContent = 'Votre preuve de virement a bien été reçue. Nous procédons au rapprochement. Merci.';
+      var verifie = d.payment_status === 'verified';
+      document.getElementById('done-msg').textContent = verifie
+        ? 'Votre r\u00e8glement a \u00e9t\u00e9 v\u00e9rifi\u00e9. Ce march\u00e9 est sold\u00e9. Merci.'
+        : 'Votre d\u00e9claration de r\u00e8glement est enregistr\u00e9e. Nous v\u00e9rifions aupr\u00e8s de la banque.';
+
+      // Le rappel « indiquez bien le motif » n'a plus de sens une fois le
+      // virement effectué : on le masque, et on récapitule ce qui a été
+      // déclaré plutôt que les coordonnées à utiliser.
+      var aRetenir = document.getElementById('done-conseil');
+      if (aRetenir) aRetenir.style.display = 'none';
+
+      var recap = document.getElementById('done-recap');
+      if (recap) {
+        var l = [];
+        if (d.proof_reference) l.push('<b>R\u00e9f\u00e9rence</b><br>' + d.proof_reference);
+        if (d.proof_amount) l.push('<b>Montant d\u00e9clar\u00e9</b><br>' + fmt(d.proof_amount));
+        if (d.proof_date) l.push('<b>Date du virement</b><br>' + dateFr(d.proof_date));
+        recap.innerHTML = l.length
+          ? '<div style="font-weight:800;margin-bottom:8px;color:#111827">Votre d\u00e9claration</div>' + l.join('<div style="height:9px"></div>')
+          : '';
+        // Un encadré vide n'apporte rien : on le retire.
+        if (!l.length) recap.style.display = 'none';
+      }
+
       show('done'); fillPortalActions(); return;
     }
     // Coordonnées déjà reçues : la page reste utilisable. Le donneur d'ordre
