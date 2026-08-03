@@ -382,6 +382,21 @@
     // Le jeton suffit : un compte de cantonnement manquant ne doit pas
     // empêcher le donneur d'ordre de déclarer son règlement.
     var hasPay = !!d.pay_token;
+
+    // Le décaissement fonde l'obligation de régler : le donneur d'ordre
+    // doit le voir clairement, sinon il ne comprend pas pourquoi il paie.
+    if (d.decaisse) {
+      html += '<div class="card" style="cursor:default;background:#F0FDF4;border:1px solid #BBF7D0">'
+        + '<div style="font-weight:800;font-size:14px;color:#15803D;margin-bottom:4px">'
+        + '<i class="ti ti-check" style="margin-right:4px"></i>Financement vers\u00e9 au prestataire</div>'
+        + '<div style="font-size:12.5px;color:#166534;line-height:1.6">'
+        + (d.decaisse_le
+            ? 'Les fonds ont \u00e9t\u00e9 vers\u00e9s le ' + dateFr(d.decaisse_le) + '. '
+            : 'Les fonds ont \u00e9t\u00e9 vers\u00e9s. ')
+        + 'Le r\u00e8glement de ce march\u00e9 est attendu'
+        + (d.date_payment ? ' pour le ' + dateFr(d.date_payment) : '') + '.'
+        + '</div></div>';
+    }
     var paid = d.payment_status === 'declared' || d.payment_status === 'verified';
     var html = '<div class="card" style="cursor:default">'
       + '<div class="c-top"><div><div class="c-obj">' + esc(d.market_object || 'March\u00e9') + '</div>'

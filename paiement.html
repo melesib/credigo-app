@@ -389,7 +389,11 @@
       var code = res && res.data;
       var html = '';
       if (code) html += '<a href="/portail/' + code + '" style="display:block;background:#6C3FE8;color:#fff;text-decoration:none;text-align:center;padding:13px;border-radius:10px;font-weight:800;font-size:14px;margin-bottom:8px">Voir tous mes marchés</a>';
-      html += '<button onclick="window.close()" style="width:100%;background:#fff;color:#6B7280;border:1px solid #E5E7EB;padding:12px;border-radius:10px;font-weight:700;font-size:14px;cursor:pointer;font-family:inherit">Fermer</button>';
+      // « window.close() » ne fonctionne pas sur un onglet ouvert depuis un
+      // lien : on renvoie vers le portail, qui est la destination utile.
+      html += code
+        ? '<button onclick="location.href=\'/portail/' + code + '\'" style="width:100%;background:#fff;color:#6B7280;border:1px solid #E5E7EB;padding:12px;border-radius:10px;font-weight:700;font-size:14px;cursor:pointer;font-family:inherit">Fermer et retourner \u00e0 mon espace</button>'
+        : '<button onclick="window.close()" style="width:100%;background:#fff;color:#6B7280;border:1px solid #E5E7EB;padding:12px;border-radius:10px;font-weight:700;font-size:14px;cursor:pointer;font-family:inherit">Fermer</button>';
       actions.innerHTML = html;
     }, function () {});
   }
