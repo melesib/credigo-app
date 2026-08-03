@@ -336,7 +336,16 @@
   sb.rpc('get_bank_dossier', { p_token: token }).then(function (res) {
     if (res.error || !res.data || res.data.error) {
       var e = res.data && res.data.error;
-      return fail(e === 'expired' ? 'Ce lien a expir\u00e9. Contactez Credigo.' : 'Ce lien est invalide ou a expir\u00e9.');
+      // Un dossier financé ailleurs mérite une explication claire : la
+      // banque doit comprendre pourquoi elle ne peut plus répondre.
+      if (e === 'cancelled') {
+        return fail(d.message || 'Cette demande n\u2019est plus active.');
+      }
+      if (e === 'expired') {
+        return fail(d.message
+          || 'Ce lien a expir\u00e9 (validit\u00e9 24\u00a0h). Contactez Credigo pour en recevoir un nouveau.');
+      }
+      return fail('Ce lien est invalide ou a expir\u00e9.');
     }
     var d = res.data;
     if (d.status === 'answered' || d.response) { finish(d.response); return; }
