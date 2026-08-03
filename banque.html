@@ -159,6 +159,7 @@
     <div id="done" class="msg hide">
       <div class="ico" id="done-ico">✓</div>
       <div id="done-msg">Merci, votre réponse a bien été enregistrée.</div>
+      <div id="done-actions" style="margin-top:18px"></div>
     </div>
 
     <div class="foot">Ce lien est personnel et sécurisé. En cas de doute, contactez Credigo directement.</div>
@@ -178,6 +179,30 @@
   var token = (location.pathname.split('/b/')[1] || '').split('?')[0].split('#')[0].trim();
 
   function show(id) { ['loading','invalid','content','done'].forEach(function (x) { var el = document.getElementById(x); if (el) el.classList.toggle('hide', x !== id); }); }
+  // Retour à l'espace partenaire après réponse : la banque y retrouve
+  // ses autres dossiers en attente.
+  function fillBankActions() {
+    sb.rpc('portal_code_from_dossier', { p_token: token }).then(function (res) {
+      var actions = document.getElementById('done-actions');
+      if (!actions) return;
+      var code = res && res.data;
+      var html = '';
+      if (code) {
+        html += '<a href="/banque-portail/' + code + '" style="display:block;background:#6C3FE8;color:#fff;'
+          + 'text-decoration:none;text-align:center;padding:13px;border-radius:10px;font-weight:800;'
+          + 'font-size:14px;margin-bottom:8px">Voir tous mes dossiers</a>';
+        html += '<button onclick="location.href=\'/banque-portail/' + code + '\'" style="width:100%;'
+          + 'background:#fff;color:#6B7280;border:1px solid #E5E7EB;padding:12px;border-radius:10px;'
+          + 'font-weight:700;font-size:14px;cursor:pointer;font-family:inherit">Fermer et retourner \u00e0 mon espace</button>';
+      } else {
+        html += '<button onclick="window.close()" style="width:100%;background:#fff;color:#6B7280;'
+          + 'border:1px solid #E5E7EB;padding:12px;border-radius:10px;font-weight:700;font-size:14px;'
+          + 'cursor:pointer;font-family:inherit">Fermer</button>';
+      }
+      actions.innerHTML = html;
+    }, function () { });
+  }
+
   function fail(msg) { if (msg) document.getElementById('invalid-msg').textContent = msg; show('invalid'); }
   function fmt(n) { return new Intl.NumberFormat('fr-FR').format(Math.round(n || 0)) + ' FCFA'; }
   function dateFr(d) { if (!d) return '—'; try { return new Date(d).toLocaleDateString('fr-FR', { day: '2-digit', month: 'long', year: 'numeric' }); } catch (e) { return d; } }
@@ -437,7 +462,7 @@
     document.getElementById('done-msg').textContent = resp === 'accord'
       ? 'Merci — votre accord de financement a bien été enregistré. Credigo poursuit le circuit de décaissement.'
       : 'Votre refus a bien été enregistré. Merci de votre retour.';
-    show('done');
+    show('done'); fillBankActions();
   }
 })();
 </script>

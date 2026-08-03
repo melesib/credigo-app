@@ -104,6 +104,31 @@
   var token = (location.pathname.split('/d/')[1] || '').split('?')[0].split('#')[0].trim();
 
   function show(id) { ['loading','invalid','content','done'].forEach(function (x) { var el = document.getElementById(x); if (el) el.classList.toggle('hide', x !== id); }); }
+  // Après confirmation, la banque doit pouvoir revenir à son espace :
+  // elle y retrouve ses autres dossiers en attente. Sans cela, l'écran
+  // final est une impasse.
+  function fillBankActions() {
+    sb.rpc('portal_code_from_disbursement', { p_token: token }).then(function (res) {
+      var actions = document.getElementById('done-actions');
+      if (!actions) return;
+      var code = res && res.data;
+      var html = '';
+      if (code) {
+        html += '<a href="/banque-portail/' + code + '" style="display:block;background:#6C3FE8;color:#fff;'
+          + 'text-decoration:none;text-align:center;padding:13px;border-radius:10px;font-weight:800;'
+          + 'font-size:14px;margin-bottom:8px">Voir tous mes dossiers</a>';
+        html += '<button onclick="location.href=\'/banque-portail/' + code + '\'" style="width:100%;'
+          + 'background:#fff;color:#6B7280;border:1px solid #E5E7EB;padding:12px;border-radius:10px;'
+          + 'font-weight:700;font-size:14px;cursor:pointer;font-family:inherit">Fermer et retourner \u00e0 mon espace</button>';
+      } else {
+        html += '<button onclick="window.close()" style="width:100%;background:#fff;color:#6B7280;'
+          + 'border:1px solid #E5E7EB;padding:12px;border-radius:10px;font-weight:700;font-size:14px;'
+          + 'cursor:pointer;font-family:inherit">Fermer</button>';
+      }
+      actions.innerHTML = html;
+    }, function () { });
+  }
+
   function fail(m) { if (m) document.getElementById('invalid-msg').textContent = m; show('invalid'); }
   function fmt(n) { return new Intl.NumberFormat('fr-FR').format(Math.round(n || 0)) + ' FCFA'; }
   function err(m) { document.getElementById('err').textContent = m || ''; }
@@ -160,7 +185,7 @@
     if (res.error || d.error) {
       return fail(d.error === 'expired' ? 'Ce lien a expir\u00e9. Contactez Credigo.' : 'Ce lien est invalide ou a expir\u00e9.');
     }
-    if (d.confirmed) { show('done'); return; }
+    if (d.confirmed) { show('done'); fillBankActions(); return; }
     sb.rpc('track_disbursement_open', { p_token: token }).then(function () {}, function () {});
 
     document.getElementById('f-num').textContent = d.contract_number || '\u2014';
@@ -230,8 +255,8 @@
             return;
           }
           b.disabled = false; b.textContent = 'Confirmer le d\u00e9caissement';
-          if (d.ok) { show('done'); return; }
-          if (d.error === 'already_confirmed') { show('done'); return; }
+          if (d.ok) { show('done'); fillBankActions(); return; }
+          if (d.error === 'already_confirmed') { show('done'); fillBankActions(); return; }
           err(d.error === 'expired' ? 'Ce lien a expir\u00e9.'
             : d.error === 'invalid_amount' ? 'Montant invalide.'
             : 'Enregistrement impossible. R\u00e9essayez.');
