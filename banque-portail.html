@@ -10,6 +10,10 @@
   .wrap { max-width: 660px; margin: 16px auto; }
   .head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px; }
   .logo { font-size: 24px; font-weight: 800; color: #6C3FE8; }
+  .bell { position: relative; font-size: 21px; cursor: pointer; padding: 4px 6px; user-select: none; }
+  .pastille { position: absolute; top: -2px; right: -2px; background: #DC2626; color: #fff;
+    font-size: 10px; font-weight: 800; min-width: 17px; height: 17px; border-radius: 9px;
+    display: flex; align-items: center; justify-content: center; padding: 0 4px; }
   .sub { color: #6B7280; font-size: 13px; margin-bottom: 12px; }
   .search { width: 100%; padding: 11px 13px; border: 1px solid #E5E7EB; border-radius: 10px; font-size: 13.5px; font-family: inherit; margin-bottom: 10px; }
   .tabs { display: flex; gap: 6px; margin-bottom: 12px; flex-wrap: wrap; }
@@ -47,7 +51,10 @@
 </head>
 <body>
 <div class="wrap">
-  <div class="head"><div class="logo">Credigo</div></div>
+  <div class="head">
+    <div class="logo">Credigo</div>
+    <div class="bell hide" id="bell" title="Voir les actions attendues">&#128276;<span class="pastille hide" id="pastille">0</span></div>
+  </div>
   <div class="sub" id="sub">Espace partenaire</div>
 
   <div id="loading" class="msg">Chargement&#8230;</div>
@@ -182,8 +189,32 @@
     if (!box || !liste) return;
 
     var items = aFaire();
-    if (!items.length) { box.classList.add('hide'); return; }
-    box.classList.remove('hide');
+
+    // La cloche reste visible en permanence une fois l'espace ouvert :
+    // elle indique où regarder, même quand il n'y a rien à traiter.
+    var bell = document.getElementById('bell');
+    var past = document.getElementById('pastille');
+    var nbNonVus = nonVus().length;
+    if (bell) {
+      bell.classList.remove('hide');
+      bell.title = items.length
+        ? items.length + ' action' + (items.length > 1 ? 's' : '') + ' attendue' + (items.length > 1 ? 's' : '')
+        : 'Aucune action en attente';
+    }
+    if (past) {
+      past.textContent = nbNonVus;
+      past.classList.toggle('hide', nbNonVus === 0);
+    }
+
+    if (!items.length) {
+      // Rien à traiter : le bandeau reste masqué, mais la cloche répond
+      // quand même au clic pour le confirmer.
+      box.classList.add('hide');
+      liste.innerHTML = '';
+      return;
+    }
+    // Le bandeau s'ouvre de lui-même s'il reste des actions non vues.
+    box.classList.toggle('hide', nbNonVus === 0 && !box.dataset.ouvert);
 
     var nb = nonVus().length;
     var lbl = document.getElementById('a-faire-nb');
@@ -217,6 +248,21 @@
       a.addEventListener('click', function () { marquerVu(a.dataset.id); });
     });
   }
+
+  var cloche = document.getElementById('bell');
+  if (cloche) cloche.addEventListener('click', function () {
+    var box = document.getElementById('a-faire');
+    if (!box) return;
+    if (!aFaire().length) {
+      alert('Aucune action en attente pour le moment.');
+      return;
+    }
+    var ferme = box.classList.contains('hide');
+    box.classList.toggle('hide', !ferme);
+    // On mémorise l'ouverture manuelle : sinon un rafraîchissement
+    // refermerait le bandeau que la banque vient d'ouvrir.
+    box.dataset.ouvert = ferme ? '1' : '';
+  });
 
   var toutVu = document.getElementById('a-faire-lu');
   if (toutVu) toutVu.addEventListener('click', function () {
