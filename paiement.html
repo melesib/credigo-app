@@ -72,6 +72,9 @@
 
       <button class="btn" id="btn-ack">J'ai bien reçu ces coordonnées</button>
       <button class="btn btn-o" id="btn-goto-proof" style="border-color:#BBF7D0;color:#166534;font-weight:800">D&#233;clarer mon r&#232;glement</button>
+      <!-- Sortie depuis l'écran principal : le donneur d'ordre consulte
+           les coordonnées puis retourne à son espace. -->
+      <button class="btn btn-o" id="btn-content-quit" style="border-color:#E5E7EB;color:#6B7280">Fermer et retourner &#224; mon espace</button>
     </div>
 
     <!-- Déclaration de paiement : accessible à tout moment, avant comme
@@ -364,15 +367,21 @@
   var proofBack = document.getElementById('btn-proof-back');
   if (proofBack) proofBack.addEventListener('click', function () { show('content'); });
 
-  // Sortie vers l'espace personnel, sans passer par l'écran précédent.
-  var proofQuit = document.getElementById('btn-proof-quit');
-  if (proofQuit) proofQuit.addEventListener('click', function () {
+  // Sortie vers l'espace personnel. Utilisée depuis l'écran des
+  // coordonnées comme depuis le formulaire de déclaration.
+  function quitterVersPortail() {
     sb.rpc('portal_code_from_payment', { p_token: token }).then(function (res) {
       var code = res && res.data;
       if (code) location.href = '/portail/' + code;
       else window.close();
     }, function () { window.close(); });
-  });
+  }
+
+  var proofQuit = document.getElementById('btn-proof-quit');
+  if (proofQuit) proofQuit.addEventListener('click', quitterVersPortail);
+
+  var contentQuit = document.getElementById('btn-content-quit');
+  if (contentQuit) contentQuit.addEventListener('click', quitterVersPortail);
 
   var proofBtn = document.getElementById('btn-proof');
   if (proofBtn) proofBtn.addEventListener('click', function () {
