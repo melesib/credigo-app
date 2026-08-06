@@ -76,7 +76,20 @@
   </div>
 
   <div id="content" class="hide">
-    <div class="tip">&#128161; Enregistrez cette page dans vos favoris : vous y retrouvez tous les dossiers Credigo de votre établissement.</div>
+        <!-- Ce qui attend une action : visible dès l'arrivée, avec le détail
+         de chaque dossier. Sans cela, la banque devait parcourir les
+         onglets pour savoir ce qu'on attend d'elle. -->
+    <div id="a-faire" class="card hide" style="background:#FFFBEB;border:1px solid #FDE68A">
+      <div style="display:flex;justify-content:space-between;align-items:center;gap:10px;margin-bottom:8px">
+        <div style="font-size:12px;font-weight:800;color:#B45309;text-transform:uppercase;letter-spacing:.4px">
+          &#9888; Actions attendues<span id="a-faire-nb"></span>
+        </div>
+        <button id="a-faire-lu" style="background:none;border:none;color:#B45309;font-size:11.5px;font-weight:700;cursor:pointer;padding:0;font-family:inherit;width:auto">Tout marquer comme vu</button>
+      </div>
+      <div id="a-faire-liste"></div>
+    </div>
+
+<div class="tip">&#128161; Enregistrez cette page dans vos favoris : vous y retrouvez tous les dossiers Credigo de votre établissement.</div>
     <div id="totaux" class="card hide" style="background:linear-gradient(135deg,#F5F3FF,#EEF2FF)">
       <div style="font-size:12px;font-weight:800;color:#4C1D95;text-transform:uppercase;letter-spacing:.4px;margin-bottom:8px">Vue d'ensemble</div>
       <div style="display:flex;gap:10px;flex-wrap:wrap">
@@ -119,6 +132,107 @@
   var sb = null;
   var code = (location.pathname.split('/banque-portail/')[1] || '').split('?')[0].split('#')[0].trim();
   var BACKOFFICE_URL = 'https://credigo-backoffice.netlify.app';
+  // ── Suivi de ce qui a été vu ──
+  // Une action ouverte sort du décompte : sans cela, le compteur affiche
+  // indéfiniment le même nombre et perd tout sens.
+  var CLE_VU = 'credigo_bq_vu_' + (code || 'x');
+
+  function vus() {
+    try { return JSON.parse(localStorage.getItem(CLE_VU) || '{}'); }
+    catch (e) { return {}; }
+  }
+  function marquerVu(id) {
+    try {
+      var v = vus(); v[id] = Date.now();
+      localStorage.setItem(CLE_VU, JSON.stringify(v));
+    } catch (e) { /* navigation privée : le décompte reste, sans bloquer */ }
+  }
+  function estVu(it) {
+    var v = vus()[it.request_id];
+    if (!v) return false;
+    // Une nouvelle action sur le même dossier le rend à nouveau non vu.
+    var maj = it.disb_sent_at || it.answered_at || it.expire_le;
+    return !maj || new Date(maj).getTime() <= v;
+  }
+
+  function aFaire() {
+    return allItems.filter(function (it) { return it.action_required; });
+  }
+  function nonVus() {
+    return aFaire().filter(function (it) { return !estVu(it); });
+  }
+
+  // Ce qu'on attend exactement de la banque, dossier par dossier.
+  function libelleAction(it) {
+    if (it.remb_pending) return 'Confirmer la r\u00e9ception du r\u00e8glement';
+    if (it.disb_pending) return 'Confirmer le versement des fonds';
+    if (!it.answered_at && !it.expiree) return 'R\u00e9pondre \u00e0 la demande de financement';
+    return 'Action requise';
+  }
+  function lienAction(it) {
+    if (it.remb_pending && it.remb_token) return '/r/' + it.remb_token;
+    if (it.disb_pending && it.disb_token) return '/d/' + it.disb_token;
+    if (!it.answered_at && it.send_token) return '/b/' + it.send_token;
+    return null;
+  }
+
+  function renderAFaire() {
+    var box = document.getElementById('a-faire');
+    var liste = document.getElementById('a-faire-liste');
+    if (!box || !liste) return;
+
+    var items = aFaire();
+    if (!items.length) { box.classList.add('hide'); return; }
+    box.classList.remove('hide');
+
+    var nb = nonVus().length;
+    var lbl = document.getElementById('a-faire-nb');
+    if (lbl) lbl.textContent = nb ? ' (' + nb + ')' : '';
+
+    liste.innerHTML = items.map(function (it) {
+      var vu = estVu(it);
+      var lien = lienAction(it);
+      return '<div style="background:#fff;border:1px solid ' + (vu ? '#F3F4F6' : '#FDE68A')
+        + ';border-radius:9px;padding:10px 12px;margin-bottom:6px;display:flex;gap:9px;align-items:flex-start">'
+        + '<div style="width:8px;height:8px;border-radius:50%;flex-shrink:0;margin-top:5px;background:'
+        +   (vu ? 'transparent' : '#DC2626') + '"></div>'
+        + '<div style="flex:1;min-width:0">'
+        +   '<div style="font-size:12.5px;font-weight:' + (vu ? '600' : '800') + ';color:#111827">'
+        +     esc(it.market_object || 'Dossier') + '</div>'
+        +   '<div style="font-size:11.5px;color:#B45309;margin-top:2px">' + libelleAction(it) + '</div>'
+        +   (it.contract_number
+              ? '<div style="font-size:11px;color:#9CA3AF;font-family:monospace">' + esc(it.contract_number) + '</div>'
+              : '')
+        + '</div>'
+        + (lien
+            ? '<a href="' + lien + '" class="acte-lien" data-id="' + esc(it.request_id) + '" '
+              + 'style="align-self:center;background:#B45309;color:#fff;text-decoration:none;font-weight:800;'
+              + 'font-size:11.5px;padding:7px 12px;border-radius:8px;white-space:nowrap">Traiter</a>'
+            : '')
+        + '</div>';
+    }).join('');
+
+    // Ouvrir une action la marque comme vue.
+    Array.prototype.forEach.call(liste.querySelectorAll('.acte-lien'), function (a) {
+      a.addEventListener('click', function () { marquerVu(a.dataset.id); });
+    });
+  }
+
+  var toutVu = document.getElementById('a-faire-lu');
+  if (toutVu) toutVu.addEventListener('click', function () {
+    aFaire().forEach(function (it) { marquerVu(it.request_id); });
+    renderAFaire();
+    majCompteurAction();
+  });
+
+  function majCompteurAction() {
+    var c = document.getElementById('cnt-action');
+    if (c) {
+      var n = nonVus().length;
+      c.textContent = n ? ' (' + n + ')' : '';
+    }
+  }
+
   var allItems = [], currentTab = 'action', searchTerm = '', _pendingToken = null, _lastEmail = '';
 
   function showView(v) { ['loading','invalid','auth','content','detail'].forEach(function (x) { var el = document.getElementById(x); if (el) el.classList.toggle('hide', x !== v); }); }
@@ -153,7 +267,8 @@
       if (res.error || d.error) return fail('Lien invalide.');
       document.getElementById('sub').textContent = d.bank_name ? ('Espace de ' + d.bank_name) : 'Espace partenaire';
       allItems = d.items || [];
-      document.getElementById('cnt-action').textContent = ' ' + allItems.filter(function (i) { return i.action_required; }).length;
+      majCompteurAction();
+      renderAFaire();
       document.getElementById('cnt-all').textContent = ' ' + allItems.length;
       document.getElementById('cnt-approved').textContent = ' ' + allItems.filter(function (i) { return i.state === 'approved'; }).length;
       renderTotaux(d.totaux);
