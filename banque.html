@@ -111,6 +111,11 @@
           <button class="btn btn-ok" onclick="showAccord()">Accepter de financer</button>
           <button class="btn btn-no" onclick="showRefus()">Refuser</button>
         </div>
+        <!-- Sortie sans répondre : la banque peut vouloir étudier le
+             dossier puis revenir. Le lien reste valable 24 h. -->
+        <div style="margin-top:10px">
+          <button class="btn btn-ghost" id="btn-quit" style="width:100%;color:#6B7280;border:1px solid #E5E7EB">Fermer et retourner &#224; mon espace</button>
+        </div>
       </div>
 
       <!-- Formulaire ACCORD -->
@@ -202,6 +207,16 @@
       actions.innerHTML = html;
     }, function () { });
   }
+
+  // Quitter sans répondre : retour à l'espace partenaire.
+  var btnQuit = document.getElementById('btn-quit');
+  if (btnQuit) btnQuit.addEventListener('click', function () {
+    sb.rpc('portal_code_from_dossier', { p_token: token }).then(function (res) {
+      var code = res && res.data;
+      if (code) location.href = '/banque-portail/' + code;
+      else window.close();
+    }, function () { window.close(); });
+  });
 
   function fail(msg) { if (msg) document.getElementById('invalid-msg').textContent = msg; show('invalid'); }
   function fmt(n) { return new Intl.NumberFormat('fr-FR').format(Math.round(n || 0)) + ' FCFA'; }

@@ -110,7 +110,10 @@
       </div>
 
       <button class="btn" id="btn-proof" style="background:#166534">Envoyer ma d&#233;claration</button>
-      <button class="btn btn-o" id="btn-proof-back">Retour</button>
+      <button class="btn btn-o" id="btn-proof-back">Retour aux coordonn&#233;es</button>
+      <!-- Sortie directe : le donneur d'ordre peut vouloir quitter sans
+           passer par l'écran précédent. -->
+      <button class="btn btn-o" id="btn-proof-quit" style="border-color:#E5E7EB;color:#6B7280">Fermer et retourner &#224; mon espace</button>
       <div class="err" id="proof-err"></div>
     </div>
 
@@ -360,6 +363,16 @@
 
   var proofBack = document.getElementById('btn-proof-back');
   if (proofBack) proofBack.addEventListener('click', function () { show('content'); });
+
+  // Sortie vers l'espace personnel, sans passer par l'écran précédent.
+  var proofQuit = document.getElementById('btn-proof-quit');
+  if (proofQuit) proofQuit.addEventListener('click', function () {
+    sb.rpc('portal_code_from_payment', { p_token: token }).then(function (res) {
+      var code = res && res.data;
+      if (code) location.href = '/portail/' + code;
+      else window.close();
+    }, function () { window.close(); });
+  });
 
   var proofBtn = document.getElementById('btn-proof');
   if (proofBtn) proofBtn.addEventListener('click', function () {

@@ -108,6 +108,9 @@
       <div class="note">En confirmant, vous attestez que les fonds ont bien &#233;t&#233; re&#231;us sur le compte de cantonnement. Cette confirmation cl&#244;ture d&#233;finitivement le dossier.</div>
 
       <button class="btn" id="btn-confirm">Confirmer la r&#233;ception</button>
+      <!-- Sortie sans confirmer : la banque peut vouloir consulter le
+           dossier puis revenir plus tard. -->
+      <button class="btn btn-o" id="btn-quit" style="border-color:#E5E7EB;color:#6B7280">Fermer et retourner &#224; mon espace</button>
       <div class="err" id="err"></div>
     </div>
 
@@ -243,6 +246,16 @@
   }
   Array.prototype.forEach.call(document.querySelectorAll('.rep-opt'), function (b) {
     b.addEventListener('click', function () { majReponse(b.dataset.rep); });
+  });
+
+  // Quitter sans confirmer : retour à l'espace partenaire.
+  var btnQuit = document.getElementById('btn-quit');
+  if (btnQuit) btnQuit.addEventListener('click', function () {
+    sb.rpc('portal_code_from_repayment', { p_token: token }).then(function (res) {
+      var code = res && res.data;
+      if (code) location.href = '/banque-portail/' + code;
+      else window.close();
+    }, function () { window.close(); });
   });
 
   // ── Chargement ──

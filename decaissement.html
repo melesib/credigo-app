@@ -78,6 +78,9 @@
       <div class="note">En confirmant, vous attestez que les fonds ont &#233;t&#233; vers&#233;s au b&#233;n&#233;ficiaire. Cette d&#233;claration est horodat&#233;e et conserv&#233;e.</div>
 
       <button class="btn" id="btn-confirm">Confirmer le d&#233;caissement</button>
+      <!-- Sortie sans confirmer : la banque peut vouloir consulter le
+           dossier puis revenir plus tard. -->
+      <button class="btn btn-o" id="btn-quit" style="border-color:#E5E7EB;color:#6B7280">Fermer et retourner &#224; mon espace</button>
       <div class="err" id="err"></div>
     </div>
 
@@ -178,6 +181,16 @@
       if (ctx) ctx.clearRect(0, 0, canvas.width, canvas.height); hasSign = false;
     });
   }
+
+  // Quitter sans confirmer : retour à l'espace partenaire.
+  var btnQuit = document.getElementById('btn-quit');
+  if (btnQuit) btnQuit.addEventListener('click', function () {
+    sb.rpc('portal_code_from_disbursement', { p_token: token }).then(function (res) {
+      var code = res && res.data;
+      if (code) location.href = '/banque-portail/' + code;
+      else window.close();
+    }, function () { window.close(); });
+  });
 
   // ── Chargement ──
   sb.rpc('get_disbursement_confirm', { p_token: token }).then(function (res) {
