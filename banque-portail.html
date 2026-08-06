@@ -53,7 +53,7 @@
 <div class="wrap">
   <div class="head">
     <div class="logo">Credigo</div>
-    <div class="bell hide" id="bell" title="Voir les actions attendues">&#128276;<span class="pastille hide" id="pastille">0</span></div>
+    <div class="bell" id="bell" title="Voir les actions attendues">&#128276;<span class="pastille hide" id="pastille">0</span></div>
   </div>
   <div class="sub" id="sub">Espace partenaire</div>
 
@@ -196,7 +196,6 @@
     var past = document.getElementById('pastille');
     var nbNonVus = nonVus().length;
     if (bell) {
-      bell.classList.remove('hide');
       bell.title = items.length
         ? items.length + ' action' + (items.length > 1 ? 's' : '') + ' attendue' + (items.length > 1 ? 's' : '')
         : 'Aucune action en attente';
