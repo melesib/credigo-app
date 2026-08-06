@@ -71,7 +71,7 @@
       </div>
 
       <button class="btn" id="btn-ack">J'ai bien reçu ces coordonnées</button>
-      <button class="btn btn-o" id="btn-goto-proof" style="border-color:#BBF7D0;color:#166534;font-weight:800">J'ai d&#233;j&#224; r&#233;gl&#233; ce march&#233;</button>
+      <button class="btn btn-o" id="btn-goto-proof" style="border-color:#BBF7D0;color:#166534;font-weight:800">D&#233;clarer mon r&#232;glement</button>
     </div>
 
     <!-- Déclaration de paiement : accessible à tout moment, avant comme
@@ -80,6 +80,8 @@
     <div id="proof-step" class="hide">
       <h1 style="font-size:17px;margin-bottom:6px">D&#233;clarer mon r&#232;glement</h1>
       <div class="lead" style="margin-bottom:14px">Indiquez les informations de votre virement. Nous les transmettrons &#224; la banque pour v&#233;rification.</div>
+
+      <div id="proof-avis" style="display:none;background:#EFF6FF;border:1px solid #BFDBFE;border-radius:10px;padding:11px 13px;margin-bottom:14px;font-size:12.5px;color:#1E3A8A;line-height:1.6"></div>
 
       <div class="row"><span class="k">Dossier</span><span class="v" id="proof-num">&#8212;</span></div>
       <div class="row"><span class="k">Montant attendu</span><span class="v" id="proof-attendu">&#8212;</span></div>
@@ -179,11 +181,13 @@
       return fail(e === 'expired' ? 'Ce lien a expiré. Contactez Credigo.' : 'Ce lien est invalide ou a expiré.');
     }
     var d = res.data;
-    if (d.proof_submitted || d.payment_status === 'declared' || d.payment_status === 'verified') {
-      var verifie = d.payment_status === 'verified';
-      document.getElementById('done-msg').textContent = verifie
-        ? 'Votre r\u00e8glement a \u00e9t\u00e9 v\u00e9rifi\u00e9. Ce march\u00e9 est sold\u00e9. Merci.'
-        : 'Votre d\u00e9claration de r\u00e8glement est enregistr\u00e9e. Nous v\u00e9rifions aupr\u00e8s de la banque.';
+    // Seul un règlement DÉJÀ VÉRIFIÉ ferme la page. Une déclaration en
+    // cours de vérification doit rester modifiable : le donneur d'ordre
+    // peut vouloir corriger une référence ou joindre le justificatif
+    // qu'il n'avait pas sous la main.
+    if (d.payment_status === 'verified') {
+      document.getElementById('done-msg').textContent =
+        'Votre r\u00e8glement a \u00e9t\u00e9 v\u00e9rifi\u00e9. Ce march\u00e9 est sold\u00e9. Merci.';
 
       // Le rappel « indiquez bien le motif » n'a plus de sens une fois le
       // virement effectué : on le masque, et on récapitule ce qui a été
@@ -224,6 +228,13 @@
     window.__motif = d.payment_motif || '';
     window.__num = d.contract_number || '';
     // Conservé pour le récapitulatif affiché après confirmation.
+    // Déclaration déjà faite : on la conserve pour pré-remplir le
+    // formulaire et proposer une correction plutôt qu'une nouvelle saisie.
+    window.__declaration = d.proof_submitted ? {
+      reference: d.proof_reference, montant: d.proof_amount,
+      date: d.proof_date, le: d.proof_submitted_at,
+    } : null;
+
     window.__paiement = {
       banque: d.bank_name || '',
       compte: d.cantonnement_account || '',
@@ -233,7 +244,9 @@
     };
     // Si les coordonnées ont déjà été reçues, on masque l'accusé de
     // réception et on met en avant la déclaration de règlement.
-    if (window.__dejaAccuse) {
+    // Coordonnées déjà reçues, ou déclaration déjà faite : dans les deux
+    // cas, l'action utile est de déclarer ou de corriger son règlement.
+    if (window.__dejaAccuse || window.__declaration) {
       var ack = document.getElementById('btn-ack');
       if (ack) ack.classList.add('hide');
       var go = document.getElementById('btn-goto-proof');
@@ -242,6 +255,9 @@
         go.style.background = '#166534';
         go.style.color = '#fff';
         go.style.borderColor = 'transparent';
+        if (window.__declaration) {
+          go.textContent = 'Compl\u00e9ter ou corriger ma d\u00e9claration';
+        }
       }
     }
     show('content');
@@ -305,6 +321,29 @@
   var goProof = document.getElementById('btn-goto-proof');
   if (goProof) goProof.addEventListener('click', function () {
     var p = window.__paiement || {};
+    var dec = window.__declaration;
+
+    // Une déclaration existante se corrige : on la rappelle et on
+    // pré-remplit, plutôt que d'obliger à tout resaisir.
+    var avis = document.getElementById('proof-avis');
+    if (avis) {
+      if (dec) {
+        avis.style.display = 'block';
+        avis.innerHTML = '<b>Vous avez d\u00e9j\u00e0 d\u00e9clar\u00e9 ce r\u00e8glement'
+          + (dec.le ? ' le ' + dateFr(dec.le) : '') + '.</b><br>'
+          + 'Vous pouvez corriger les informations ci-dessous ou joindre votre justificatif.';
+      } else {
+        avis.style.display = 'none';
+      }
+    }
+    if (dec) {
+      var r = document.getElementById('proof-ref');
+      if (r && !r.value) r.value = dec.reference || '';
+      var dt = document.getElementById('proof-date');
+      if (dt && dec.date) dt.value = String(dec.date).slice(0, 10);
+      var mt = document.getElementById('proof-amount');
+      if (mt && dec.montant) mt.value = Math.round(dec.montant);
+    }
     var n = document.getElementById('proof-num');
     if (n) n.textContent = window.__num || '\u2014';
     var a = document.getElementById('proof-attendu');
