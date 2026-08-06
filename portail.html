@@ -11,6 +11,18 @@
   .head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; }
   .logo { font-size: 24px; font-weight: 800; color: #6C3FE8; }
   .bell { position: relative; font-size: 22px; color: #6B7280; cursor: pointer; }
+  #notif-panel { position: absolute; top: 46px; right: 0; width: 320px; max-width: calc(100vw - 32px);
+    background: #fff; border: 1px solid #E5E7EB; border-radius: 13px;
+    box-shadow: 0 10px 30px rgba(17,24,39,.14); z-index: 60; overflow: hidden; }
+  .notif-item { padding: 11px 14px; border-bottom: 1px solid #F9FAFB; cursor: pointer; display: flex; gap: 9px; align-items: flex-start; }
+  .notif-item:hover { background: #FAFAFB; }
+  /* Point rouge : distingue d'un coup d'œil ce qui n'a pas été ouvert. */
+  .card.neuf { position: relative; }
+  .card.neuf::before { content: ''; position: absolute; top: 12px; right: 12px;
+    width: 9px; height: 9px; border-radius: 50%; background: #DC2626;
+    box-shadow: 0 0 0 3px rgba(220,38,38,.15); }
+  .notif-dot { width: 8px; height: 8px; border-radius: 50%; background: #DC2626; flex-shrink: 0; margin-top: 5px; }
+  .notif-dot.lu { background: transparent; }
   .pastille { position: absolute; top: -6px; right: -8px; background: #DC2626; color: #fff; font-size: 10px; font-weight: 800; min-width: 17px; height: 17px; border-radius: 9px; display: flex; align-items: center; justify-content: center; padding: 0 4px; }
   .sub { color: #6B7280; font-size: 13px; margin-bottom: 12px; }
   .search { width: 100%; padding: 11px 13px; border: 1px solid #E5E7EB; border-radius: 10px; font-size: 13.5px; font-family: inherit; margin-bottom: 10px; }
@@ -66,7 +78,16 @@
 <div class="wrap">
   <div class="head">
     <div class="logo">Credigo</div>
-    <div class="bell" id="bell" title="Activer les notifications">&#128276;<span class="pastille hide" id="pastille">0</span></div>
+    <div class="bell" id="bell" title="Voir les notifications">&#128276;<span class="pastille hide" id="pastille">0</span></div>
+    <!-- Panneau de notifications : la cloche ne servait qu'à activer les
+         alertes système, sans jamais montrer ce qui attendait. -->
+    <div id="notif-panel" class="hide">
+      <div style="font-size:13px;font-weight:800;padding:12px 14px;border-bottom:1px solid #F3F4F6;display:flex;justify-content:space-between;align-items:center">
+        <span>Actions &#224; faire</span>
+        <button id="notif-all-read" style="background:none;border:none;color:#6C3FE8;font-size:11.5px;font-weight:700;cursor:pointer;padding:0;font-family:inherit;width:auto">Tout marquer comme lu</button>
+      </div>
+      <div id="notif-list" style="max-height:340px;overflow-y:auto"></div>
+    </div>
   </div>
   <div class="sub" id="sub">Mon espace</div>
   <div id="notif-hint" class="hide" style="background:#FFF7ED;border:1px solid #FED7AA;border-radius:9px;padding:9px 11px;font-size:12px;color:#B45309;margin-bottom:12px;line-height:1.5"></div>
@@ -145,6 +166,92 @@
   var sb = null;
   var code = (location.pathname.split('/portail/')[1] || '').split('?')[0].split('#')[0].trim();
   var BACKOFFICE_URL = 'https://credigo-backoffice.netlify.app';
+  // ── Notifications ──
+  // Les fiches ouvertes sortent du décompte : sans cela, la pastille
+  // affiche indéfiniment le même nombre et perd tout sens.
+  var CLE_LUES = 'credigo_lues_' + (code || 'x');
+
+  function lues() {
+    try { return JSON.parse(localStorage.getItem(CLE_LUES) || '{}'); }
+    catch (e) { return {}; }
+  }
+  function marquerLue(id) {
+    try {
+      var l = lues(); l[id] = Date.now();
+      localStorage.setItem(CLE_LUES, JSON.stringify(l));
+    } catch (e) { /* mode privé : le décompte reste, sans bloquer */ }
+  }
+  function estLue(it) {
+    // Une fiche redevient non lue si son état change : une nouvelle
+    // action mérite une nouvelle alerte.
+    var l = lues();
+    var vu = l[it.request_id];
+    if (!vu) return false;
+    var maj = it.updated_at || it.answered_at || it.sent_at;
+    return !maj || new Date(maj).getTime() <= vu;
+  }
+
+  function nonLues() {
+    return allItems.filter(function (it) {
+      return it.action_required && !estLue(it);
+    });
+  }
+
+  function renderNotifs() {
+    var liste = document.getElementById('notif-list');
+    if (!liste) return;
+    var enAttente = allItems.filter(function (it) { return it.action_required; });
+
+    if (!enAttente.length) {
+      liste.innerHTML = '<div style="padding:22px 14px;text-align:center;font-size:12.5px;color:#9CA3AF">'
+        + 'Aucune action en attente.</div>';
+      return;
+    }
+
+    liste.innerHTML = enAttente.map(function (it) {
+      var lu = estLue(it);
+      var quoi = it.state === 'to_verify' ? 'March\u00e9 \u00e0 v\u00e9rifier'
+        : it.state === 'to_pay' ? 'R\u00e8glement attendu'
+        : 'Action requise';
+      return '<div class="notif-item" data-id="' + esc(it.request_id) + '">'
+        + '<div class="notif-dot' + (lu ? ' lu' : '') + '"></div>'
+        + '<div style="flex:1;min-width:0">'
+        +   '<div style="font-size:12.5px;font-weight:' + (lu ? '600' : '800') + ';color:#111827">'
+        +     esc(it.market_object || 'March\u00e9') + '</div>'
+        +   '<div style="font-size:11.5px;color:#6B7280;margin-top:2px">' + quoi
+        +     (it.contract_number ? ' \u00b7 ' + esc(it.contract_number) : '') + '</div>'
+        + '</div></div>';
+    }).join('');
+
+    // Ouvrir depuis la notification marque la fiche comme lue.
+    Array.prototype.forEach.call(liste.querySelectorAll('.notif-item'), function (el) {
+      el.addEventListener('click', function () {
+        var id = el.dataset.id;
+        marquerLue(id);
+        fermerPanneau();
+        majCompteurs();
+        openDetail(id);
+      });
+    });
+  }
+
+  function majCompteurs() {
+    var n = nonLues().length;
+    var p = document.getElementById('pastille');
+    if (p) {
+      p.textContent = n;
+      p.classList.toggle('hide', n === 0);
+    }
+    var c = document.getElementById('cnt-action');
+    if (c) c.textContent = n ? ' (' + n + ')' : '';
+    renderNotifs();
+  }
+
+  function fermerPanneau() {
+    var pan = document.getElementById('notif-panel');
+    if (pan) pan.classList.add('hide');
+  }
+
   var allItems = [];
   var currentTab = 'action';
   var searchTerm = '';
@@ -192,9 +299,10 @@
         var k = it.request_id || (it.contract_number + '|' + it.market_object);
         if (seen[k]) return; seen[k] = true; allItems.push(it);
       });
-      var nAction = allItems.filter(function (it) { return it.action_required; }).length;
+      var nAction = nonLues().length;
       updateCounts();
       updatePastille(nAction);
+      renderNotifs();
       renderTotaux(d.totaux);
       renderList();
       // Pastille du support dès l'ouverture, sans attendre le clic sur l'onglet.
@@ -210,7 +318,9 @@
   }
 
   function updateCounts() {
-    document.getElementById('cnt-action').textContent = ' ' + allItems.filter(function (it) { return it.action_required; }).length;
+    // Le compteur d'onglet suit les non-lues, comme la pastille.
+    var ca = document.getElementById('cnt-action');
+    if (ca) { var nl = nonLues().length; ca.textContent = nl ? ' (' + nl + ')' : ''; }
     document.getElementById('cnt-all').textContent = ' ' + allItems.length;
     document.getElementById('cnt-to_pay').textContent = ' ' + allItems.filter(function (it) { return it.state === 'to_pay' || it.state === 'approved'; }).length;
     document.getElementById('cnt-paid').textContent = ' ' + allItems.filter(function (it) { return it.state === 'paid'; }).length;
@@ -250,7 +360,34 @@
 
   // Rend l'\u00e9tat des notifications VISIBLE : gris = non activ\u00e9, violet = activ\u00e9.
   function refreshBell() {
-    var bell = document.getElementById('bell');
+    // La cloche ouvre le panneau ; l'activation des alertes système se fait
+  // depuis le panneau lui-même, pour ne pas mélanger les deux usages.
+  var bellEl = document.getElementById('bell');
+  if (bellEl) bellEl.addEventListener('click', function (e) {
+    e.stopPropagation();
+    var pan = document.getElementById('notif-panel');
+    if (!pan) return;
+    var ouvert = !pan.classList.contains('hide');
+    pan.classList.toggle('hide', ouvert);
+    if (!ouvert) renderNotifs();
+  });
+
+  // Fermer en cliquant ailleurs.
+  document.addEventListener('click', function (e) {
+    var pan = document.getElementById('notif-panel');
+    if (!pan || pan.classList.contains('hide')) return;
+    if (!pan.contains(e.target)) fermerPanneau();
+  });
+
+  var toutLu = document.getElementById('notif-all-read');
+  if (toutLu) toutLu.addEventListener('click', function (e) {
+    e.stopPropagation();
+    allItems.filter(function (it) { return it.action_required; })
+      .forEach(function (it) { marquerLue(it.request_id); });
+    majCompteurs();
+  });
+
+  var bell = document.getElementById('bell');
     var hint = document.getElementById('notif-hint');
     if (!bell) return;
     var supported = !!window.Notification;
@@ -324,7 +461,10 @@
     var frag = document.createDocumentFragment();
     items.forEach(function (it) {
       var card = document.createElement('div');
-      card.className = 'card' + (it.action_required ? ' act' : '');
+      // Point rouge sur les fiches jamais ouvertes : l'agent repère d'un
+      // coup d'œil ce qui est nouveau, sans ouvrir le panneau.
+      var nonLue = it.action_required && !estLue(it);
+      card.className = 'card' + (it.action_required ? ' act' : '') + (nonLue ? ' neuf' : '');
       var amount = it.amount_expected || it.market_amount;
       card.innerHTML =
         '<div class="c-top"><div><div class="c-obj">' + esc(it.market_object || 'March\u00e9') + '</div>'
@@ -368,6 +508,9 @@
 
   // ── DÉTAIL D'UN CONTRAT ──
   function openDetail(requestId) {
+    // Ouvrir une fiche vaut prise de connaissance : elle sort du décompte.
+    marquerLue(requestId);
+    setTimeout(majCompteurs, 0);
     var body = document.getElementById('detail-body');
     body.innerHTML = '<div class="msg">Chargement\u2026</div>';
     showView('detail');
