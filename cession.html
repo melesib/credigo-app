@@ -1,0 +1,305 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Credigo — Accord de cession</title>
+<link rel="stylesheet" href="/tabler-icons.min.css">
+<style>
+  * { box-sizing: border-box; }
+  body { margin: 0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    background: #F5F3FF; color: #111827; padding: 20px 14px; }
+  .wrap { max-width: 560px; margin: 0 auto; background: #fff; border-radius: 16px;
+    padding: 26px 22px; box-shadow: 0 4px 24px rgba(17,24,39,.07); }
+  .logo { font-size: 24px; font-weight: 800; color: #6C3FE8; text-align: center; }
+  .sub { text-align: center; color: #6B7280; font-size: 13px; margin-bottom: 20px; }
+  h1 { font-size: 19px; margin: 0 0 8px; }
+  .lead { font-size: 14px; color: #374151; line-height: 1.6; margin-bottom: 18px; }
+  .row { display: flex; justify-content: space-between; align-items: center;
+    padding: 9px 0; border-bottom: 1px solid #F3F4F6; font-size: 13.5px; }
+  .k { color: #6B7280; }
+  .v { font-weight: 700; text-align: right; }
+  .box { background: #F9FAFB; border-radius: 11px; padding: 14px; margin: 14px 0; }
+  .box-v { background: #F5F3FF; border: 1px solid #DDD6FE; }
+  .box-title { font-size: 12px; font-weight: 800; color: #4C1D95;
+    text-transform: uppercase; letter-spacing: .04em; margin-bottom: 8px; }
+  .btn { width: 100%; padding: 15px; border-radius: 11px; border: none; font-size: 15px;
+    font-weight: 800; cursor: pointer; font-family: inherit; background: #15803D;
+    color: #fff; margin-top: 12px; }
+  .btn-o { background: #fff; color: #374151; border: 1.5px solid #E5E7EB; }
+  .btn-no { background: #fff; color: #B91C1C; border: 1.5px solid #FECACA; }
+  input, textarea { width: 100%; padding: 12px 13px; border: 1px solid #E5E7EB;
+    border-radius: 10px; font-size: 14px; font-family: inherit; margin-top: 4px; }
+  label { font-size: 12.5px; font-weight: 700; color: #374151; display: block; margin-top: 12px; }
+  .sign { width: 100%; height: 110px; border: 1.5px dashed #C4B5FD; border-radius: 10px;
+    background: #fff; touch-action: none; margin-top: 4px; }
+  .hide { display: none; }
+  .msg { text-align: center; padding: 30px 10px; color: #6B7280; }
+  .ico { font-size: 42px; margin-bottom: 10px; }
+  .foot { text-align: center; font-size: 11.5px; color: #9CA3AF; margin-top: 18px; }
+  .note { font-size: 12.5px; color: #78350F; background: #FFFBEB; border: 1px solid #FDE68A;
+    border-radius: 10px; padding: 11px 13px; line-height: 1.6; margin: 12px 0; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="logo">Credigo</div>
+  <div class="sub">Demande d'accord de cession</div>
+
+  <div id="loading" class="msg">Chargement&#8230;</div>
+  <div id="invalid" class="msg hide"><div class="ico">&#9888;</div><div id="invalid-msg"></div></div>
+
+  <div id="content" class="hide">
+    <h1>Cession d'une créance à un financeur</h1>
+    <div class="lead" id="lead"></div>
+
+    <div class="box">
+      <div class="row"><span class="k">Dossier</span><span class="v" id="num"></span></div>
+      <div class="row"><span class="k">Marché</span><span class="v" id="objet"></span></div>
+      <div class="row"><span class="k">Prestataire</span><span class="v" id="entrepreneur"></span></div>
+      <div class="row"><span class="k">Donneur d'ordre</span><span class="v" id="donneur"></span></div>
+      <div class="row"><span class="k">Créance</span><span class="v" id="creance"></span></div>
+      <div class="row" style="border:none"><span class="k">Échéance</span><span class="v" id="echeance"></span></div>
+    </div>
+
+    <!-- Ce qui est demandé, et ce que la banque conserve : présenter
+         seulement la part cédée donnerait une impression tronquée. -->
+    <div class="box box-v">
+      <div class="box-title">Ce qui vous est demandé</div>
+      <div class="row"><span class="k">Votre commission sur ce dossier</span><span class="v" id="com-banque"></span></div>
+      <div class="row"><span class="k">Part que nous vous demandons de céder</span><span class="v" id="cede-banque" style="color:#B45309"></span></div>
+      <div class="row" style="border:none"><span class="k">Ce que vous conservez</span><span class="v" id="reste-banque" style="color:#15803D"></span></div>
+    </div>
+
+    <div class="note" id="note-credigo"></div>
+
+    <div id="actions">
+      <button class="btn" onclick="choisir('accord')">Accepter la cession</button>
+      <button class="btn btn-o" onclick="choisir('contre_proposition')">Proposer un autre montant</button>
+      <button class="btn btn-no" onclick="choisir('refus')">Refuser</button>
+    </div>
+
+    <div id="form" class="hide">
+      <div id="form-titre" style="font-size:15px;font-weight:800;margin-top:16px"></div>
+
+      <div id="champ-part" class="hide">
+        <label>Part de votre commission que vous acceptez de céder (%)</label>
+        <input type="number" id="part" min="0" max="100" step="1" placeholder="Ex. 30">
+      </div>
+
+      <label id="lbl-note">Observation</label>
+      <textarea id="note" rows="3" placeholder="Précision éventuelle…"></textarea>
+
+      <label>Votre nom</label>
+      <input type="text" id="signataire" placeholder="Nom et prénom">
+      <label>Votre fonction</label>
+      <input type="text" id="fonction" placeholder="Fonction">
+
+      <label>Signature</label>
+      <canvas class="sign" id="sign"></canvas>
+      <div style="font-size:12px;color:#6C3FE8;cursor:pointer;margin-top:4px" onclick="effacer()">Effacer la signature</div>
+
+      <div style="font-size:12px;color:#6B7280;background:#F9FAFB;border-radius:9px;padding:11px;margin-top:12px;line-height:1.6">
+        En validant, vous engagez votre établissement sur la part de commission
+        indiquée. Cette réponse est horodatée et conservée.
+      </div>
+
+      <button class="btn" id="btn-envoyer" onclick="envoyer()">Valider ma réponse</button>
+      <button class="btn btn-o" onclick="retour()">Retour</button>
+    </div>
+  </div>
+
+  <div id="done" class="msg hide">
+    <div class="ico">&#10003;</div>
+    <div id="done-msg"></div>
+    <div id="done-actions" style="margin-top:18px"></div>
+  </div>
+
+  <div class="foot">Ce lien vous est réservé. En cas de doute, contactez Credigo.</div>
+</div>
+
+<script src="/supabase.min.js"></script>
+<script>
+(function () {
+  var SB_URL = window.CREDIGO_SB_URL || 'https://mlunlbaumfogibnyxqaq.supabase.co';
+  var SB_KEY = window.CREDIGO_SB_KEY || '';
+  var sb = window.supabase.createClient(SB_URL, SB_KEY);
+
+  var token = (location.pathname.split('/cession/')[1] || '').split('?')[0].split('#')[0].trim();
+  var data = null, choix = null;
+
+  function show(id) {
+    ['loading','invalid','content','done'].forEach(function (x) {
+      var e = document.getElementById(x);
+      if (e) e.classList.toggle('hide', x !== id);
+    });
+  }
+  function fail(m) {
+    document.getElementById('invalid-msg').textContent = m;
+    show('invalid');
+  }
+  function fmt(n) {
+    return new Intl.NumberFormat('fr-FR').format(Math.round(n || 0)) + ' FCFA';
+  }
+  function dateFr(d) {
+    return d ? new Date(d).toLocaleDateString('fr-FR',
+      { day: '2-digit', month: 'long', year: 'numeric' }) : '—';
+  }
+  function esc(s) {
+    return String(s == null ? '' : s).replace(/[<>&"]/g, function (c) {
+      return ({ '<': '&lt;', '>': '&gt;', '&': '&amp;', '"': '&quot;' })[c];
+    });
+  }
+
+  if (!token) { fail('Lien invalide.'); return; }
+
+  sb.rpc('get_cession', { p_token: token }).then(function (res) {
+    var d = (res && res.data) || {};
+    if (res.error || d.error) {
+      return fail(d.message || 'Ce lien est invalide ou a expiré.');
+    }
+    if (d.reponse) {
+      document.getElementById('done-msg').textContent =
+        d.reponse === 'refus'
+          ? 'Vous avez refusé cette cession. Merci de votre réponse.'
+          : 'Votre accord a bien été enregistré. Merci.';
+      show('done');
+      return;
+    }
+
+    data = d;
+    document.getElementById('lead').textContent =
+      'Credigo souhaite céder cette créance à un financeur pour reconstituer '
+      + 'la ligne de cantonnement ouverte chez ' + (d.banque || 'votre établissement')
+      + '. Rémunérer le financeur suppose de mobiliser une part des commissions.';
+
+    document.getElementById('num').textContent = d.contract_number || '—';
+    document.getElementById('objet').textContent = d.market_object || '—';
+    document.getElementById('entrepreneur').textContent = d.entrepreneur || '—';
+    document.getElementById('donneur').textContent = d.donneur || '—';
+    document.getElementById('creance').textContent = fmt(d.montant_creance);
+    document.getElementById('echeance').textContent =
+      dateFr(d.echeance) + (d.jours_restants ? ' (dans ' + d.jours_restants + ' j)' : '');
+
+    document.getElementById('com-banque').textContent = fmt(d.commission_banque);
+    document.getElementById('cede-banque').textContent =
+      fmt(d.cede_banque) + ' (' + (d.part_banque_pct || 0) + ' %)';
+    document.getElementById('reste-banque').textContent = fmt(d.reste_banque);
+
+    // Montrer l'effort de Credigo rend la demande acceptable : on ne
+    // demande pas un sacrifice unilatéral.
+    document.getElementById('note-credigo').innerHTML =
+      '<b>Credigo consent au même effort.</b><br>'
+      + 'Sur sa commission de ' + fmt(d.commission_credigo) + ', Credigo cède '
+      + fmt(d.cede_credigo) + ' (' + (d.part_credigo_pct || 0) + ' %). '
+      + 'Le financeur percevra au total ' + fmt((d.cede_banque || 0) + (d.cede_credigo || 0)) + '.';
+
+    show('content');
+  }, function () { fail('Service momentanément indisponible.'); });
+
+  // ── Signature ──
+  var pad = document.getElementById('sign'), ctx = null, dessine = false, vide = true;
+  function initPad() {
+    if (!pad) return;
+    var r = pad.getBoundingClientRect();
+    pad.width = r.width * 2; pad.height = r.height * 2;
+    ctx = pad.getContext('2d');
+    ctx.scale(2, 2);
+    ctx.lineWidth = 2; ctx.lineCap = 'round'; ctx.strokeStyle = '#111827';
+  }
+  function pos(e) {
+    var r = pad.getBoundingClientRect();
+    var p = e.touches ? e.touches[0] : e;
+    return { x: p.clientX - r.left, y: p.clientY - r.top };
+  }
+  function start(e) { e.preventDefault(); dessine = true; vide = false; var p = pos(e); ctx.beginPath(); ctx.moveTo(p.x, p.y); }
+  function move(e) { if (!dessine) return; e.preventDefault(); var p = pos(e); ctx.lineTo(p.x, p.y); ctx.stroke(); }
+  function stop() { dessine = false; }
+  if (pad) {
+    ['mousedown','touchstart'].forEach(function (x) { pad.addEventListener(x, start); });
+    ['mousemove','touchmove'].forEach(function (x) { pad.addEventListener(x, move); });
+    ['mouseup','mouseleave','touchend'].forEach(function (x) { pad.addEventListener(x, stop); });
+  }
+  window.effacer = function () { if (ctx) { ctx.clearRect(0, 0, pad.width, pad.height); vide = true; } };
+
+  window.choisir = function (c) {
+    choix = c;
+    document.getElementById('actions').classList.add('hide');
+    document.getElementById('form').classList.remove('hide');
+    document.getElementById('champ-part').classList.toggle('hide', c !== 'contre_proposition');
+
+    var titres = {
+      accord: 'Confirmer votre accord',
+      contre_proposition: 'Proposer un autre montant',
+      refus: 'Refuser cette cession',
+    };
+    document.getElementById('form-titre').textContent = titres[c];
+    document.getElementById('lbl-note').textContent =
+      c === 'refus' ? 'Motif du refus (obligatoire)' : 'Observation (facultatif)';
+
+    var b = document.getElementById('btn-envoyer');
+    b.textContent = c === 'refus' ? 'Confirmer le refus' : 'Valider ma réponse';
+    b.className = c === 'refus' ? 'btn btn-no' : 'btn';
+
+    if (!ctx) initPad();
+  };
+
+  window.retour = function () {
+    document.getElementById('form').classList.add('hide');
+    document.getElementById('actions').classList.remove('hide');
+    choix = null;
+  };
+
+  window.envoyer = function () {
+    var note = document.getElementById('note').value.trim();
+    var signataire = document.getElementById('signataire').value.trim();
+    var fonction = document.getElementById('fonction').value.trim();
+    var part = document.getElementById('part') ? document.getElementById('part').value : null;
+
+    if (choix === 'refus' && !note) {
+      alert('Merci d\u2019indiquer le motif de votre refus.'); return;
+    }
+    if (choix === 'contre_proposition' && (!part || Number(part) <= 0)) {
+      alert('Indiquez la part que vous acceptez de c\u00e9der.'); return;
+    }
+    if (!signataire) { alert('Merci d\u2019indiquer votre nom.'); return; }
+    if (vide) { alert('Merci de signer.'); return; }
+
+    var b = document.getElementById('btn-envoyer');
+    b.disabled = true; b.textContent = 'Envoi\u2026';
+
+    sb.rpc('repondre_cession', {
+      p_token: token,
+      p_reponse: choix,
+      p_part_accordee: part ? Number(part) : null,
+      p_note: note || null,
+      p_signataire: signataire,
+      p_fonction: fonction || null,
+      p_signature: pad.toDataURL('image/png'),
+      p_ip: null,
+      p_agent: navigator.userAgent,
+      p_empreinte: String(screen.width) + 'x' + String(screen.height)
+        + '|' + Intl.DateTimeFormat().resolvedOptions().timeZone,
+    }).then(function (res) {
+      var d = (res && res.data) || {};
+      if (res.error || d.error) {
+        alert(d.message || 'Une erreur est survenue.');
+        b.disabled = false; b.textContent = 'Valider ma r\u00e9ponse';
+        return;
+      }
+      document.getElementById('done-msg').textContent =
+        choix === 'refus'
+          ? 'Votre refus a bien \u00e9t\u00e9 enregistr\u00e9. Merci de votre r\u00e9ponse.'
+          : choix === 'contre_proposition'
+          ? 'Votre proposition a \u00e9t\u00e9 transmise \u00e0 Credigo. Nous revenons vers vous.'
+          : 'Votre accord a bien \u00e9t\u00e9 enregistr\u00e9. Merci.';
+      show('done');
+    }, function () {
+      alert('Service momentan\u00e9ment indisponible.');
+      b.disabled = false; b.textContent = 'Valider ma r\u00e9ponse';
+    });
+  };
+})();
+</script>
+</body>
+</html>
