@@ -87,6 +87,7 @@
     <div id="done" class="msg hide">
       <div class="ico">&#10004;</div>
       <div id="done-msg">Merci &#8212; le d&#233;caissement est enregistr&#233;. Le dossier passe en suivi de remboursement.</div>
+      <div id="delai-info" class="hide" style="text-align:left;background:#EFF6FF;border:1px solid #BFDBFE;border-radius:10px;padding:11px 13px;margin-top:14px;font-size:12.5px;color:#1E3A8A;line-height:1.6"></div>
       <div id="done-actions" style="margin-top:18px"></div>
     </div>
 
@@ -130,6 +131,19 @@
       }
       actions.innerHTML = html;
     }, function () { });
+  }
+
+  // Le bénéficiaire ne verra pas les fonds immédiatement si son compte
+  // est dans un autre établissement : le dire évite des relances.
+  function afficherDelai(d) {
+    var box = document.getElementById('delai-info');
+    if (!box) return;
+    if (d.meme_banque || !d.delai_jours) { box.classList.add('hide'); return; }
+    box.classList.remove('hide');
+    box.innerHTML = '<b>Virement interbancaire</b><br>'
+      + 'Le compte du b\u00e9n\u00e9ficiaire \u00e9tant dans un autre \u00e9tablissement, '
+      + 'les fonds peuvent mettre jusqu\u2019\u00e0 ' + d.delai_jours
+      + ' jours ouvr\u00e9s \u00e0 y appara\u00eetre. Le b\u00e9n\u00e9ficiaire en a \u00e9t\u00e9 inform\u00e9.';
   }
 
   function fail(m) { if (m) document.getElementById('invalid-msg').textContent = m; show('invalid'); }
@@ -268,7 +282,10 @@
             return;
           }
           b.disabled = false; b.textContent = 'Confirmer le d\u00e9caissement';
-          if (d.ok) { show('done'); fillBankActions(); return; }
+          if (d.ok) {
+            afficherDelai(d);
+            show('done'); fillBankActions(); return;
+          }
           if (d.error === 'already_confirmed') { show('done'); fillBankActions(); return; }
           err(d.error === 'expired' ? 'Ce lien a expir\u00e9.'
             : d.error === 'invalid_amount' ? 'Montant invalide.'
