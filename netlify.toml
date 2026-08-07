@@ -52,3 +52,7 @@
   from = "/r/*"
   to = "/remboursement.html"
   status = 200
+[[redirects]]
+  from = "/cession/*"
+  to = "/cession.html"
+  status = 200
