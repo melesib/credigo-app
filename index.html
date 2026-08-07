@@ -3892,11 +3892,31 @@ function renderENotifs(){
 }
 
 // Catégorie → icône et classe de couleur (convention : vert=argent, bleu=bonne nouvelle, jaune=action, violet=info)
+// La police d'icônes peut ne pas se charger — réseau, cache, version.
+// On teste une fois plutôt que d'afficher des carrés vides.
+var _icoCache = {};
+function iconeDisponible(nom){
+  if(_icoCache[nom] !== undefined) return _icoCache[nom];
+  try{
+    var e = document.createElement('i');
+    e.className = 'ti ti-' + nom;
+    e.style.cssText = 'position:absolute;visibility:hidden;left:-9999px';
+    document.body.appendChild(e);
+    var c = getComputedStyle(e, ':before').content;
+    _icoCache[nom] = !!c && c !== 'none' && c !== '""' && c !== 'normal';
+    e.remove();
+  } catch(err){ _icoCache[nom] = false; }
+  return _icoCache[nom];
+}
+
 function notifVisual(cat){
-  if(cat==='money')   return {ic:'money', icon:'cash'};
-  if(cat==='success') return {ic:'check', icon:'circle-check'};
-  if(cat==='warning') return {ic:'todo',  icon:'alert-triangle'};
-  return {ic:'info', icon:'info-circle'};
+  // Le « repli » est un caractère Unicode affiché sous l'icône : si la
+  // police ne fournit pas le glyphe, l'encadré n'est pas vide pour autant.
+  if(cat==='money')   return {ic:'money', icon:'cash', repli:'\u25CE'};
+  if(cat==='success') return {ic:'check', icon:'check', repli:'\u2713'};
+  if(cat==='warning') return {ic:'todo',  icon:'alert-triangle', repli:'\u26A0'};
+  if(cat==='error')   return {ic:'todo',  icon:'alert-triangle', repli:'\u26A0'};
+  return {ic:'info', icon:'info-circle', repli:'\u2139'};
 }
 function timeAgo(iso){
   if(!iso) return '';
@@ -7800,8 +7820,11 @@ function renderNotifs() {
     var div = document.createElement('div');
     div.className = 'notif-item' + (!n.is_read ? ' unread' : '');
     div.innerHTML =
-      '<div class="notif-icon" style="background:' + (bgMap[v.ic]||'#EEE8FF') + '">' +
-        '<i class="ti ti-' + v.icon + '" style="color:' + (colorMap[v.ic]||'#6C3FE8') + ';font-size:16px"></i>' +
+      '<div class="notif-icon" style="background:' + (bgMap[v.ic]||'#EEE8FF')
+        + ';color:' + (colorMap[v.ic]||'#6C3FE8') + '">' +
+        (iconeDisponible(v.icon)
+          ? '<i class="ti ti-' + v.icon + '" style="font-size:16px"></i>'
+          : '<span style="font-size:16px;line-height:1">' + (v.repli || '\u2139') + '</span>') +
       '</div>' +
       '<div class="notif-body">' +
         '<div class="notif-title">' + (n.title||'') + '</div>' +
