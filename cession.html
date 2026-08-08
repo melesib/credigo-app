@@ -64,11 +64,11 @@
 
     <!-- Ce qui est demandé, et ce que la banque conserve : présenter
          seulement la part cédée donnerait une impression tronquée. -->
+    <!-- Les trois parts ensemble : un effort ne se juge qu'en regard
+         de celui des autres. -->
     <div class="box box-v">
-      <div class="box-title">Ce qui vous est demandé</div>
-      <div class="row"><span class="k">Votre commission sur ce dossier</span><span class="v" id="com-banque"></span></div>
-      <div class="row"><span class="k">Part que nous vous demandons de céder</span><span class="v" id="cede-banque" style="color:#B45309"></span></div>
-      <div class="row" style="border:none"><span class="k">Ce que vous conservez</span><span class="v" id="reste-banque" style="color:#15803D"></span></div>
+      <div class="box-title">Répartition de la marge</div>
+      <div id="repartition"></div>
     </div>
 
     <div class="note" id="note-credigo"></div>
@@ -181,18 +181,43 @@
     document.getElementById('echeance').textContent =
       dateFr(d.echeance) + (d.jours_restants ? ' (dans ' + d.jours_restants + ' j)' : '');
 
-    document.getElementById('com-banque').textContent = fmt(d.commission_banque);
-    document.getElementById('cede-banque').textContent =
-      fmt(d.cede_banque) + ' (' + (d.part_banque_pct || 0) + ' %)';
-    document.getElementById('reste-banque').textContent = fmt(d.reste_banque);
+    var r = d.repartition || {};
+    var lignes = [
+      { nom: 'Vous (banque)', d: r.banque, couleur: '#15803D' },
+      { nom: 'Credigo', d: r.credigo, couleur: '#6C3FE8' },
+      { nom: 'Financeur', d: r.financeur, couleur: '#B45309' },
+    ];
+    document.getElementById('repartition').innerHTML =
+      '<div style="font-size:12.5px;color:#6B7280;margin-bottom:10px">'
+      + 'Marge totale du dossier : <b>' + fmt(d.marge_totale) + '</b></div>'
+      + lignes.map(function (l) {
+          if (!l.d) return '';
+          return '<div style="margin-bottom:10px">'
+            + '<div style="display:flex;justify-content:space-between;font-size:13.5px">'
+            +   '<span style="font-weight:700">' + l.nom + '</span>'
+            +   '<span style="font-weight:800;color:' + l.couleur + '">'
+            +     fmt(l.d.montant) + ' · ' + (l.d.pct || 0) + ' %</span>'
+            + '</div>'
+            + '<div style="font-size:11.5px;color:#6B7280">' + (l.d.libelle || '') + '</div>'
+            + '<div style="height:5px;background:#EDE9FE;border-radius:3px;margin-top:4px;overflow:hidden">'
+            +   '<div style="width:' + Math.min(100, l.d.pct || 0) + '%;height:100%;background:' + l.couleur + '"></div>'
+            + '</div></div>';
+        }).join('');
 
-    // Montrer l'effort de Credigo rend la demande acceptable : on ne
-    // demande pas un sacrifice unilatéral.
+    // Ce que chacun consent : la restitution demandée à la banque se
+    // lit à côté de la commission cédée par Credigo.
+    var effortBanque = (r.banque && r.banque.restitue) || 0;
+    var effortCredigo = (r.credigo && r.credigo.cede) || 0;
     document.getElementById('note-credigo').innerHTML =
-      '<b>Credigo consent au même effort.</b><br>'
-      + 'Sur sa commission de ' + fmt(d.commission_credigo) + ', Credigo cède '
-      + fmt(d.cede_credigo) + ' (' + (d.part_credigo_pct || 0) + ' %). '
-      + 'Le financeur percevra au total ' + fmt((d.cede_banque || 0) + (d.cede_credigo || 0)) + '.';
+      '<b>Ce que chacun consent</b><br>'
+      + 'Vous restituez ' + fmt(effortBanque) + ' d\u2019int\u00e9r\u00eats non courus — '
+      + 'vous \u00eates rembours\u00e9 par anticipation et cessez de porter le risque.<br>'
+      + 'Credigo c\u00e8de ' + fmt(effortCredigo) + ' de sa commission'
+      + (r.credigo && r.credigo.cede_pct_commission
+          ? ' (' + r.credigo.cede_pct_commission + ' % de sa part)' : '')
+      + '.<br>Le financeur per\u00e7oit ' + fmt(effortBanque + effortCredigo)
+      + ', soit un rendement de '
+      + ((r.financeur && r.financeur.rendement) || d.rendement_offert || 0) + ' %.';
 
     show('content');
   }, function () { fail('Service momentanément indisponible.'); });
