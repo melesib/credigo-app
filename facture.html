@@ -153,6 +153,7 @@ function demarrer() {
     auth: { persistSession: false, autoRefreshToken: false, detectSessionInUrl: false },
   });
 
+  var dests = [];
   var token = (location.pathname.split('/facture/')[1] || '').split('?')[0].split('#')[0].trim();
   var data = null;
 
@@ -212,7 +213,7 @@ function demarrer() {
         : '');
 
     // Les destinataires, avec leur compte respectif.
-    var dests = data.destinataires || [];
+    dests = data.destinataires || [];
     var parFin = data.par_financeur || [];
 
     // Le bloc « financeur » global n'a pas de compte : ce sont les
