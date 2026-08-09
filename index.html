@@ -1949,6 +1949,24 @@ textarea{resize:vertical;min-height:70px}
   <div class="pg-title">Vérification KYC Investisseur</div>
   <div class="pg-sub">3 étapes pour activer votre compte investisseur</div>
 
+  <!-- Sans ce rappel, un financeur qui revient croit devoir tout
+       recommencer et abandonne. -->
+  <div id="fkyc-resume" style="display:none;background:#F0FDF4;border:1px solid #BBF7D0;
+    border-radius:10px;padding:11px 13px;margin-bottom:12px;font-size:12.5px;
+    color:#166534;line-height:1.5"></div>
+
+  <div style="background:#F9FAFB;border-radius:10px;padding:11px 13px;margin-bottom:14px">
+    <div style="display:flex;justify-content:space-between;font-size:12px;
+      color:#6B7280;margin-bottom:6px">
+      <span>Progression</span>
+      <span id="fkyc-progress-label">0 / 12 documents</span>
+    </div>
+    <div style="height:6px;background:#E5E7EB;border-radius:4px;overflow:hidden">
+      <div id="fkyc-progress-bar" style="width:0%;height:100%;background:#6C3FE8;
+        border-radius:4px;transition:width .3s"></div>
+    </div>
+  </div>
+
   <!-- Stepper -->
   <div class="stepper-card">
     <div class="stepper-row">
@@ -3364,6 +3382,8 @@ function renderScreen(id) {
   if (id === 'e-support') renderMyTickets();
   if (id === 'e-home') renderAstuceSecurite();
   if (id === 'f-portfolio') renderFPortfolio();
+  if (id === 'f-kyc-upload') restaurerKyc('f');
+  if (id === 'e-kyc') restaurerKyc('e');
   if (id === 'f-offers') chargerOffres();
   if (id === 'f-portfolio') chargerMesCreances();
   if (id === 'f-wallet') renderFWallet();
@@ -6005,6 +6025,81 @@ function updateEKycProgress() {
     }
   }
   if (uploaded === total) toast('✅ Tous les documents sont chargés ! Vous pouvez soumettre votre dossier.');
+}
+
+// ═══════════════════════════════════════════════════════════════
+// REPRISE DU DOSSIER KYC
+// ═══════════════════════════════════════════════════════════════
+// « kycUploaded » ne vit qu'en mémoire : un rechargement effaçait la
+// trace des pièces déjà envoyées, et le financeur croyait devoir tout
+// recommencer. On relit ce qui existe en base à l'ouverture.
+
+var _kycRestaure = false;
+
+async function restaurerKyc(portal) {
+  if (_kycRestaure) return;
+  _kycRestaure = true;
+  try {
+    var u = await sb.auth.getUser();
+    var uid = u && u.data && u.data.user && u.data.user.id;
+    if (!uid) return;
+
+    var r = await sb.from('kyc_documents')
+      .select('doc_type, file_name, status')
+      .eq('app_user_id', uid);
+    if (r.error || !r.data) return;
+
+    // Retrouver la case correspondant à chaque type enregistré.
+    var parType = {};
+    Object.keys(KYC_DOC_MAP || {}).forEach(function (k) {
+      var d = KYC_DOC_MAP[k];
+      if (d && d.type) parType[d.type] = k;
+    });
+
+    var n = 0;
+    r.data.forEach(function (doc) {
+      var cle = parType[doc.doc_type];
+      if (!cle) return;
+      if (typeof kycUploaded !== 'undefined') {
+        kycUploaded[cle] = { name: doc.file_name || 'Document', size: 0, type: doc.doc_type };
+      }
+      var badge = document.getElementById('badge-' + cle);
+      if (badge) {
+        // Un document refusé doit se voir : le financeur doit le
+        // remplacer, pas croire son dossier complet.
+        if (doc.status === 'rejected') {
+          badge.textContent = 'À remplacer';
+          badge.className = 'kyc-status-badge rejected';
+        } else {
+          badge.textContent = doc.status === 'approved' ? 'Validé' : 'Envoyé';
+          badge.className = 'kyc-status-badge done';
+        }
+      }
+      n += 1;
+    });
+
+    if (n > 0) {
+      if (portal === 'f') updateFKycProgress(); else updateKycProgress();
+      var msg = document.getElementById(portal === 'f' ? 'fkyc-resume' : 'kyc-resume');
+      if (msg) {
+        msg.style.display = 'block';
+        msg.textContent = n + ' document' + (n > 1 ? 's' : '') + ' déjà envoyé'
+          + (n > 1 ? 's' : '') + '. Poursuivez où vous vous êtes arrêté.';
+      }
+    }
+
+    // Le RIB saisi compte comme renseigné, même sans pièce jointe.
+    var p = await sb.from('app_users').select('compte_bancaire').eq('id', uid).maybeSingle();
+    if (p.data && p.data.compte_bancaire) {
+      var b = document.getElementById('badge-fkdoc-rib');
+      if (b && b.textContent === 'En attente') {
+        b.textContent = 'Renseigné';
+        b.className = 'kyc-status-badge done';
+      }
+    }
+  } catch (e) {
+    console.warn('[Credigo] Reprise KYC impossible', e.message);
+  }
 }
 
 function updateFKycProgress() {
