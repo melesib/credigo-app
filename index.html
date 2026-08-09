@@ -1162,12 +1162,8 @@ textarea{resize:vertical;min-height:70px}
 <!-- SIDEBAR F -->
 <div class="sidebar" id="sb-f" style="display:none">
   <div class="s-sec">Investir</div>
-  <div class="slink on" onclick="goSc('f-offers','f',this)"><i class="ti ti-search"></i><span class="lbl">Explorer les offres</span></div>
-  <div class="slink" onclick="goSc('f-portfolio','f',this)"><i class="ti ti-chart-line"></i><span class="lbl">Mes investissements</span></div>
-  <div class="s-sec">Finances</div>
-  <div class="slink" onclick="goSc('f-wallet','f',this)"><i class="ti ti-wallet"></i><span class="lbl">Portefeuille</span></div>
-  <div class="slink" onclick="goSc('f-transactions','f',this)"><i class="ti ti-arrows-exchange"></i><span class="lbl">Transactions</span></div>
-  <div class="slink" onclick="goSc('f-retraits','f',this)"><i class="ti ti-cash"></i><span class="lbl">Retraits</span></div>
+  <div class="slink on" onclick="goSc('f-offers','f',this)"><i class="ti ti-search"></i><span class="lbl">Créances à racheter</span></div>
+  <div class="slink" onclick="goSc('f-portfolio','f',this)"><i class="ti ti-chart-line"></i><span class="lbl">Mes créances</span></div>
   <div class="s-sec">Compte</div>
   <div class="slink" onclick="goSc('f-profile','f',this)"><i class="ti ti-user-circle"></i><span class="lbl">Mon profil</span></div>
   <div class="slink" onclick="goSc('f-kyc-upload','f',this)"><i class="ti ti-shield-check"></i><span class="lbl">Vérification KYC</span><span id="kyc-status-badge-f" style="display:none;margin-left:auto;font-size:9px;font-weight:800;padding:2px 7px;border-radius:10px;background:#FEF3C7;color:#92400E"></span></div>
@@ -1461,53 +1457,32 @@ textarea{resize:vertical;min-height:70px}
 
 <!-- ═══ F-OFFERS ═══ -->
 <div id="f-offers" class="screen">
-  <div class="pg-title">Explorer les offres</div><div class="pg-sub">Investissez dans des contrats vérifiés et gagnez</div>
-  <div style="display:flex;align-items:center;gap:8px;background:#EEE8FF;color:#4C1D95;font-size:12px;font-weight:700;padding:10px 13px;border-radius:10px;margin-bottom:16px;border:1.5px solid #C4B5FD"><i class="ti ti-shield-check" style="flex-shrink:0"></i> Contrats vérifiés par Credigo · Fonds sécurisés en séquestre</div>
-  <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:12px">
-    <div class="card" style="margin:0;border-color:#6C3FE8;border-width:2px;cursor:pointer" onclick="openInv('Route N4 AGEROUTE','35000000',8,6)">
-      <div style="display:inline-flex;align-items:center;gap:4px;background:#6C3FE8;color:#fff;font-size:10px;font-weight:800;padding:3px 10px;border-radius:20px;margin-bottom:10px"><i class="ti ti-flame" style="font-size:10px"></i> Forte demande</div>
-      <div style="font-size:14px;font-weight:800;color:#111827;margin-bottom:3px">Réhabilitation route N4</div>
-      <div style="font-size:11px;color:#6B7280;margin-bottom:10px"><span style="background:#FEF3C7;color:#D97706;font-size:10px;font-weight:700;padding:2px 7px;border-radius:5px">BTP</span> · 6 mois · AGEROUTE</div>
-      <div style="font-size:20px;font-weight:800;color:#111827;margin-bottom:3px">35 000 000 FCFA</div>
-      <div style="font-size:12px;font-weight:600;margin-bottom:10px">Rendement : <strong style="color:#00C27C">+8% / 6 mois</strong></div>
-      <div style="height:5px;background:#F3F4F6;border-radius:20px;overflow:hidden;margin-bottom:5px"><div style="width:62%;height:100%;background:#6C3FE8;border-radius:20px"></div></div>
-      <div style="font-size:11px;color:#6B7280;font-weight:600;display:flex;justify-content:space-between"><span>62% financé</span><span>13,3 M restants</span></div>
-    </div>
-    <div class="card" style="margin:0;cursor:pointer" onclick="openInv('Fibre MTN CI','12000000',6,4)">
-      <div style="font-size:14px;font-weight:800;color:#111827;margin-bottom:3px">Réseau fibre – MTN CI</div>
-      <div style="font-size:11px;color:#6B7280;margin-bottom:10px"><span style="background:#EEE8FF;color:#6C3FE8;font-size:10px;font-weight:700;padding:2px 7px;border-radius:5px">Tech</span> · 4 mois</div>
-      <div style="font-size:20px;font-weight:800;color:#111827;margin-bottom:3px">12 000 000 FCFA</div>
-      <div style="font-size:12px;font-weight:600;margin-bottom:10px">Rendement : <strong style="color:#00C27C">+6% / 4 mois</strong></div>
-      <div style="height:5px;background:#F3F4F6;border-radius:20px;overflow:hidden;margin-bottom:5px"><div style="width:30%;height:100%;background:#6C3FE8;border-radius:20px"></div></div>
-      <div style="font-size:11px;color:#6B7280;font-weight:600;display:flex;justify-content:space-between"><span>30% financé</span><span>8,4 M restants</span></div>
-    </div>
-    <div class="card" style="margin:0;cursor:pointer" onclick="openInv('Mobilier MINF','8000000',7,3)">
-      <div style="font-size:14px;font-weight:800;color:#111827;margin-bottom:3px">Fourniture mobilier – MINF</div>
-      <div style="font-size:11px;color:#6B7280;margin-bottom:10px"><span style="background:#F3F4F6;color:#374151;font-size:10px;font-weight:700;padding:2px 7px;border-radius:5px">Services</span> · 3 mois</div>
-      <div style="font-size:20px;font-weight:800;color:#111827;margin-bottom:3px">8 000 000 FCFA</div>
-      <div style="font-size:12px;font-weight:600;margin-bottom:10px">Rendement : <strong style="color:#00C27C">+7% / 3 mois</strong></div>
-      <div style="height:5px;background:#F3F4F6;border-radius:20px;overflow:hidden;margin-bottom:5px"><div style="width:85%;height:100%;background:#6C3FE8;border-radius:20px"></div></div>
-      <div style="font-size:11px;color:#6B7280;font-weight:600;display:flex;justify-content:space-between"><span>85% financé</span><span>1,2 M restants</span></div>
-    </div>
+  <div class="pg-title">Créances à racheter</div>
+  <div class="pg-sub">Rachetez une créance et percevez son règlement à l'échéance</div>
+
+  <!-- Le financeur achète un RISQUE DE NON-PAIEMENT : le rendement seul
+       ne suffit pas à décider. La qualité du payeur figure sur chaque
+       offre, au même niveau que le gain. -->
+  <div style="display:flex;align-items:flex-start;gap:8px;background:#EEE8FF;color:#4C1D95;font-size:12px;line-height:1.6;padding:11px 13px;border-radius:10px;margin-bottom:14px">
+    <i class="ti ti-info-circle" style="flex-shrink:0;margin-top:1px"></i>
+    <span>Une créance se rachète en entier. Vous versez le prix indiqué et
+    percevez le montant du marché à l'échéance, diminué de la taxe retenue
+    à la source.</span>
   </div>
-  <div id="inv-panel" style="display:none;margin-top:14px">
-    <div class="card" style="margin:0">
-      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
-        <div style="font-size:14px;font-weight:800" id="inv-hd">Investir</div>
-        <button class="btn-s" style="padding:5px 11px;font-size:12px" onclick="document.getElementById('inv-panel').style.display='none'">Fermer</button>
-      </div>
-      <div style="background:#F9FAFB;border:1px solid #E5E7EB;border-radius:9px;padding:10px;margin-bottom:12px">
-        <div style="display:flex;justify-content:space-between;padding:5px 0;border-bottom:1px solid #E5E7EB;font-size:13px"><span style="color:#6B7280;font-weight:600">Contrat</span><span style="font-weight:700" id="inv-name"></span></div>
-        <div style="display:flex;justify-content:space-between;padding:5px 0;border-bottom:1px solid #E5E7EB;font-size:13px"><span style="color:#6B7280;font-weight:600">Rendement</span><span style="font-weight:800;color:#00C27C" id="inv-rate"></span></div>
-        <div style="display:flex;justify-content:space-between;padding:5px 0;font-size:13px"><span style="color:#6B7280;font-weight:600">Total contrat</span><span style="font-weight:700" id="inv-total"></span></div>
-      </div>
-      <div class="fgrid">
-        <div class="fg"><label>Montant à investir (FCFA)</label><input type="number" id="inv-amt" placeholder="ex: 5 000 000" step="100000" oninput="calcRet()"></div>
-        <div class="fg"><label>Vous recevrez à l'échéance</label><div style="background:#EEE8FF;border:1.5px solid #C4B5FD;border-radius:9px;padding:10px;font-size:14px;font-weight:800;color:#4C1D95;min-height:40px;display:flex;align-items:center" id="inv-ret">—</div></div>
-      </div>
-      <div class="btn-row"><button class="btn-p green" onclick="openInvestModal()"><i class="ti ti-lock"></i> Payer &amp; Investir</button></div>
-    </div>
+
+  <div id="f-offers-list">
+    <div style="text-align:center;padding:30px;color:#9CA3AF;font-size:13px">Chargement…</div>
   </div>
+</div>
+
+<!-- ═══ F-OFFER-DETAIL ═══ -->
+<div id="f-offer-detail" class="screen">
+  <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px">
+    <button class="btn-o" style="width:auto;padding:7px 12px" onclick="goSc('f-offers','f')">
+      <i class="ti ti-arrow-left"></i> Retour
+    </button>
+  </div>
+  <div id="f-offer-body"></div>
 </div>
 
 <!-- ═══ F-PORTFOLIO ═══ -->
@@ -3105,7 +3080,223 @@ function closeSidebar() {
 }
 
 /* == SWITCH == */
-const ALL_SCREENS = ['e-home','e-submit','e-list','e-detail','e-score','e-references','e-notifs','e-profile','e-bank-detail','e-kyc','e-support','f-offers','f-portfolio','f-wallet','f-transactions','f-retraits','f-kyc','f-kyc-upload','f-profile','f-support'];
+// ═══════════════════════════════════════════════════════════════
+// MARCHÉ DES CRÉANCES
+// ═══════════════════════════════════════════════════════════════
+// Le financeur rachète un RISQUE DE NON-PAIEMENT, pas seulement un
+// rendement. Chaque offre montre donc qui paiera, avec quel historique.
+// Un rendement de 6 % sur un donneur défaillant vaut moins qu'un
+// rendement de 4 % sur un payeur régulier.
+
+var _offres = [];
+
+async function chargerOffres() {
+  var el = document.getElementById('f-offers-list');
+  if (!el) return;
+  try {
+    var r = await sb.rpc('get_marche_financeur');
+    var d = (r && r.data) || {};
+    _offres = d.offres || [];
+    if (!_offres.length) {
+      el.innerHTML = '<div style="text-align:center;padding:40px 20px;color:#9CA3AF">'
+        + '<i class="ti ti-inbox" style="font-size:34px;display:block;margin-bottom:10px"></i>'
+        + 'Aucune cr\u00e9ance propos\u00e9e pour le moment.<br>'
+        + '<span style="font-size:12px">Nous vous pr\u00e9viendrons d\u00e8s qu\u2019une offre para\u00eet.</span>'
+        + '</div>';
+      return;
+    }
+    el.innerHTML = _offres.map(function (o, i) { return carteOffre(o, i); }).join('');
+  } catch (e) {
+    el.innerHTML = '<div style="text-align:center;padding:30px;color:#B91C1C;font-size:13px">'
+      + 'Chargement impossible. R\u00e9essayez.</div>';
+  }
+}
+
+function fmtF(n) {
+  return new Intl.NumberFormat('fr-FR').format(Math.round(n || 0));
+}
+
+// La qualité du payeur se lit d'un coup d'œil : c'est ce qui distingue
+// une bonne affaire d'un mauvais risque.
+function pastilleDonneur(score, statut) {
+  var s = Number(score) || 0;
+  var c = s >= 75 ? '#15803D' : s >= 50 ? '#B45309' : '#B91C1C';
+  var bg = s >= 75 ? '#F0FDF4' : s >= 50 ? '#FFFBEB' : '#FEF2F2';
+  var lbl = s >= 75 ? 'Payeur fiable' : s >= 50 ? 'Payeur correct' : 'Payeur \u00e0 risque';
+  if (!score) { c = '#6B7280'; bg = '#F3F4F6'; lbl = 'Sans historique'; }
+  return '<span style="font-size:10.5px;font-weight:800;padding:2px 8px;border-radius:20px;'
+    + 'background:' + bg + ';color:' + c + '">' + lbl
+    + (score ? ' \u00b7 ' + score + '/100' : '') + '</span>';
+}
+
+function carteOffre(o, i) {
+  return '<div class="card" style="margin:0 0 10px;cursor:pointer" onclick="ouvrirOffre(' + i + ')">'
+    + '<div style="display:flex;justify-content:space-between;gap:10px;align-items:flex-start">'
+    +   '<div style="min-width:0;flex:1">'
+    +     '<div style="font-size:14px;font-weight:800;margin-bottom:3px">'
+    +       (o.market_object || o.contract_number) + '</div>'
+    +     '<div style="font-size:11px;color:#6B7280;margin-bottom:8px">'
+    +       (o.secteur ? '<span style="background:#F3F4F6;font-size:10px;font-weight:700;padding:2px 7px;border-radius:5px">'
+              + o.secteur + '</span> \u00b7 ' : '')
+    +       o.jours + ' jours \u00b7 ' + (o.banque || '') + '</div>'
+    +   '</div>'
+    +   '<div style="text-align:right;white-space:nowrap">'
+    +     '<div style="font-size:19px;font-weight:800;color:#00C27C">'
+    +       (o.rendement_net || 0) + ' %</div>'
+    +     '<div style="font-size:10px;color:#6B7280">net annualis\u00e9</div>'
+    +   '</div>'
+    + '</div>'
+    + '<div style="background:#F9FAFB;border-radius:9px;padding:10px;margin:8px 0">'
+    +   '<div style="display:flex;justify-content:space-between;font-size:12.5px;padding:3px 0">'
+    +     '<span style="color:#6B7280">Vous versez</span>'
+    +     '<b>' + fmtF(o.a_verser) + ' FCFA</b></div>'
+    +   '<div style="display:flex;justify-content:space-between;font-size:12.5px;padding:3px 0">'
+    +     '<span style="color:#6B7280">Vous percevez</span>'
+    +     '<b style="color:#00C27C">' + fmtF(o.gain_net) + ' FCFA</b></div>'
+    + '</div>'
+    + '<div style="display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap">'
+    +   '<div style="font-size:11.5px;color:#6B7280">'
+    +     'Pay\u00e9 par <b>' + (o.donneur || '') + '</b></div>'
+    +   pastilleDonneur(o.score_donneur, o.statut_donneur)
+    + '</div>'
+    + '</div>';
+}
+
+window.ouvrirOffre = function (i) {
+  var o = _offres[i];
+  if (!o) return;
+  var el = document.getElementById('f-offer-body');
+  if (!el) return;
+
+  el.innerHTML =
+    '<div class="pg-title">' + (o.market_object || o.contract_number) + '</div>'
+    + '<div class="pg-sub">' + (o.banque || '') + ' \u00b7 \u00e9ch\u00e9ance dans '
+      + o.jours + ' jours</div>'
+
+    // L'opération en trois nombres : versé, perçu, gain.
+    + '<div class="card" style="background:#F5F3FF;border:1px solid #DDD6FE">'
+    +   '<div style="font-size:11px;font-weight:800;color:#4C1D95;text-transform:uppercase;letter-spacing:.04em;margin-bottom:10px">L\u2019op\u00e9ration</div>'
+    +   ligneDetail('Vous versez aujourd\u2019hui', fmtF(o.a_verser) + ' FCFA', '#111827')
+    +   ligneDetail('Cr\u00e9ance \u00e0 l\u2019\u00e9ch\u00e9ance', fmtF(o.creance) + ' FCFA', '#111827')
+    +   ligneDetail('Gain brut', fmtF(o.gain_brut) + ' FCFA', '#6B7280')
+    +   (o.tob > 0 ? ligneDetail('Taxe retenue \u00e0 la source', '\u2212' + fmtF(o.tob) + ' FCFA', '#B45309') : '')
+    +   ligneDetail('Gain net', fmtF(o.gain_net) + ' FCFA', '#00C27C', true)
+    +   ligneDetail('Rendement net annualis\u00e9', (o.rendement_net || 0) + ' %', '#00C27C', true)
+    + '</div>'
+
+    // Le payeur : c'est son risque qu'on achète.
+    + '<div class="card">'
+    +   '<div style="font-size:11px;font-weight:800;color:#4C1D95;text-transform:uppercase;letter-spacing:.04em;margin-bottom:10px">Qui vous paiera</div>'
+    +   ligneDetail('Donneur d\u2019ordre', o.donneur || '\u2014', '#111827')
+    +   ligneDetail('Score de paiement', (o.score_donneur || '\u2014') + (o.score_donneur ? '/100' : ''), '#111827')
+    +   (o.taux_remboursement != null
+          ? ligneDetail('Taux de remboursement', o.taux_remboursement + ' %', '#111827') : '')
+    +   (o.anciennete_mois ? ligneDetail('Anciennet\u00e9', o.anciennete_mois + ' mois', '#6B7280') : '')
+    +   '<div style="margin-top:8px">' + pastilleDonneur(o.score_donneur, o.statut_donneur) + '</div>'
+    + '</div>'
+
+    // Comment on est payé : la question que tout financeur se pose.
+    + '<div class="card" style="background:#F9FAFB">'
+    +   '<div style="font-size:12.5px;color:#374151;line-height:1.7">'
+    +     '<b>Comment vous serez pay\u00e9</b><br>'
+    +     (o.mode_encaissement === 'notifie'
+          ? 'Le donneur d\u2019ordre est notifi\u00e9 de la cession et r\u00e8gle directement sur votre compte.'
+          : 'Le donneur d\u2019ordre r\u00e8gle sur le compte de cantonnement, qui encaisse '
+            + 'pour votre compte. Le montant vous est ensuite revers\u00e9 sur le compte '
+            + 'de votre profil.')
+    +   '</div>'
+    + '</div>'
+
+    + '<div class="btn-row"><button class="btn-p green" onclick="manifesterInteret(\'' + o.cession_id + '\')">'
+    +   '<i class="ti ti-check"></i> Je souhaite racheter cette cr\u00e9ance</button></div>'
+    + '<div style="font-size:11.5px;color:#6B7280;text-align:center;margin-top:8px;line-height:1.6">'
+    +   'Credigo vous transmettra les instructions de virement. '
+    +   'Le rachat prend effet \u00e0 r\u00e9ception des fonds.</div>';
+
+  goSc('f-offer-detail', 'f');
+};
+
+function ligneDetail(k, v, couleur, gras) {
+  return '<div style="display:flex;justify-content:space-between;gap:10px;padding:6px 0;'
+    + 'border-bottom:1px solid #F3F4F6;font-size:13px">'
+    + '<span style="color:#6B7280">' + k + '</span>'
+    + '<span style="font-weight:' + (gras ? '800' : '700') + ';color:' + couleur + '">' + v + '</span>'
+    + '</div>';
+}
+
+window.manifesterInteret = async function (cessionId) {
+  if (!confirm('Confirmer votre int\u00e9r\u00eat pour cette cr\u00e9ance ?\n\n'
+    + 'Credigo vous transmettra les instructions de virement. '
+    + 'Le rachat ne prendra effet qu\u2019\u00e0 r\u00e9ception des fonds.')) return;
+  try {
+    var u = await sb.auth.getUser();
+    var uid = u && u.data && u.data.user && u.data.user.id;
+    if (!uid) { alert('Session expir\u00e9e.'); return; }
+
+    var r = await sb.rpc('manifester_interet', {
+      p_financeur_id: uid, p_cession_id: cessionId, p_note: null,
+    });
+    var d = (r && r.data) || {};
+    if (r.error || d.error) { alert(d.message || 'Une erreur est survenue.'); return; }
+    alert(d.message || 'Votre int\u00e9r\u00eat est enregistr\u00e9.');
+    goSc('f-offers', 'f');
+  } catch (e) { alert('Erreur : ' + e.message); }
+};
+
+// ── Mes créances ──
+async function chargerMesCreances() {
+  var el = document.getElementById('f-portfolio-list');
+  if (!el) return;
+  try {
+    var u = await sb.auth.getUser();
+    var uid = u && u.data && u.data.user && u.data.user.id;
+    if (!uid) return;
+
+    var r = await sb.rpc('get_creances_financeur', { p_financeur_id: uid });
+    var d = (r && r.data) || {};
+    var c = d.creances || [];
+
+    if (!c.length) {
+      el.innerHTML = '<div style="text-align:center;padding:40px 20px;color:#9CA3AF">'
+        + '<i class="ti ti-inbox" style="font-size:34px;display:block;margin-bottom:10px"></i>'
+        + 'Aucune cr\u00e9ance rachet\u00e9e.</div>';
+      return;
+    }
+
+    el.innerHTML = c.map(function (x) {
+      return '<div class="card" style="margin:0 0 10px'
+        + (x.en_retard ? ';background:#FEF2F2;border:1px solid #FECACA' : '') + '">'
+        + '<div style="display:flex;justify-content:space-between;gap:10px">'
+        +   '<div style="min-width:0;flex:1">'
+        +     '<div style="font-size:14px;font-weight:800">' + (x.market_object || x.contract_number) + '</div>'
+        +     '<div style="font-size:11px;color:#6B7280;margin-top:2px">'
+        +       x.contract_number + ' \u00b7 ' + (x.donneur || '') + '</div>'
+        +   '</div>'
+        +   '<div style="text-align:right;white-space:nowrap">'
+        +     '<div style="font-size:16px;font-weight:800">' + fmtF(x.creance) + '</div>'
+        +     '<div style="font-size:10px;color:#6B7280">FCFA</div>'
+        +   '</div>'
+        + '</div>'
+        + '<div style="font-size:12px;color:#6B7280;margin-top:8px;line-height:1.7">'
+        +   'Vers\u00e9 : <b>' + fmtF(x.prix_paye) + '</b> \u00b7 gain <b style="color:#00C27C">'
+        +   fmtF(x.gain) + '</b><br>'
+        +   (x.regle
+              ? '<span style="color:#15803D;font-weight:700">R\u00e9gl\u00e9 le '
+                + new Date(x.regle_le).toLocaleDateString('fr-FR') + '</span>'
+              : x.en_retard
+              ? '<span style="color:#B91C1C;font-weight:700">\u00c9ch\u00e9ance d\u00e9pass\u00e9e \u2014 '
+                + 'Credigo relance le donneur d\u2019ordre</span>'
+              : '\u00c9ch\u00e9ance le ' + new Date(x.echeance).toLocaleDateString('fr-FR')
+                + ' (' + x.jours_restants + ' j)')
+        + '</div></div>';
+    }).join('');
+  } catch (e) {
+    el.innerHTML = '<div style="text-align:center;padding:30px;color:#B91C1C;font-size:13px">'
+      + 'Chargement impossible.</div>';
+  }
+}
+
+const ALL_SCREENS = ['e-home','e-submit','e-list','e-detail','e-score','e-references','e-notifs','e-profile','e-bank-detail','e-kyc','e-support','f-offers','f-offer-detail','f-portfolio','f-kyc','f-kyc-upload','f-profile','f-support'];
 function hideAll() {
   ALL_SCREENS.forEach(id => { const el = document.getElementById(id); if (el) { el.style.display = 'none'; el.classList.remove('on'); } });
 }
@@ -3166,6 +3357,8 @@ function renderScreen(id) {
   if (id === 'e-support') renderMyTickets();
   if (id === 'e-home') renderAstuceSecurite();
   if (id === 'f-portfolio') renderFPortfolio();
+  if (id === 'f-offers') chargerOffres();
+  if (id === 'f-portfolio') chargerMesCreances();
   if (id === 'f-wallet') renderFWallet();
   if (id === 'f-transactions') renderTxList('f', 'all');
   if (id === 'f-retraits') renderFRetraits();
