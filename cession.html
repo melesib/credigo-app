@@ -120,10 +120,31 @@
 
 <script src="/supabase.min.js"></script>
 <script>
-(function () {
-  var SB_URL = window.CREDIGO_SB_URL || 'https://mlunlbaumfogibnyxqaq.supabase.co';
-  var SB_KEY = window.CREDIGO_SB_KEY || '';
-  var sb = window.supabase.createClient(SB_URL, SB_KEY);
+  // Remplacés à la construction par les valeurs d'environnement.
+  window.CREDIGO_SUPABASE_URL = '__CREDIGO_SUPABASE_URL__';
+  window.CREDIGO_SUPABASE_ANON_KEY = '__CREDIGO_SUPABASE_ANON_KEY__';
+</script>
+<script>
+function demarrer() {
+  var SB_URL = window.CREDIGO_SUPABASE_URL || '';
+  var SB_KEY = window.CREDIGO_SUPABASE_ANON_KEY || '';
+  if (!window.supabase || !window.supabase.createClient) {
+    document.getElementById('invalid-msg').textContent =
+      'Service momentanément indisponible. Rechargez la page.';
+    document.getElementById('loading').classList.add('hide');
+    document.getElementById('invalid').classList.remove('hide');
+    return;
+  }
+  if (!SB_URL || !SB_KEY) {
+    document.getElementById('invalid-msg').textContent =
+      'Configuration manquante. Contactez Credigo.';
+    document.getElementById('loading').classList.add('hide');
+    document.getElementById('invalid').classList.remove('hide');
+    return;
+  }
+  var sb = window.supabase.createClient(SB_URL, SB_KEY, {
+    auth: { persistSession: false, autoRefreshToken: false, detectSessionInUrl: false },
+  });
 
   var token = (location.pathname.split('/cession/')[1] || '').split('?')[0].split('#')[0].trim();
   var data = null, choix = null;
@@ -324,7 +345,15 @@
       b.disabled = false; b.textContent = 'Valider ma r\u00e9ponse';
     });
   };
-})();
+}
+
+// Le script Supabase est chargé avant le nôtre, mais rien ne garantit
+// qu'il soit évalué : on attend que la page soit prête.
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', demarrer);
+} else {
+  demarrer();
+}
 </script>
 </body>
 </html>

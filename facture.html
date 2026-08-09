@@ -127,10 +127,31 @@
 
 <script src="/supabase.min.js"></script>
 <script>
-(function () {
-  var SB_URL = window.CREDIGO_SB_URL || 'https://mlunlbaumfogibnyxqaq.supabase.co';
-  var SB_KEY = window.CREDIGO_SB_KEY || '';
-  var sb = window.supabase.createClient(SB_URL, SB_KEY);
+  // Remplacés à la construction par les valeurs d'environnement.
+  window.CREDIGO_SUPABASE_URL = '__CREDIGO_SUPABASE_URL__';
+  window.CREDIGO_SUPABASE_ANON_KEY = '__CREDIGO_SUPABASE_ANON_KEY__';
+</script>
+<script>
+function demarrer() {
+  var SB_URL = window.CREDIGO_SUPABASE_URL || '';
+  var SB_KEY = window.CREDIGO_SUPABASE_ANON_KEY || '';
+  if (!window.supabase || !window.supabase.createClient) {
+    document.getElementById('invalid-msg').textContent =
+      'Service momentanément indisponible. Rechargez la page.';
+    document.getElementById('loading').classList.add('hide');
+    document.getElementById('invalid').classList.remove('hide');
+    return;
+  }
+  if (!SB_URL || !SB_KEY) {
+    document.getElementById('invalid-msg').textContent =
+      'Configuration manquante. Contactez Credigo.';
+    document.getElementById('loading').classList.add('hide');
+    document.getElementById('invalid').classList.remove('hide');
+    return;
+  }
+  var sb = window.supabase.createClient(SB_URL, SB_KEY, {
+    auth: { persistSession: false, autoRefreshToken: false, detectSessionInUrl: false },
+  });
 
   var token = (location.pathname.split('/facture/')[1] || '').split('?')[0].split('#')[0].trim();
   var data = null;
@@ -192,7 +213,45 @@
 
     // Les destinataires, avec leur compte respectif.
     var dests = data.destinataires || [];
-    document.getElementById('destinataires').innerHTML = dests.map(function (x) {
+    var parFin = data.par_financeur || [];
+
+    // Le bloc « financeur » global n'a pas de compte : ce sont les
+    // financeurs individuels qui en ont un chacun.
+    var html = dests.map(function (x) {
+      if (x.cle === 'financeur' && parFin.length) return blocFinanceurs(parFin);
+      return blocDest(x);
+    }).join('');
+    document.getElementById('destinataires').innerHTML = html;
+    rendreDetail();
+  }
+
+  function blocFinanceurs(liste) {
+    return liste.map(function (fin) {
+      var attente = !fin.exigible;
+      return '<div class="dest' + (attente ? ' attente' : '') + '">'
+        + '<div style="display:flex;justify-content:space-between;gap:10px;align-items:flex-start">'
+        +   '<div><div class="dest-t">' + esc(fin.nom || 'Financeur') + '</div>'
+        +     '<div class="note">Créance rachetée · ' + esc(fin.dossiers || '') + '</div></div>'
+        +   '<div style="text-align:right;white-space:nowrap">'
+        +     '<div style="font-size:17px;font-weight:800;color:#9A3412">'
+        +       fmt(fin.montant) + '</div>'
+        +     '<div style="font-size:10.5px;color:#6B7280">à virer</div>'
+        +   '</div>'
+        + '</div>'
+        + (fin.compte
+            ? '<div class="compte">' + esc(fin.compte)
+              + (fin.banque ? '<br><span style="font-size:11px;color:#6B7280">'
+                 + esc(fin.banque) + '</span>' : '') + '</div>'
+            : '<div class="alerte">Compte du financeur non renseign\u00e9 — '
+              + 'contactez Credigo avant de virer.</div>')
+        + (attente
+            ? '<div class="alerte">Exigible apr\u00e8s r\u00e8glement du donneur d\u2019ordre.</div>'
+            : '')
+        + '</div>';
+    }).join('');
+  }
+
+  function blocDest(x) {
       var solde = x.reste <= 0 && x.du > 0;
       var attente = !x.exigible && x.du > 0;
       var cls = solde ? 'dest solde' : attente ? 'dest attente' : 'dest';
@@ -221,7 +280,9 @@
               + fmt(x.paye) + ' FCFA</div>'
             : '')
         + '</div>';
-    }).join('');
+  }
+
+  function rendreDetail() {
 
     // Le détail par dossier, avec le compte du financeur s'il y en a un.
     var lignes = data.lignes || [];
@@ -352,7 +413,15 @@
       b.disabled = false; b.textContent = 'D\\u00e9clarer ce virement';
     });
   };
-})();
+}
+
+// Le script Supabase est chargé avant le nôtre, mais rien ne garantit
+// qu'il soit évalué : on attend que la page soit prête.
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', demarrer);
+} else {
+  demarrer();
+}
 </script>
 </body>
 </html>
