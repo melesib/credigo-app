@@ -100,6 +100,11 @@
       <label>Bénéficiaire</label>
       <select id="benef"></select>
 
+      <div id="selection-note" class="note" style="margin:8px 0;padding:9px 11px;background:#F9FAFB;border-radius:8px">
+        Cochez les dossiers réglés dans le détail ci-dessus. Vous pouvez
+        n'en régler qu'une partie.
+      </div>
+
       <label>Montant viré (FCFA)</label>
       <input type="number" id="montant" placeholder="0">
 
@@ -289,10 +294,18 @@ function demarrer() {
     var lignes = data.lignes || [];
     document.getElementById('lignes').innerHTML = lignes.length
       ? lignes.map(function (l) {
-          var paye = l.statut === 'paye';
+          var paye = l.statut === 'paye' || l.archive;
           return '<div class="ligne">'
             + '<div style="display:flex;justify-content:space-between;gap:8px">'
-            +   '<div><b>' + esc(l.reference || '') + '</b>'
+            +   '<div>'
+            +     (!paye
+                    ? '<label style="display:inline-flex;align-items:center;gap:6px;cursor:pointer">'
+                      + '<input type="checkbox" class="ligne-check" value="' + esc(l.id) + '" '
+                      + 'data-credigo="' + (l.credigo_net || 0) + '" '
+                      + 'data-tob="' + (l.credigo_taxe || 0) + '" '
+                      + 'onchange="majSelection()">'
+                      + '<b>' + esc(l.reference || '') + '</b></label>'
+                    : '<b>' + esc(l.reference || '') + '</b>')
             +     '<div style="font-size:11.5px;color:#6B7280">' + esc(l.description || '') + '</div></div>'
             +   '<span class="pastille ' + (paye ? 'p-paye' : 'p-du') + '">'
             +     (paye ? 'Réglé' : 'Dû') + '</span>'
@@ -354,7 +367,7 @@ function demarrer() {
       sel.innerHTML = '<option value="">Aucun versement en attente</option>';
       document.getElementById('btn-envoyer').disabled = true;
     }
-    sel.onchange = preremplir;
+    sel.onchange = function () { preremplir(); majSelection(); };
     preremplir();
 
     document.getElementById('date-vir').value = new Date().toISOString().slice(0, 10);
@@ -368,6 +381,32 @@ function demarrer() {
       document.getElementById('montant').value = Math.round(Number(opt.dataset.montant));
     }
   }
+
+  // Le montant suit les lignes cochées : le saisir à part exposerait
+  // à un écart entre ce qui est payé et ce qui est déclaré.
+  window.majSelection = function () {
+    var checks = Array.prototype.slice.call(
+      document.querySelectorAll('.ligne-check:checked'));
+    var benef = document.getElementById('benef').value;
+    var total = checks.reduce(function (s, c) {
+      return s + Number(benef === 'tob' ? c.dataset.tob : c.dataset.credigo);
+    }, 0);
+
+    var note = document.getElementById('selection-note');
+    if (!checks.length) {
+      note.innerHTML = 'Cochez les dossiers r\u00e9gl\u00e9s dans le d\u00e9tail '
+        + 'ci-dessus. Vous pouvez n\u2019en r\u00e9gler qu\u2019une partie.';
+      return;
+    }
+    if (benef === 'financeur') {
+      note.innerHTML = '<b>' + checks.length + ' dossier(s) s\u00e9lectionn\u00e9(s)</b><br>'
+        + 'Pour un financeur, saisissez le montant vir\u00e9 sur son compte.';
+      return;
+    }
+    document.getElementById('montant').value = Math.round(total);
+    note.innerHTML = '<b>' + checks.length + ' dossier(s) s\u00e9lectionn\u00e9(s)</b> \u2014 '
+      + fmt(total) + ' FCFA';
+  };
 
   window.declarer = function () {
     var benef = document.getElementById('benef').value;
@@ -386,17 +425,25 @@ function demarrer() {
 
     var dest = (data.destinataires || []).find(function (x) { return x.cle === benef; });
 
-    sb.rpc('declarer_reglement_facture', {
+    var lignesCochees = Array.prototype.slice.call(
+      document.querySelectorAll('.ligne-check:checked')).map(function (c) { return c.value; });
+
+    if (!lignesCochees.length) {
+      alert('Cochez les dossiers concern\u00e9s par ce virement.');
+      b.disabled = false; b.textContent = 'D\u00e9clarer ce virement';
+      return;
+    }
+
+    sb.rpc('declarer_reglement_lignes', {
       p_token: token,
       p_beneficiaire: benef,
+      p_line_ids: lignesCochees,
       p_montant: montant,
       p_reference: reference,
       p_date: dateVir || null,
       p_compte: dest ? dest.compte : null,
       p_declarant: declarant,
-      p_line_id: null,
-      p_preuve_path: null,
-      p_preuve_nom: null,
+      p_financeur_id: null,
       p_ip: null,
       p_agent: navigator.userAgent,
     }).then(function (res) {
