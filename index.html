@@ -2208,7 +2208,7 @@ textarea{resize:vertical;min-height:70px}
       </div>
     </div>
     <div class="btn-row">
-      <button id="kyc-f-submit-btn" disabled class="btn-s" onclick="kycFBack(2)"><i class="ti ti-arrow-left"></i> Retour</button>
+      <button class="btn-s" onclick="kycFBack(2)"><i class="ti ti-arrow-left"></i> Retour</button>
       <button class="btn-p" onclick="kycFNext(2)">Étape suivante <i class="ti ti-arrow-right"></i></button>
     </div>
   </div>
@@ -3116,10 +3116,12 @@ function closeSidebar() {
 var _offres = [];
 
 async function chargerOffres() {
+  var db = dbClient();
+  if (!db) { afficherVide('f-offers-list'); return; }
   var el = document.getElementById('f-offers-list');
   if (!el) return;
   try {
-    var r = await sb.rpc('get_marche_financeur');
+    var r = await db.rpc('get_marche_financeur');
     var d = (r && r.data) || {};
     _offres = d.offres || [];
     if (!_offres.length) {
@@ -3250,15 +3252,17 @@ function ligneDetail(k, v, couleur, gras) {
 }
 
 window.manifesterInteret = async function (cessionId) {
+  var db = dbClient();
+  if (!db) { alert('Service indisponible. Rechargez la page.'); return; }
   if (!confirm('Confirmer votre int\u00e9r\u00eat pour cette cr\u00e9ance ?\n\n'
     + 'Credigo vous transmettra les instructions de virement. '
     + 'Le rachat ne prendra effet qu\u2019\u00e0 r\u00e9ception des fonds.')) return;
   try {
-    var u = await sb.auth.getUser();
+    var u = await db.auth.getUser();
     var uid = u && u.data && u.data.user && u.data.user.id;
     if (!uid) { alert('Session expir\u00e9e.'); return; }
 
-    var r = await sb.rpc('manifester_interet', {
+    var r = await db.rpc('manifester_interet', {
       p_financeur_id: uid, p_cession_id: cessionId, p_note: null,
     });
     var d = (r && r.data) || {};
@@ -3270,14 +3274,16 @@ window.manifesterInteret = async function (cessionId) {
 
 // ── Mes créances ──
 async function chargerMesCreances() {
+  var db = dbClient();
+  if (!db) { afficherVide('f-portfolio-list'); return; }
   var el = document.getElementById('f-portfolio-list');
   if (!el) return;
   try {
-    var u = await sb.auth.getUser();
+    var u = await db.auth.getUser();
     var uid = u && u.data && u.data.user && u.data.user.id;
     if (!uid) return;
 
-    var r = await sb.rpc('get_creances_financeur', { p_financeur_id: uid });
+    var r = await db.rpc('get_creances_financeur', { p_financeur_id: uid });
     var d = (r && r.data) || {};
     var c = d.creances || [];
 
@@ -6037,14 +6043,16 @@ function updateEKycProgress() {
 var _kycRestaure = false;
 
 async function restaurerKyc(portal) {
+  var db = dbClient();
+  if (!db) { return; }
   if (_kycRestaure) return;
   _kycRestaure = true;
   try {
-    var u = await sb.auth.getUser();
+    var u = await db.auth.getUser();
     var uid = u && u.data && u.data.user && u.data.user.id;
     if (!uid) return;
 
-    var r = await sb.from('kyc_documents')
+    var r = await db.from('kyc_documents')
       .select('doc_type, file_name, status')
       .eq('app_user_id', uid);
     if (r.error || !r.data) return;
@@ -6089,7 +6097,7 @@ async function restaurerKyc(portal) {
     }
 
     // Le RIB saisi compte comme renseigné, même sans pièce jointe.
-    var p = await sb.from('app_users').select('compte_bancaire').eq('id', uid).maybeSingle();
+    var p = await db.from('app_users').select('compte_bancaire').eq('id', uid).maybeSingle();
     if (p.data && p.data.compte_bancaire) {
       var b = document.getElementById('badge-fkdoc-rib');
       if (b && b.textContent === 'En attente') {
@@ -7794,6 +7802,19 @@ function handleKycUploadFromForm(docId, filename) {
 /* ══ ECOBANK ══ */
 let ecobankPortal = null;
 
+// Accès au client Supabase : il vit dans le module CredigoDB, chargé
+// séparément. Le chercher à chaque appel évite de dépendre de l'ordre
+// de chargement.
+function afficherVide(id) {
+  var el = document.getElementById(id);
+  if (el) el.innerHTML = '<div style="text-align:center;padding:30px;color:#9CA3AF;'
+    + 'font-size:13px">Service momentan\u00e9ment indisponible.</div>';
+}
+
+function dbClient() {
+  return (window.CredigoDB && window.CredigoDB.ready && window.CredigoDB.sb) || null;
+}
+
 // ═══════════════════════════════════════════════════════════════
 // COORDONNÉES BANCAIRES DU FINANCEUR
 // ═══════════════════════════════════════════════════════════════
@@ -7802,14 +7823,16 @@ let ecobankPortal = null;
 // partira le reversement à l'échéance.
 
 window.openRibModal = function () {
+  var db = dbClient();
+  if (!db) { alert('Service indisponible. Rechargez la page.'); return; }
   var m = document.getElementById('rib-modal');
   if (!m) { creerRibModal(); m = document.getElementById('rib-modal'); }
   // Recharger les valeurs déjà enregistrées : on ne fait pas ressaisir
   // ce qui est connu.
-  sb.auth.getUser().then(function (u) {
+  db.auth.getUser().then(function (u) {
     var uid = u && u.data && u.data.user && u.data.user.id;
     if (!uid) return;
-    sb.from('app_users').select('compte_bancaire, compte_banque_nom, compte_intitule')
+    db.from('app_users').select('compte_bancaire, compte_banque_nom, compte_intitule')
       .eq('id', uid).maybeSingle().then(function (r) {
         var d = (r && r.data) || {};
         var f = function (id, v) { var e = document.getElementById(id); if (e) e.value = v || ''; };
@@ -7861,6 +7884,8 @@ function creerRibModal() {
 }
 
 window.enregistrerRib = async function () {
+  var db = dbClient();
+  if (!db) { alert('Service indisponible. Rechargez la page.'); return; }
   var banque = (document.getElementById('rib-banque') || {}).value || '';
   var numero = (document.getElementById('rib-numero') || {}).value || '';
   var titulaire = (document.getElementById('rib-titulaire') || {}).value || '';
@@ -7871,11 +7896,11 @@ window.enregistrerRib = async function () {
   if (!titulaire) { alert('Indiquez l\u2019intitul\u00e9 du compte.'); return; }
 
   try {
-    var u = await sb.auth.getUser();
+    var u = await db.auth.getUser();
     var uid = u && u.data && u.data.user && u.data.user.id;
     if (!uid) { alert('Session expir\u00e9e.'); return; }
 
-    var r = await sb.from('app_users').update({
+    var r = await db.from('app_users').update({
       compte_bancaire: numero,
       compte_banque_nom: banque,
       compte_intitule: titulaire,
@@ -8497,7 +8522,7 @@ function kycFSubmit() {
     toast('\u26A0\uFE0F Veuillez cocher la case de certification avant de soumettre.');
     return;
   }
-  var btn = document.getElementById('kyc-f-submit-btn');
+  var btn = document.getElementById('fkyc-submit-btn');
   if (btn) { btn.disabled = true; btn.style.opacity = '0.6'; btn.innerHTML = '<i class="ti ti-loader-2" style="animation:spin 1s linear infinite"></i> Envoi en cours…'; }
 
   function onSuccess() {
