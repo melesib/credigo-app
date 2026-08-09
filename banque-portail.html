@@ -112,9 +112,20 @@
       <button class="tab" data-tab="all">Tous<span id="cnt-all"></span></button>
       <button class="tab" data-tab="approved">Accordés<span id="cnt-approved"></span></button>
       <button class="tab" data-tab="support">Support<span id="cnt-support"></span></button>
+      <button class="tab hide" id="tab-facturation" data-tab="facturation">Facturation<span id="cnt-facturation"></span></button>
     </div>
     <div id="list"></div>
     <div id="support-box" class="hide"></div>
+    <div id="facturation-box" class="hide"></div>
+
+    <!-- Discret : seul le service comptable a besoin d'y accéder, et il
+         sait qu'il doit s'identifier. -->
+    <div id="lien-facturation" style="text-align:center;margin-top:18px">
+      <button onclick="ouvrirFacturation()"
+        style="background:none;border:none;color:#6C3FE8;font-size:12.5px;cursor:pointer;font-family:inherit;text-decoration:underline">
+        Accès facturation (service comptable)
+      </button>
+    </div>
     <div id="empty" class="msg hide">Rien à afficher ici.</div>
   </div>
 
@@ -318,6 +329,9 @@
       document.getElementById('cnt-approved').textContent = ' ' + allItems.filter(function (i) { return i.state === 'approved'; }).length;
       renderTotaux(d.totaux);
       renderList();
+      // Si le comptable s'est déjà identifié dans cette session, l'onglet
+      // réapparaît sans qu'il ait à ressaisir son adresse.
+      verifierAccesFacturation();
       if (window.CredigoSupport && window.CredigoSupport.count) {
         window.CredigoSupport.count({ sb: sb, type: 'banque', code: code, getSession: getSession })
           .then(function (n) {
@@ -380,11 +394,133 @@
   }
 
   var _supportInit = false;
+  // L'accès à la facturation tient à une seule adresse : celle à
+  // laquelle Credigo envoie les factures. Un agent de crédit n'a pas à
+  // voir ce que la banque doit, ni à ordonner des virements.
+  var _facEmail = null;
+  var _facVerifie = false;
+
+  function verifierAccesFacturation() {
+    if (_facVerifie) return;
+    if (!code) return;
+
+    // L'adresse est demandée une fois, puis retenue pour la session.
+    var email = sessionStorage.getItem('credigo_fac_email');
+    if (!email) return;
+
+    sb.rpc('verifier_acces_facturation', { p_code: code, p_email: email, p_session_token: getSession() })
+      .then(function (r) {
+        var d = (r && r.data) || {};
+        if (d.autorise) {
+          _facEmail = email;
+          _facVerifie = true;
+          var t = document.getElementById('tab-facturation');
+          if (t) t.classList.remove('hide');
+        } else {
+          sessionStorage.removeItem('credigo_fac_email');
+        }
+      });
+  }
+
+  window.ouvrirFacturation = function () {
+    var email = window.prompt(
+      'Acc\u00e8s \u00e0 la facturation\n\n'
+      + 'Cet espace est r\u00e9serv\u00e9 au service comptable.\n'
+      + 'Indiquez l\u2019adresse \u00e0 laquelle Credigo envoie les factures :');
+    if (!email) return;
+    sb.rpc('verifier_acces_facturation', {
+      p_code: code, p_email: email.trim(), p_session_token: getSession(),
+    }).then(function (r) {
+      var d = (r && r.data) || {};
+      if (!d.autorise) {
+        alert(d.message || 'Acc\u00e8s refus\u00e9.');
+        return;
+      }
+      sessionStorage.setItem('credigo_fac_email', email.trim());
+      _facEmail = email.trim();
+      _facVerifie = true;
+      var t = document.getElementById('tab-facturation');
+      if (t) t.classList.remove('hide');
+      currentTab = 'facturation';
+      document.querySelectorAll('.tab').forEach(function (x) {
+        x.classList.toggle('active', x.dataset.tab === 'facturation');
+      });
+      renderList();
+    });
+  };
+
+  function chargerFactures() {
+    var box = document.getElementById('facturation-box');
+    if (!box) return;
+    if (!code || !_facEmail) {
+      box.innerHTML = '<div class="empty">Acc\u00e8s non v\u00e9rifi\u00e9.</div>';
+      return;
+    }
+    box.innerHTML = '<div class="empty">Chargement\u2026</div>';
+
+    sb.rpc('get_factures_banque', {
+      p_code: code, p_email: _facEmail, p_session_token: getSession(),
+    }).then(function (r) {
+      var d = (r && r.data) || {};
+      if (!d.autorise) {
+        box.innerHTML = '<div class="empty">' + (d.message || 'Acc\u00e8s refus\u00e9.') + '</div>';
+        return;
+      }
+      var f = d.factures || [];
+      if (!f.length) {
+        box.innerHTML = '<div class="empty">Aucune facture en cours.</div>';
+        return;
+      }
+      box.innerHTML =
+        (d.total_du > 0
+          ? '<div class="card" style="background:#FFFBEB;border:1px solid #FDE68A;margin-bottom:10px">'
+            + '<b>' + fmt(d.total_du) + '</b> \u00e0 r\u00e9gler'
+            + (d.nb_en_retard > 0 ? ' \u00b7 ' + d.nb_en_retard + ' facture(s) en retard' : '')
+            + '</div>'
+          : '')
+        + f.map(function (x) {
+            return '<div class="card" style="margin-bottom:8px">'
+              + '<div style="display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap">'
+              +   '<div><b>' + (x.numero || '') + '</b>'
+              +     '<div style="font-size:12px;color:#6B7280">'
+              +       (x.objet || '') + ' \u00b7 \u00e9mise le ' + (x.date_emission || '')
+              +       (x.echeance ? ' \u00b7 \u00e9ch\u00e9ance ' + x.echeance : '')
+              +     '</div></div>'
+              +   '<div style="text-align:right">'
+              +     '<div style="font-weight:800;color:' + (x.en_retard ? '#B91C1C' : '#111827') + '">'
+              +       fmt(x.reste) + '</div>'
+              +     '<div style="font-size:11px;color:#6B7280">reste \u00e0 r\u00e9gler</div>'
+              +   '</div>'
+              + '</div>'
+              + (x.token
+                  ? '<a href="/facture/' + x.token + '" class="btn" '
+                    + 'style="display:block;text-align:center;margin-top:9px;text-decoration:none">'
+                    + 'Voir et d\u00e9clarer un virement</a>'
+                  : '')
+              + '</div>';
+          }).join('');
+    });
+  }
+
   function renderList() {
     var list = document.getElementById('list'), empty = document.getElementById('empty');
     var supBox = document.getElementById('support-box');
     var searchEl = document.getElementById('search');
     var totBox = document.getElementById('totaux');
+
+    if (currentTab === 'facturation') {
+      list.classList.add('hide'); empty.classList.add('hide');
+      if (searchEl) searchEl.classList.add('hide');
+      if (totBox) totBox.classList.add('hide');
+      if (supBox) supBox.classList.add('hide');
+      var facBox = document.getElementById('facturation-box');
+      if (facBox) facBox.classList.remove('hide');
+      chargerFactures();
+      return;
+    }
+
+    var facBox0 = document.getElementById('facturation-box');
+    if (facBox0) facBox0.classList.add('hide');
 
     if (currentTab === 'support') {
       list.classList.add('hide'); empty.classList.add('hide');
