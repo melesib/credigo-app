@@ -64,7 +64,3 @@
   from = "/rachat/*"
   to = "/rachat.html"
   status = 200
-[[redirects]]
-  from = "/rachat/*"
-  to = "/rachat.html"
-  status = 200
