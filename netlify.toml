@@ -56,3 +56,7 @@
   from = "/cession/*"
   to = "/cession.html"
   status = 200
+[[redirects]]
+  from = "/facture/*"
+  to = "/facture.html"
+  status = 200
