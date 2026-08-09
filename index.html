@@ -2045,18 +2045,25 @@ textarea{resize:vertical;min-height:70px}
       </div>
         <div class="kyc-doc-row" id="fkdoc-rib">
         <div class="kyc-doc-info">
-          <div class="kyc-doc-icon" style="background:#D1FAE5;display:flex;align-items:center;justify-content:center">
-            <span style="font-family:Arial,sans-serif;font-size:10px;font-weight:900;color:#0B5E78">Ecobank</span>
+          <div class="kyc-doc-icon" style="background:#EEE8FF;display:flex;align-items:center;justify-content:center">
+            <i class="ti ti-building-bank" style="font-size:17px;color:#6C3FE8"></i>
           </div>
           <div class="kyc-doc-text">
-            <div class="kyc-doc-title">Compte Ecobank C\u00f4te d\'Ivoire *</div>
-            <div class="kyc-doc-sub">Numéro de compte Ecobank CI · Tous les investissements transitent par ce compte</div>
+            <!-- Le financeur choisit sa banque : lui en imposer une
+                 l'obligerait à ouvrir un compte pour investir. -->
+            <div class="kyc-doc-title">Coordonnées bancaires *</div>
+            <div class="kyc-doc-sub">Le compte sur lequel vous serez réglé à l'échéance</div>
           </div>
         </div>
         <div class="kyc-doc-actions">
-          <button class="kyc-fill-btn" style="background:#E6F2F6;color:#083F52;border-color:#A8D0DC;border:1.5px solid" onclick="openEcobankModal('f')">
-            <i class="ti ti-building-bank" style="font-size:14px"></i> Mon compte Ecobank
+          <button class="kyc-fill-btn" onclick="openRibModal()">
+            <i class="ti ti-edit" style="font-size:14px"></i> Saisir mon RIB
           </button>
+          <label class="kyc-fill-btn" style="cursor:pointer">
+            <i class="ti ti-upload" style="font-size:14px"></i> Joindre le RIB
+            <input type="file" accept="image/*,.pdf" style="display:none"
+              onchange="uploadDoc(this,'fkdoc-rib')">
+          </label>
           <span class="kyc-status-badge pending" id="badge-fkdoc-rib">En attente</span>
         </div>
         <div class="kyc-preview" id="preview-fkdoc-rib" style="display:none"></div>
@@ -7376,6 +7383,7 @@ var KYC_DOC_MAP = {
   'fkdoc-cni-verso':   { type: 'cni_verso_financeur', label: "Pièce d'identité — verso",       step: 1 },
   'fkdoc-selfie':      { type: 'selfie_financeur', label: 'Selfie (visage)',                   step: 1 },
   'fkdoc-domicile':    { type: 'domicile_financeur', label: 'Justificatif de domicile',       step: 1 },
+  'fkdoc-rib':         { type: 'rib_financeur',   label: 'RIB',                              step: 1 },
   'fkdoc-releve':      { type: 'releve_bancaire', label: 'Relevé bancaire (3 mois)',           step: 2 },
   'fkdoc-origine':     { type: 'origine_fonds_f', label: 'Déclaration origine des fonds',     step: 2 },
   'fkdoc-ppe':         { type: 'ppe_financeur',  label: 'Déclaration PPE',                    step: 2 },
@@ -7689,6 +7697,101 @@ function handleKycUploadFromForm(docId, filename) {
 }
 /* ══ ECOBANK ══ */
 let ecobankPortal = null;
+
+// ═══════════════════════════════════════════════════════════════
+// COORDONNÉES BANCAIRES DU FINANCEUR
+// ═══════════════════════════════════════════════════════════════
+// Imposer une banque obligerait le financeur à en ouvrir une pour
+// investir. Il indique la sienne, quelle qu'elle soit — c'est là que
+// partira le reversement à l'échéance.
+
+window.openRibModal = function () {
+  var m = document.getElementById('rib-modal');
+  if (!m) { creerRibModal(); m = document.getElementById('rib-modal'); }
+  // Recharger les valeurs déjà enregistrées : on ne fait pas ressaisir
+  // ce qui est connu.
+  sb.auth.getUser().then(function (u) {
+    var uid = u && u.data && u.data.user && u.data.user.id;
+    if (!uid) return;
+    sb.from('app_users').select('compte_bancaire, compte_banque_nom, compte_intitule')
+      .eq('id', uid).maybeSingle().then(function (r) {
+        var d = (r && r.data) || {};
+        var f = function (id, v) { var e = document.getElementById(id); if (e) e.value = v || ''; };
+        f('rib-banque', d.compte_banque_nom);
+        f('rib-numero', d.compte_bancaire);
+        f('rib-titulaire', d.compte_intitule);
+      });
+  });
+  m.style.display = 'flex';
+};
+
+window.closeRibModal = function () {
+  var m = document.getElementById('rib-modal');
+  if (m) m.style.display = 'none';
+};
+
+function creerRibModal() {
+  var d = document.createElement('div');
+  d.id = 'rib-modal';
+  d.className = 'modal-ov';
+  d.style.cssText = 'display:none;position:fixed;inset:0;background:rgba(17,24,39,.5);'
+    + 'z-index:900;align-items:center;justify-content:center;padding:18px';
+  d.innerHTML =
+    '<div style="background:#fff;border-radius:16px;max-width:460px;width:100%;'
+    + 'max-height:88vh;overflow-y:auto;padding:22px">'
+    + '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">'
+    +   '<div style="font-size:17px;font-weight:800">Coordonn\u00e9es bancaires</div>'
+    +   '<button onclick="closeRibModal()" style="background:none;border:none;font-size:20px;'
+    +     'cursor:pointer;color:#9CA3AF">&times;</button>'
+    + '</div>'
+    + '<div style="font-size:12.5px;color:#6B7280;line-height:1.6;margin-bottom:14px">'
+    +   'Le compte sur lequel vous serez r\u00e9gl\u00e9 \u00e0 l\u2019\u00e9ch\u00e9ance '
+    +   'de chaque cr\u00e9ance rachet\u00e9e. Toute banque est accept\u00e9e.'
+    + '</div>'
+    + '<div class="fg"><label>Banque</label>'
+    +   '<input type="text" id="rib-banque" placeholder="Ex. Ecobank, NSIA, SGCI\u2026"></div>'
+    + '<div class="fg"><label>Num\u00e9ro de compte / IBAN</label>'
+    +   '<input type="text" id="rib-numero" placeholder="CI00 0000 0000 0000 0000 0000"></div>'
+    + '<div class="fg"><label>Intitul\u00e9 du compte</label>'
+    +   '<input type="text" id="rib-titulaire" placeholder="Nom du titulaire"></div>'
+    + '<div style="font-size:11.5px;color:#78350F;background:#FFFBEB;border:1px solid #FDE68A;'
+    +   'border-radius:9px;padding:10px 12px;margin:12px 0;line-height:1.6">'
+    +   'V\u00e9rifiez ces informations : un virement mal adress\u00e9 se '
+    +   'r\u00e9cup\u00e8re difficilement. Joignez \u00e9galement votre RIB.'
+    + '</div>'
+    + '<button class="btn-p" onclick="enregistrerRib()">Enregistrer</button>'
+    + '</div>';
+  document.body.appendChild(d);
+}
+
+window.enregistrerRib = async function () {
+  var banque = (document.getElementById('rib-banque') || {}).value || '';
+  var numero = (document.getElementById('rib-numero') || {}).value || '';
+  var titulaire = (document.getElementById('rib-titulaire') || {}).value || '';
+
+  banque = banque.trim(); numero = numero.trim(); titulaire = titulaire.trim();
+  if (!banque) { alert('Indiquez votre banque.'); return; }
+  if (!numero) { alert('Indiquez votre num\u00e9ro de compte.'); return; }
+  if (!titulaire) { alert('Indiquez l\u2019intitul\u00e9 du compte.'); return; }
+
+  try {
+    var u = await sb.auth.getUser();
+    var uid = u && u.data && u.data.user && u.data.user.id;
+    if (!uid) { alert('Session expir\u00e9e.'); return; }
+
+    var r = await sb.from('app_users').update({
+      compte_bancaire: numero,
+      compte_banque_nom: banque,
+      compte_intitule: titulaire,
+    }).eq('id', uid);
+    if (r.error) { alert('Erreur : ' + r.error.message); return; }
+
+    var b = document.getElementById('badge-fkdoc-rib');
+    if (b) { b.textContent = 'Renseign\u00e9'; b.className = 'kyc-status-badge done'; }
+    closeRibModal();
+    alert('Coordonn\u00e9es enregistr\u00e9es. Joignez votre RIB pour finaliser.');
+  } catch (e) { alert('Erreur : ' + e.message); }
+};
 
 function openEcobankModal(portal) {
   ecobankPortal = portal || 'f';
