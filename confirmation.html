@@ -28,10 +28,6 @@
   .row span{color:#6B7280;flex-shrink:0}
   .row b{text-align:right}
   .amount{font-size:22px;font-weight:800;color:#111827}
-  .star{width:auto!important;display:inline-block;padding:0 1px!important;margin:0;
-    background:none!important;border:none!important;border-radius:0!important;
-    font-size:22px!important;line-height:1;cursor:pointer;color:#D1D5DB;}
-  .stars-row{display:inline-flex;align-items:center;gap:1px;white-space:nowrap;}
   button{width:100%;padding:15px;border:none;border-radius:12px;font-size:15.5px;
          font-weight:800;cursor:pointer;font-family:inherit;margin-bottom:10px;
          display:flex;align-items:center;justify-content:center;gap:8px}
@@ -116,10 +112,10 @@
         <b>Après votre confirmation :</b> nous mettrons ce prestataire en relation avec une banque partenaire qui lui prêtera les fonds nécessaires pour exécuter ce marché dans les délais. La banque retenue vous communiquera ses coordonnées, afin que votre paiement soit versé sur son <b>compte de cantonnement</b> à l'échéance.
       </div>
 
-      <!-- Évaluation de l'entrepreneur (4 critères notés sur 5 étoiles) -->
+      <!-- Évaluation de l'entrepreneur (4 questions oui/non) -->
       <div style="border:1px solid #E5E7EB;border-radius:12px;padding:14px;margin-bottom:14px">
         <div style="font-size:13px;font-weight:700;margin-bottom:4px;color:#111827">Votre avis sur ce prestataire</div>
-        <div style="font-size:12px;color:#6B7280;margin-bottom:12px;line-height:1.5">En signant, vous vous engagez sur l'existence de ce marché <b>et sur la capacité de ce prestataire à le réaliser</b>. Notez-le sur les points suivants (laissez vide si vous ne savez pas) :</div>
+        <div style="font-size:12px;color:#6B7280;margin-bottom:12px;line-height:1.5">En signant, vous vous engagez sur l'existence de ce marché <b>et sur la capacité de ce prestataire à le réaliser</b>. Merci de répondre :</div>
         <div id="eval-questions"></div>
       </div>
 
@@ -164,48 +160,6 @@
 <p><b>11. Marchés publics.</b> Si le signataire agit pour une personne publique, la présente confirmation s'applique sous réserve des règles propres à la commande publique, notamment en matière de nantissement de créance et d'intervention du comptable public.</p>
         </div>
       </div>
-      <!-- L'engagement de paiement : confirmer qu'un marché existe et
-           s'engager à le régler à date sont deux choses. La seconde vaut
-           preuve si le donneur tarde. -->
-      <div style="margin-top:16px;padding:13px;background:#F0FDF4;
-        border:1px solid #BBF7D0;border-radius:11px">
-        <label style="display:flex;gap:9px;align-items:flex-start;cursor:pointer">
-          <input type="checkbox" id="engagement" checked
-            style="margin-top:2px;width:17px;height:17px;flex-shrink:0"
-            onchange="majEngagement()">
-          <span style="font-size:13.5px;line-height:1.6;color:#166534">
-            <b>Je m'engage à régler ce marché à l'échéance du
-            <span id="echeance-txt">—</span></b>, sur le compte de
-            cantonnement qui me sera communiqué.
-          </span>
-        </label>
-
-        <div style="margin-top:11px;padding-top:10px;border-top:1px solid #BBF7D0">
-          <div style="font-size:12.5px;color:#374151;line-height:1.5;margin-bottom:7px">
-            Cette date ne vous convient pas ? Proposez-en une autre —
-            mieux vaut nous le dire maintenant qu'au moment de l'échéance.
-          </div>
-          <input type="date" id="date-proposee" onchange="majDate()"
-            style="width:100%;padding:10px;border:1px solid #D1D5DB;
-            border-radius:8px;font-size:14px;font-family:inherit">
-          <input type="text" id="date-motif" placeholder="Motif (facultatif)"
-            style="width:100%;padding:10px;border:1px solid #D1D5DB;
-            border-radius:8px;font-size:14px;font-family:inherit;margin-top:6px;display:none">
-          <div id="date-note" style="font-size:12px;color:#B45309;
-            margin-top:6px;line-height:1.5;display:none"></div>
-        </div>
-      </div>
-
-      <!-- Sans engagement, la confirmation passe quand même : refuser
-           bloquerait un décaissement pour une case non cochée. Mais le
-           document en porte la mention. -->
-      <div id="sans-engagement" style="display:none;margin-top:10px;padding:11px 13px;
-        background:#FFFBEB;border:1px solid #FDE68A;border-radius:10px;
-        font-size:12.5px;color:#78350F;line-height:1.6">
-        Votre confirmation sera enregistrée avec la mention que vous
-        n'avez pas confirmé l'engagement de paiement à l'échéance.
-      </div>
-
       <div class="hint" style="margin-top:16px">Qui confirme ce marché ?</div>
       <input type="text" id="signer-name" placeholder="Votre nom et prénom *">
       <input type="text" id="signer-role" placeholder="Votre fonction (ex. Directeur, Comptable)">
@@ -235,7 +189,6 @@
     <div class="big" id="done-icon">✅</div>
     <h2 id="done-title"></h2>
     <p id="done-msg"></p>
-    <div id="done-actions" style="margin-top:18px"></div>
   </div>
 
   <div class="foot">
@@ -292,9 +245,7 @@
   // Récupère l'IP publique du client (preuve anti-litige), non bloquant.
   window.__clientIp = null;
   try {
-    var _ipc = new AbortController();
-    setTimeout(function () { try { _ipc.abort(); } catch (e) {} }, 3000);
-    fetch('https://api.ipify.org?format=json', { signal: _ipc.signal }).then(function (r) { return r.json(); })
+    fetch('https://api.ipify.org?format=json').then(function (r) { return r.json(); })
       .then(function (d) { window.__clientIp = d && d.ip ? d.ip : null; }, function () {});
   } catch (e) { /* noop */ }
 
@@ -338,21 +289,20 @@
     if (dp) document.getElementById('f-paie').textContent = dp;
     else document.getElementById('r-paie').style.display = 'none';
 
-    // L'engagement doit porter une date visible : « je paierai à
-    // l'échéance » sans la voir n'engage à rien de précis.
-    window.__echeance = data.date_payment || null;
-    if (window.majEcheance) window.majEcheance(data.date_payment);
-
-    // Le compte de cantonnement n'est PAS montré à ce stade : aucune banque
-    // n'a encore approuvé le financement, donc on ne sait pas sur quel compte
-    // le paiement devra être versé. Il sera communiqué APRÈS l'accord d'une
-    // banque, dans un second message dédié.
-    var accBank = document.getElementById('acc-bank');
-    var accNum = document.getElementById('acc-num');
-    var accLabel = document.getElementById('acc-label');
-    if (accBank) accBank.textContent = 'Coordonnées de paiement';
-    if (accNum) accNum.textContent = 'Communiquées après validation';
-    if (accLabel) accLabel.textContent = 'Dès qu\'une banque partenaire aura confirmé le financement, nous vous transmettrons le compte exact sur lequel régler ce marché, avant l\'échéance.';
+    // Le compte de cantonnement lui est AFFICHÉ, pas demandé : c'est à nous de
+    // lui dire où payer. Garde-fou : il l'a vu noir sur blanc avant de valider.
+    document.getElementById('acc-bank').textContent =
+      data.bank_partner ? 'Compte de cantonnement chez ' + data.bank_partner : 'Compte de cantonnement';
+    if (data.cantonnement_account) {
+      document.getElementById('acc-num').textContent = data.cantonnement_account;
+      document.getElementById('acc-label').textContent = data.cantonnement_label || 'CREDIGO';
+    } else {
+      // Compte non renseigné côté back-office : on ne bloque pas la confirmation,
+      // mais on est transparent.
+      document.getElementById('acc-num').textContent = 'Communiqué prochainement';
+      document.getElementById('acc-label').textContent =
+        'Nos équipes vous transmettront les coordonnées avant l\'échéance.';
+    }
 
     show('content');
   }).catch(function () { fail(); });
@@ -362,18 +312,9 @@
     document.getElementById('done-icon').textContent = ok ? '✅' : '📩';
     document.getElementById('done-title').textContent = ok ? 'Merci !' : 'Signalement envoyé';
     document.getElementById('done-msg').textContent = ok
-      ? 'Votre confirmation a bien été enregistrée. Retrouvez tous vos marchés au même endroit sur votre espace Credigo.'
+      ? 'Votre confirmation a bien été enregistrée. Vous n\'avez rien d\'autre à faire.'
       : 'Nos équipes ont été prévenues et vont examiner le dossier. Merci de nous avoir alertés.';
     show('done');
-    sb.rpc('portal_code_from_solicitation', { p_token: token }).then(function (res) {
-      var actions = document.getElementById('done-actions');
-      if (!actions) return;
-      var code = res && res.data;
-      var html = '';
-      if (code) html += '<a href="/portail/' + code + '" style="display:block;background:#6C3FE8;color:#fff;text-decoration:none;text-align:center;padding:13px;border-radius:10px;font-weight:800;font-size:14px;margin-bottom:8px">Voir tous mes marchés</a>';
-      html += '<button onclick="window.close()" style="width:100%;background:#fff;color:#6B7280;border:1px solid #E5E7EB;padding:12px;border-radius:10px;font-weight:700;font-size:14px;cursor:pointer;font-family:inherit">Fermer</button>';
-      actions.innerHTML = html;
-    }, function () {});
   }
 
   // ── Signature ──
@@ -431,12 +372,11 @@
     } catch (e) { return null; }
   }
 
-  // Critères notés de 1 à 5 étoiles (plus juste qu'un simple oui/non).
   var EVAL_QUESTIONS = [
-    { id: 's1', text: 'Votre expérience de travail avec ce prestataire', hint: 'Jamais travaillé ensemble ? Laissez vide.' },
-    { id: 's2', text: 'Sa maîtrise de ce type de marché' },
-    { id: 's3', text: 'Sa fiabilité (délais, qualité)' },
-    { id: 's4', text: 'Votre confiance pour la réalisation de ce marché' },
+    { id: 'q1', text: 'Avez-vous déjà travaillé avec ce prestataire ?' },
+    { id: 'q2', text: 'Ce type de marché fait-il partie de ses activités habituelles ?' },
+    { id: 'q3', text: "L'avez-vous toujours trouvé fiable (délais, qualité) ?" },
+    { id: 'q4', text: 'Êtes-vous confiant qu\'il réalisera ce marché dans les délais ?' },
   ];
   var evalAnswers = {};
 
@@ -444,60 +384,24 @@
     var box = document.getElementById('eval-questions');
     if (!box || box.dataset.done) return;
     box.dataset.done = '1';
-
     box.innerHTML = EVAL_QUESTIONS.map(function (q) {
-      var stars = '';
-      for (var i = 1; i <= 5; i++) {
-        stars += '<button type="button" class="star" data-q="' + q.id + '" data-v="' + i + '" '
-          + 'aria-label="' + i + ' \u00e9toile' + (i > 1 ? 's' : '') + '" '
-          + '>\u2605</button>';
-      }
-      return '<div style="display:flex;justify-content:space-between;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid #F3F4F6">'
-        + '<div style="flex:1;min-width:0">'
-        +   '<div style="font-size:12.5px;color:#374151;line-height:1.35">' + q.text + '</div>'
-        +   '<div style="font-size:10.5px;color:#9CA3AF" id="lbl-' + q.id + '">' + (q.hint || 'Non not\u00e9') + '</div>'
-        + '</div>'
-        + '<span class="stars-row" data-stars="' + q.id + '">' + stars + '</span>'
-        + '</div>';
-    }).join('')
-      + '<div style="padding:11px 0">'
-      + '<label style="font-size:12px;font-weight:700;color:#4B5563;display:block;margin-bottom:4px">Un commentaire ? (facultatif)</label>'
-      + '<textarea id="eval-comment" rows="2" placeholder="Votre avis sur ce prestataire\u2026" style="width:100%;padding:9px;border:1px solid #E5E7EB;border-radius:9px;font-size:13px;font-family:inherit;resize:vertical"></textarea>'
-      + '</div>';
-
-    var LABELS = { 1: 'Tr\u00e8s insuffisant', 2: 'Insuffisant', 3: 'Correct', 4: 'Bien', 5: 'Excellent' };
-
-    function paint(qid, value) {
-      var wrap = box.querySelector('[data-stars="' + qid + '"]');
-      if (!wrap) return;
-      Array.prototype.forEach.call(wrap.querySelectorAll('.star'), function (s) {
-        var on = parseInt(s.dataset.v, 10) <= value;
-        s.style.color = on ? '#F59E0B' : '#D1D5DB';
-      });
-      var lbl = document.getElementById('lbl-' + qid);
-      if (lbl) {
-        var q = null;
-        for (var k = 0; k < EVAL_QUESTIONS.length; k++) { if (EVAL_QUESTIONS[k].id === qid) q = EVAL_QUESTIONS[k]; }
-        lbl.textContent = value ? (value + '/5 \u00b7 ' + LABELS[value]) : ((q && q.hint) || 'Non not\u00e9');
-        lbl.style.color = value ? '#B45309' : '#9CA3AF';
-        lbl.style.fontWeight = value ? '700' : '400';
-      }
-    }
-
-    Array.prototype.forEach.call(box.querySelectorAll('.star'), function (s) {
-      s.addEventListener('click', function () {
-        var qid = s.dataset.q, v = parseInt(s.dataset.v, 10);
-        // Re-cliquer sur la même étoile annule la note.
-        if (evalAnswers[qid] === v) { delete evalAnswers[qid]; paint(qid, 0); return; }
-        evalAnswers[qid] = v;
-        paint(qid, v);
-      });
-      // Aperçu au survol.
-      s.addEventListener('mouseenter', function () {
-        paint(s.dataset.q, parseInt(s.dataset.v, 10));
-      });
-      s.addEventListener('mouseleave', function () {
-        paint(s.dataset.q, evalAnswers[s.dataset.q] || 0);
+      return '<div style="display:flex;justify-content:space-between;align-items:center;gap:10px;padding:9px 0;border-bottom:1px solid #F3F4F6">'
+        + '<span style="font-size:13px;color:#374151;flex:1">' + q.text + '</span>'
+        + '<span style="display:flex;gap:6px">'
+        + '<button type="button" data-q="' + q.id + '" data-v="1" class="eval-btn" style="padding:6px 14px;border-radius:8px;border:1.5px solid #E5E7EB;background:#fff;font-weight:700;font-size:13px;cursor:pointer">Oui</button>'
+        + '<button type="button" data-q="' + q.id + '" data-v="0" class="eval-btn" style="padding:6px 14px;border-radius:8px;border:1.5px solid #E5E7EB;background:#fff;font-weight:700;font-size:13px;cursor:pointer">Non</button>'
+        + '</span></div>';
+    }).join('');
+    box.querySelectorAll('.eval-btn').forEach(function (b) {
+      b.addEventListener('click', function () {
+        var q = b.dataset.q, v = b.dataset.v === '1';
+        evalAnswers[q] = v;
+        box.querySelectorAll('.eval-btn[data-q="' + q + '"]').forEach(function (x) {
+          var on = x.dataset.v === (v ? '1' : '0');
+          x.style.background = on ? (v ? '#DCFCE7' : '#FEE2E2') : '#fff';
+          x.style.borderColor = on ? (v ? '#15803D' : '#B91C1C') : '#E5E7EB';
+          x.style.color = on ? (v ? '#15803D' : '#B91C1C') : '#374151';
+        });
       });
     });
   }
@@ -537,55 +441,6 @@
     document.getElementById('contest-step').classList.add('hide');
   };
 
-  // L'échéance s'affiche dans l'engagement : signer « je paierai à
-  // l'échéance » sans voir la date n'engage à rien de précis.
-  window.majEcheance = function (dateIso) {
-    var e = document.getElementById('echeance-txt');
-    if (e && dateIso) {
-      e.textContent = new Date(dateIso).toLocaleDateString('fr-FR',
-        { day: 'numeric', month: 'long', year: 'numeric' });
-    }
-    var d = document.getElementById('date-proposee');
-    if (d && dateIso) {
-      // On n'accepte pas une date passée : elle serait déjà en retard.
-      d.min = new Date().toISOString().slice(0, 10);
-    }
-  };
-
-  window.majEngagement = function () {
-    var coche = (document.getElementById('engagement') || {}).checked;
-    var avert = document.getElementById('sans-engagement');
-    if (avert) avert.style.display = coche ? 'none' : 'block';
-  };
-
-  window.majDate = function () {
-    var v = (document.getElementById('date-proposee') || {}).value;
-    var motif = document.getElementById('date-motif');
-    var note = document.getElementById('date-note');
-    if (!v) {
-      if (motif) motif.style.display = 'none';
-      if (note) note.style.display = 'none';
-      return;
-    }
-    if (motif) motif.style.display = 'block';
-    if (!note) return;
-
-    var ech = window.__echeance ? new Date(window.__echeance) : null;
-    var prop = new Date(v);
-    if (ech && prop > ech) {
-      var jours = Math.round((prop - ech) / 86400000);
-      // Un report demande une décision de Credigo : le dire évite au
-      // donneur de croire que sa date est acquise.
-      note.textContent = 'Report de ' + jours + ' jour' + (jours > 1 ? 's' : '')
-        + ' demandé. Credigo vous confirmera si cette date peut être retenue.';
-      note.style.color = '#B45309';
-    } else {
-      note.textContent = 'Paiement anticipé : aucune validation nécessaire.';
-      note.style.color = '#15803D';
-    }
-    note.style.display = 'block';
-  };
-
   window.send = function (response) {
     var note = (document.getElementById('note') || {}).value || null;
     if (response === 'contested' && (!note || !note.trim())) {
@@ -612,11 +467,7 @@
       p_ip: window.__clientIp || null,
       p_agent: navigator.userAgent,
       p_fingerprint: fingerprint(),
-      p_legal_version: 'CGDO-2026-07',  // version des conditions affichées
-      p_engagement: response === 'confirmed'
-        ? !!(document.getElementById('engagement') || {}).checked : null,
-      p_date_proposee: (document.getElementById('date-proposee') || {}).value || null,
-      p_date_motif: ((document.getElementById('date-motif') || {}).value || '').trim() || null
+      p_legal_version: 'CGDO-2026-07'   // version des conditions affichées
     }).then(function (res) {
       if (res.error || (res.data && res.data.error)) {
         alert((res.data && res.data.error) || 'Une erreur est survenue. Réessayez.');
@@ -625,14 +476,12 @@
       }
       // Enregistre l'évaluation de l'entrepreneur (si confirmation).
       if (response === 'confirmed') {
-        var cmt = (document.getElementById('eval-comment') || {}).value || '';
-        sb.rpc('save_donneur_eval_stars', {
+        sb.rpc('save_donneur_eval', {
           p_token: token,
-          p_s1: evalAnswers.s1 != null ? evalAnswers.s1 : null,
-          p_s2: evalAnswers.s2 != null ? evalAnswers.s2 : null,
-          p_s3: evalAnswers.s3 != null ? evalAnswers.s3 : null,
-          p_s4: evalAnswers.s4 != null ? evalAnswers.s4 : null,
-          p_comment: cmt.trim() || null,
+          p_eval_q1: evalAnswers.q1 != null ? evalAnswers.q1 : null,
+          p_eval_q2: evalAnswers.q2 != null ? evalAnswers.q2 : null,
+          p_eval_q3: evalAnswers.q3 != null ? evalAnswers.q3 : null,
+          p_eval_q4: evalAnswers.q4 != null ? evalAnswers.q4 : null,
         }).then(function () {}, function () {});
       }
       finish(response);
