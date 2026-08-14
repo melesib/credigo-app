@@ -164,6 +164,48 @@
 <p><b>11. Marchés publics.</b> Si le signataire agit pour une personne publique, la présente confirmation s'applique sous réserve des règles propres à la commande publique, notamment en matière de nantissement de créance et d'intervention du comptable public.</p>
         </div>
       </div>
+      <!-- L'engagement de paiement : confirmer qu'un marché existe et
+           s'engager à le régler à date sont deux choses. La seconde vaut
+           preuve si le donneur tarde. -->
+      <div style="margin-top:16px;padding:13px;background:#F0FDF4;
+        border:1px solid #BBF7D0;border-radius:11px">
+        <label style="display:flex;gap:9px;align-items:flex-start;cursor:pointer">
+          <input type="checkbox" id="engagement" checked
+            style="margin-top:2px;width:17px;height:17px;flex-shrink:0"
+            onchange="majEngagement()">
+          <span style="font-size:13.5px;line-height:1.6;color:#166534">
+            <b>Je m'engage à régler ce marché à l'échéance du
+            <span id="echeance-txt">—</span></b>, sur le compte de
+            cantonnement qui me sera communiqué.
+          </span>
+        </label>
+
+        <div style="margin-top:11px;padding-top:10px;border-top:1px solid #BBF7D0">
+          <div style="font-size:12.5px;color:#374151;line-height:1.5;margin-bottom:7px">
+            Cette date ne vous convient pas ? Proposez-en une autre —
+            mieux vaut nous le dire maintenant qu'au moment de l'échéance.
+          </div>
+          <input type="date" id="date-proposee" onchange="majDate()"
+            style="width:100%;padding:10px;border:1px solid #D1D5DB;
+            border-radius:8px;font-size:14px;font-family:inherit">
+          <input type="text" id="date-motif" placeholder="Motif (facultatif)"
+            style="width:100%;padding:10px;border:1px solid #D1D5DB;
+            border-radius:8px;font-size:14px;font-family:inherit;margin-top:6px;display:none">
+          <div id="date-note" style="font-size:12px;color:#B45309;
+            margin-top:6px;line-height:1.5;display:none"></div>
+        </div>
+      </div>
+
+      <!-- Sans engagement, la confirmation passe quand même : refuser
+           bloquerait un décaissement pour une case non cochée. Mais le
+           document en porte la mention. -->
+      <div id="sans-engagement" style="display:none;margin-top:10px;padding:11px 13px;
+        background:#FFFBEB;border:1px solid #FDE68A;border-radius:10px;
+        font-size:12.5px;color:#78350F;line-height:1.6">
+        Votre confirmation sera enregistrée avec la mention que vous
+        n'avez pas confirmé l'engagement de paiement à l'échéance.
+      </div>
+
       <div class="hint" style="margin-top:16px">Qui confirme ce marché ?</div>
       <input type="text" id="signer-name" placeholder="Votre nom et prénom *">
       <input type="text" id="signer-role" placeholder="Votre fonction (ex. Directeur, Comptable)">
@@ -295,6 +337,11 @@
     var dp = dateFr(data.date_payment);
     if (dp) document.getElementById('f-paie').textContent = dp;
     else document.getElementById('r-paie').style.display = 'none';
+
+    // L'engagement doit porter une date visible : « je paierai à
+    // l'échéance » sans la voir n'engage à rien de précis.
+    window.__echeance = data.date_payment || null;
+    if (window.majEcheance) window.majEcheance(data.date_payment);
 
     // Le compte de cantonnement n'est PAS montré à ce stade : aucune banque
     // n'a encore approuvé le financement, donc on ne sait pas sur quel compte
@@ -490,6 +537,55 @@
     document.getElementById('contest-step').classList.add('hide');
   };
 
+  // L'échéance s'affiche dans l'engagement : signer « je paierai à
+  // l'échéance » sans voir la date n'engage à rien de précis.
+  window.majEcheance = function (dateIso) {
+    var e = document.getElementById('echeance-txt');
+    if (e && dateIso) {
+      e.textContent = new Date(dateIso).toLocaleDateString('fr-FR',
+        { day: 'numeric', month: 'long', year: 'numeric' });
+    }
+    var d = document.getElementById('date-proposee');
+    if (d && dateIso) {
+      // On n'accepte pas une date passée : elle serait déjà en retard.
+      d.min = new Date().toISOString().slice(0, 10);
+    }
+  };
+
+  window.majEngagement = function () {
+    var coche = (document.getElementById('engagement') || {}).checked;
+    var avert = document.getElementById('sans-engagement');
+    if (avert) avert.style.display = coche ? 'none' : 'block';
+  };
+
+  window.majDate = function () {
+    var v = (document.getElementById('date-proposee') || {}).value;
+    var motif = document.getElementById('date-motif');
+    var note = document.getElementById('date-note');
+    if (!v) {
+      if (motif) motif.style.display = 'none';
+      if (note) note.style.display = 'none';
+      return;
+    }
+    if (motif) motif.style.display = 'block';
+    if (!note) return;
+
+    var ech = window.__echeance ? new Date(window.__echeance) : null;
+    var prop = new Date(v);
+    if (ech && prop > ech) {
+      var jours = Math.round((prop - ech) / 86400000);
+      // Un report demande une décision de Credigo : le dire évite au
+      // donneur de croire que sa date est acquise.
+      note.textContent = 'Report de ' + jours + ' jour' + (jours > 1 ? 's' : '')
+        + ' demandé. Credigo vous confirmera si cette date peut être retenue.';
+      note.style.color = '#B45309';
+    } else {
+      note.textContent = 'Paiement anticipé : aucune validation nécessaire.';
+      note.style.color = '#15803D';
+    }
+    note.style.display = 'block';
+  };
+
   window.send = function (response) {
     var note = (document.getElementById('note') || {}).value || null;
     if (response === 'contested' && (!note || !note.trim())) {
@@ -516,7 +612,11 @@
       p_ip: window.__clientIp || null,
       p_agent: navigator.userAgent,
       p_fingerprint: fingerprint(),
-      p_legal_version: 'CGDO-2026-07'   // version des conditions affichées
+      p_legal_version: 'CGDO-2026-07',  // version des conditions affichées
+      p_engagement: response === 'confirmed'
+        ? !!(document.getElementById('engagement') || {}).checked : null,
+      p_date_proposee: (document.getElementById('date-proposee') || {}).value || null,
+      p_date_motif: ((document.getElementById('date-motif') || {}).value || '').trim() || null
     }).then(function (res) {
       if (res.error || (res.data && res.data.error)) {
         alert((res.data && res.data.error) || 'Une erreur est survenue. Réessayez.');
