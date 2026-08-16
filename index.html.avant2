@@ -10330,40 +10330,24 @@ var _origAuthInit = window.authInit;
   // l'utilisateur a réellement quitté l'application.
   window.__sortieInterne = 0;
   window.marquerSortieInterne = function (secondes) {
-    window.__sortieInterne = Date.now() + ((secondes || 900) * 1000);
+    window.__sortieInterne = Date.now() + ((secondes || 180) * 1000);
   };
 
-  // Intercepter l'ouverture elle-même : les champs étant cachés,
-  // deviner l'élément cliqué laisserait passer des cas.
-  (function () {
-    var ouvrir = HTMLInputElement.prototype.click;
-    HTMLInputElement.prototype.click = function () {
-      if (this.type === 'file') window.marquerSortieInterne(900);
-      return ouvrir.apply(this, arguments);
-    };
-  })();
-  if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
-    var camera = navigator.mediaDevices.getUserMedia.bind(navigator.mediaDevices);
-    navigator.mediaDevices.getUserMedia = function () {
-      window.marquerSortieInterne(900);
-      return camera.apply(null, arguments);
-    };
-  }
   // Tout champ de fichier marque la sortie avant d'ouvrir le sélecteur.
   document.addEventListener('click', function (e) {
     var el = e.target;
     if (!el) return;
     if (el.type === 'file' || (el.closest && el.closest('input[type=file]'))) {
-      window.marquerSortieInterne(900);
+      window.marquerSortieInterne(300);
     }
     // Un bouton qui déclenche un champ de fichier caché compte aussi.
     if (el.closest && el.closest('[data-upload], .upload-btn, label[for]')) {
       var lbl = el.closest('label[for]');
       if (lbl) {
         var cible = document.getElementById(lbl.getAttribute('for'));
-        if (cible && cible.type === 'file') window.marquerSortieInterne(900);
+        if (cible && cible.type === 'file') window.marquerSortieInterne(300);
       } else {
-        window.marquerSortieInterne(900);
+        window.marquerSortieInterne(300);
       }
     }
   }, true);
