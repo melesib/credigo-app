@@ -10320,45 +10320,9 @@ var _origAuthInit = window.authInit;
     }
   });
 
-  // ── Sorties provoquées par l'application elle-même ──
-  // Choisir un fichier, prendre une photo ou signer ouvre une fenêtre
-  // système : la page passe en arrière-plan et la déconnexion se
-  // déclenchait, faisant perdre le travail en cours.
-  //
-  // On marque ces sorties pour les distinguer d'un vrai départ. Le délai
-  // couvre le temps de navigation dans le sélecteur ; au-delà,
-  // l'utilisateur a réellement quitté l'application.
-  window.__sortieInterne = 0;
-  window.marquerSortieInterne = function (secondes) {
-    window.__sortieInterne = Date.now() + ((secondes || 180) * 1000);
-  };
-
-  // Tout champ de fichier marque la sortie avant d'ouvrir le sélecteur.
-  document.addEventListener('click', function (e) {
-    var el = e.target;
-    if (!el) return;
-    if (el.type === 'file' || (el.closest && el.closest('input[type=file]'))) {
-      window.marquerSortieInterne(300);
-    }
-    // Un bouton qui déclenche un champ de fichier caché compte aussi.
-    if (el.closest && el.closest('[data-upload], .upload-btn, label[for]')) {
-      var lbl = el.closest('label[for]');
-      if (lbl) {
-        var cible = document.getElementById(lbl.getAttribute('for'));
-        if (cible && cible.type === 'file') window.marquerSortieInterne(300);
-      } else {
-        window.marquerSortieInterne(300);
-      }
-    }
-  }, true);
-
   // Déconnexion quand l'app passe en arrière-plan (onglet caché)
   document.addEventListener('visibilitychange', function() {
     if (document.hidden) {
-      // Une sortie provoquée par l'application ne déconnecte pas :
-      // sinon téléverser un justificatif ferait perdre la session.
-      if (Date.now() < window.__sortieInterne) return;
-
       // App masquée → déconnecter
       clearActiveSession();
       // Déconnecter Supabase Auth
@@ -10368,13 +10332,6 @@ var _origAuthInit = window.authInit;
       // Réinitialiser état local
       if (typeof authUser !== 'undefined') authUser = null;
     } else {
-      // Retour d'une sortie interne : la session n'a pas été fermée,
-      // il n'y a rien à rétablir.
-      if (Date.now() < window.__sortieInterne) {
-        window.__sortieInterne = 0;
-        return;
-      }
-
       // App revenue au premier plan → toujours forcer la reconnexion
       if (typeof authUser === 'undefined' || !authUser) {
         // Masquer tous les écrans et bandeaux
@@ -10403,15 +10360,11 @@ var _origAuthInit = window.authInit;
 
   // Déconnexion à la fermeture de la page
   window.addEventListener('beforeunload', function() {
-    // Un sélecteur de fichiers ne ferme pas la page : ne pas effacer
-    // la session dans ce cas.
-    if (Date.now() < window.__sortieInterne) return;
     clearActiveSession();
   });
 
   // Déconnexion sur pagehide (mobile - plus fiable que beforeunload)
   window.addEventListener('pagehide', function() {
-    if (Date.now() < window.__sortieInterne) return;
     clearActiveSession();
   });
 
