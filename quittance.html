@@ -1,0 +1,253 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Credigo — Confirmation de remboursement</title>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;700;800&display=swap" rel="stylesheet">
+<style>
+  *{box-sizing:border-box}
+  body{font-family:'Plus Jakarta Sans',Arial,sans-serif;background:#F3F4F6;
+    color:#111827;margin:0;padding:18px;font-size:14px;line-height:1.5}
+  .wrap{max-width:520px;margin:0 auto}
+  .logo{font-size:22px;font-weight:800;color:#6C3FE8;margin-bottom:4px}
+  .sub{font-size:12.5px;color:#6B7280;margin-bottom:18px}
+  .card{background:#fff;border-radius:14px;padding:18px;margin-bottom:12px;
+    box-shadow:0 1px 3px rgba(0,0,0,.06)}
+  .row{display:flex;justify-content:space-between;gap:10px;padding:7px 0;
+    border-bottom:1px solid #F3F4F6;font-size:13.5px}
+  .row:last-child{border-bottom:none}
+  .row .lbl{color:#6B7280}
+  .row .val{font-weight:700;text-align:right}
+  .gros{font-size:26px;font-weight:800;color:#15803D;text-align:center;
+    padding:14px 0 4px}
+  .gros-lbl{font-size:12px;color:#6B7280;text-align:center;margin-bottom:6px}
+  .q{font-size:15px;font-weight:700;margin:16px 0 10px}
+  .btn{display:block;width:100%;padding:15px;border-radius:11px;border:none;
+    font-family:inherit;font-size:15px;font-weight:800;cursor:pointer;
+    margin-bottom:9px}
+  .btn-oui{background:#15803D;color:#fff}
+  .btn-part{background:#fff;color:#B45309;border:1.5px solid #FDE68A}
+  .btn-non{background:#fff;color:#B91C1C;border:1.5px solid #FECACA}
+  .champ{width:100%;padding:12px;border:1px solid #D1D5DB;border-radius:9px;
+    font-size:15px;font-family:inherit;margin-bottom:10px}
+  label{font-size:12.5px;font-weight:700;display:block;margin-bottom:4px}
+  .aide{font-size:11.5px;color:#6B7280;margin-top:-6px;margin-bottom:10px;
+    line-height:1.5}
+  .msg{padding:14px;border-radius:11px;font-size:13.5px;line-height:1.6;
+    margin-bottom:12px}
+  .msg-ok{background:#F0FDF4;border:1px solid #BBF7D0;color:#15803D}
+  .msg-err{background:#FEF2F2;border:1px solid #FECACA;color:#B91C1C}
+  .msg-info{background:#FFFBEB;border:1px solid #FDE68A;color:#78350F}
+  .pied{font-size:11.5px;color:#9CA3AF;text-align:center;margin-top:18px;
+    line-height:1.6}
+  .cache{display:none}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="logo">Credigo</div>
+  <div class="sub">Confirmation de remboursement</div>
+
+  <div id="chargement" class="card">Chargement…</div>
+
+  <div id="erreur" class="cache"></div>
+
+  <div id="contenu" class="cache">
+    <!-- Le montant d'abord : c'est ce que le financeur vient vérifier. -->
+    <div class="card">
+      <div class="gros-lbl">Montant qui vous a été viré</div>
+      <div class="gros" id="montant">—</div>
+      <div class="gros-lbl" id="regle-le"></div>
+    </div>
+
+    <div class="card">
+      <div class="row"><span class="lbl">Dossier</span>
+        <span class="val" id="contrat">—</span></div>
+      <div class="row"><span class="lbl">Marché</span>
+        <span class="val" id="objet">—</span></div>
+      <div class="row"><span class="lbl">Donneur d'ordre</span>
+        <span class="val" id="donneur">—</span></div>
+      <div class="row"><span class="lbl">Échéance</span>
+        <span class="val" id="echeance">—</span></div>
+    </div>
+
+    <div class="card">
+      <div class="q">Avez-vous bien reçu ce montant ?</div>
+      <div class="aide">
+        Votre confirmation vaut quittance. Elle clôt cette opération et
+        vous protège autant qu'elle nous engage.
+      </div>
+
+      <button class="btn btn-oui" onclick="repondre('recu')">
+        Oui, j'ai reçu ce montant
+      </button>
+      <button class="btn btn-part" onclick="afficherMontant()">
+        J'ai reçu un montant différent
+      </button>
+      <button class="btn btn-non" onclick="repondre('non_recu')">
+        Je n'ai rien reçu
+      </button>
+
+      <!-- Un montant contesté doit être chiffré : « ce n'est pas le bon
+           montant » sans dire lequel n'avance à rien. -->
+      <div id="bloc-montant" class="cache" style="margin-top:14px">
+        <label>Montant effectivement reçu</label>
+        <input type="number" id="montant-recu" class="champ"
+          placeholder="En FCFA">
+        <label>Précision (facultatif)</label>
+        <input type="text" id="note-montant" class="champ"
+          placeholder="Date du virement, référence…">
+        <button class="btn btn-part" onclick="repondre('montant_different')">
+          Confirmer ce montant
+        </button>
+      </div>
+    </div>
+
+    <div class="card">
+      <label>Votre nom</label>
+      <input type="text" id="signataire" class="champ"
+        placeholder="Nom et prénom">
+      <div class="aide">
+        Pour savoir qui a confirmé, en cas de question ultérieure.
+      </div>
+    </div>
+  </div>
+
+  <div id="fini" class="cache"></div>
+
+  <div class="pied">
+    Credigo — intermédiaire en financement<br>
+    Une question ? Répondez au message qui vous a transmis ce lien.
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script>
+  window.CREDIGO_SUPABASE_URL = "__CREDIGO_SUPABASE_URL__";
+  window.CREDIGO_SUPABASE_ANON_KEY = "__CREDIGO_SUPABASE_ANON_KEY__";
+</script>
+<script src="/credigo-erreurs.js"></script>
+<script>
+  if (window.CredigoErreurs) {
+    CredigoErreurs.init({ surface: 'app_financeur' });
+  }
+
+  var sb = supabase.createClient(
+    window.CREDIGO_SUPABASE_URL, window.CREDIGO_SUPABASE_ANON_KEY);
+
+  var token = (location.pathname.split('/').pop() || '').trim()
+    || new URLSearchParams(location.search).get('t') || '';
+  var envoi = false;
+
+  var fmt = function (n) {
+    return new Intl.NumberFormat('fr-FR').format(Math.round(n || 0));
+  };
+  var dateFr = function (d) {
+    return d ? new Date(d).toLocaleDateString('fr-FR') : '—';
+  };
+
+  function montrer(id) { document.getElementById(id).className = ''; }
+  function cacher(id) { document.getElementById(id).className = 'cache'; }
+
+  function afficherErreur(texte, type) {
+    cacher('chargement'); cacher('contenu');
+    var el = document.getElementById('erreur');
+    el.className = 'msg msg-' + (type || 'err');
+    el.textContent = texte;
+  }
+
+  function afficherMontant() {
+    montrer('bloc-montant');
+    document.getElementById('montant-recu').focus();
+  }
+
+  function charger() {
+    if (!token) { afficherErreur('Lien incomplet.'); return; }
+
+    sb.rpc('get_quittance', { p_token: token }).then(function (r) {
+      cacher('chargement');
+      var d = r.data;
+
+      if (r.error) { afficherErreur('Une erreur est survenue. Réessayez.'); return; }
+      if (!d || d.error) {
+        afficherErreur((d && d.message) || 'Ce lien n\'est plus valide.',
+          d && d.error === 'deja_repondu' ? 'ok' : 'err');
+        return;
+      }
+
+      document.getElementById('montant').textContent = fmt(d.montant_attendu) + ' F';
+      document.getElementById('regle-le').textContent =
+        'Viré le ' + dateFr(d.regle_le);
+      document.getElementById('contrat').textContent = d.contract_number || '—';
+      document.getElementById('objet').textContent = d.market_object || '—';
+      document.getElementById('donneur').textContent = d.donneur || '—';
+      document.getElementById('echeance').textContent = dateFr(d.echeance);
+
+      montrer('contenu');
+    }).catch(function () {
+      afficherErreur('Connexion impossible. Vérifiez votre réseau.');
+    });
+  }
+
+  function repondre(reponse) {
+    if (envoi) return;
+
+    var signataire = (document.getElementById('signataire') || {}).value || '';
+    if (!signataire.trim()) {
+      alert('Merci d\'indiquer votre nom avant de confirmer.');
+      document.getElementById('signataire').focus();
+      return;
+    }
+
+    var montantRecu = null;
+    if (reponse === 'montant_different') {
+      montantRecu = Number(document.getElementById('montant-recu').value) || 0;
+      if (montantRecu <= 0) {
+        alert('Indiquez le montant que vous avez effectivement reçu.');
+        return;
+      }
+    }
+
+    if (reponse === 'non_recu') {
+      if (!confirm('Vous déclarez n\'avoir rien reçu.\n\n'
+        + 'Nous vérifierons le virement et reviendrons vers vous rapidement.\n\n'
+        + 'Confirmer ?')) return;
+    }
+
+    envoi = true;
+
+    sb.rpc('repondre_quittance', {
+      p_token: token,
+      p_reponse: reponse,
+      p_montant_recu: montantRecu,
+      p_signataire: signataire.trim(),
+      p_note: (document.getElementById('note-montant') || {}).value || null,
+      p_ip: null
+    }).then(function (r) {
+      envoi = false;
+      var d = r.data;
+
+      if (r.error || !d || d.error) {
+        alert((d && d.message) || 'L\'enregistrement a échoué. Réessayez.');
+        return;
+      }
+
+      cacher('contenu');
+      var el = document.getElementById('fini');
+      el.className = 'msg msg-' + (reponse === 'recu' ? 'ok' : 'info');
+      el.innerHTML = reponse === 'recu'
+        ? '<b>Merci, c\'est enregistré.</b><br>Cette opération est close. '
+          + 'Votre confirmation vaut quittance.'
+        : '<b>Votre réponse est enregistrée.</b><br>Nous vérifions le '
+          + 'virement et revenons vers vous sous 48 heures.';
+    }).catch(function () {
+      envoi = false;
+      alert('Connexion impossible. Réessayez dans un instant.');
+    });
+  }
+
+  charger();
+</script>
+</body>
+</html>

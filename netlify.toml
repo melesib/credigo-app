@@ -64,3 +64,10 @@
   from = "/rachat/*"
   to = "/rachat.html"
   status = 200
+# La quittance du financeur : /q/<jeton> → confirmation de réception.
+# La banque et le donneur confirment déjà ; le financeur n'avait rien,
+# alors qu'il a avancé les fonds.
+[[redirects]]
+  from = "/q/*"
+  to = "/quittance.html"
+  status = 200
