@@ -355,5 +355,11 @@ if (document.readyState === 'loading') {
   demarrer();
 }
 </script>
+<script src="/credigo-erreurs.js"></script>
+<script>
+  // Les erreurs de cette page remontent au back-office : une page
+  // cassée ne se signale presque jamais, la personne ferme et s'en va.
+  if (window.CredigoErreurs) CredigoErreurs.init({ surface: 'portail_banque' });
+</script>
 </body>
 </html>

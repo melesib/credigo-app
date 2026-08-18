@@ -11876,5 +11876,15 @@ if (window.CredigoDB && window.CredigoDB.sb) {
   </div>
 </div>
 
+<script src="/credigo-erreurs.js"></script>
+<script>
+  // Une seule application pour deux publics : le chemin les distingue.
+  if (window.CredigoErreurs) {
+    CredigoErreurs.init({
+      surface: location.pathname.indexOf('/f') === 0
+        ? 'app_financeur' : 'app_entrepreneur'
+    });
+  }
+</script>
 </body>
 </html>
