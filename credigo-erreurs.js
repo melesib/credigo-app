@@ -205,7 +205,7 @@
             return rep;
           }).catch(function (err) {
             try {
-              if (url.indexOf('signaler_erreur') < 0) {
+              if (url.indexOf('signaler_erreur') < 0 && !interrompu(err)) {
                 envoyer({
                   type: 'reseau',
                   message: 'Appel échoué : ' + (err && err.message || 'réseau'),
@@ -231,6 +231,28 @@
       if (jeton) config.jeton = jeton;
     }
   };
+
+  // Quitter une page annule ses appels en cours : le navigateur les
+  // rapporte comme des échecs, alors que rien n'est cassé. Les compter
+  // masquerait les vraies pannes sous le bruit.
+  function interrompu(err) {
+    if (!err) return false;
+    if (err.name === 'AbortError') return true;
+    var m = String(err.message || '').toLowerCase();
+    // La page se ferme ou change : l'appel n'avait plus de destinataire.
+    if (global.document && global.document.hidden) return true;
+    return m.indexOf('aborted') >= 0
+      || m.indexOf('cancelled') >= 0
+      || m.indexOf('canceled') >= 0
+      || m.indexOf('network request failed') >= 0 && global.__quitte === true;
+  }
+
+  // On note le départ pour distinguer un appel interrompu d'une vraie
+  // coupure réseau.
+  if (typeof global.addEventListener === 'function') {
+    global.addEventListener('pagehide', function () { global.__quitte = true; });
+    global.addEventListener('beforeunload', function () { global.__quitte = true; });
+  }
 
   // L'adresse sans ses paramètres ni sa clé : une URL d'API contient
   // souvent un jeton.
