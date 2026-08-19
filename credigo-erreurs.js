@@ -179,6 +179,45 @@
         } catch (_) {}
       });
 
+      // ── Les appels par XMLHttpRequest ──
+      // Certaines bibliothèques l'emploient encore : sans cela, leurs
+      // échecs seraient totalement invisibles.
+      if (global.XMLHttpRequest) {
+        var ouvrirXhr = global.XMLHttpRequest.prototype.open;
+        global.XMLHttpRequest.prototype.open = function (methode, adresse) {
+          this.__url = adresse;
+          return ouvrirXhr.apply(this, arguments);
+        };
+        var envoyerXhr = global.XMLHttpRequest.prototype.send;
+        global.XMLHttpRequest.prototype.send = function () {
+          var xhr = this;
+          xhr.addEventListener('error', function () {
+            try {
+              envoyer({ type: 'reseau',
+                message: 'Requête échouée (XHR)',
+                source: nettoyerUrl(xhr.__url || '') });
+            } catch (_) {}
+          });
+          xhr.addEventListener('timeout', function () {
+            try {
+              envoyer({ type: 'lenteur',
+                message: 'Requête expirée (XHR)',
+                source: nettoyerUrl(xhr.__url || '') });
+            } catch (_) {}
+          });
+          xhr.addEventListener('load', function () {
+            try {
+              if (xhr.status >= 400) {
+                envoyer({ type: xhr.status >= 500 ? 'reseau' : 'rpc',
+                  message: natureHttp(xhr.status) + ' (' + xhr.status + ')',
+                  source: nettoyerUrl(xhr.__url || '') });
+              }
+            } catch (_) {}
+          });
+          return envoyerXhr.apply(this, arguments);
+        };
+      }
+
       // ── Les appels réseau en échec ──
       // Un appel qui échoue silencieusement laisse un écran vide sans
       // que personne ne sache pourquoi.
@@ -189,7 +228,24 @@
           try { url = String(arguments[0] && arguments[0].url || arguments[0] || ''); }
           catch (_) {}
 
+          // Un appel qui n'aboutit pas au bout de trente secondes est
+          // perdu pour l'utilisateur, qu'il finisse ou non : il a déjà
+          // rechargé ou quitté.
+          var depart = Date.now();
+          var minuteur = setTimeout(function () {
+            try {
+              if (url.indexOf('signaler_erreur') < 0 && !global.document.hidden) {
+                envoyer({
+                  type: 'lenteur',
+                  message: 'Appel sans réponse après 30 s',
+                  source: nettoyerUrl(url)
+                });
+              }
+            } catch (_) {}
+          }, 30000);
+
           return fetchOriginal.apply(this, arguments).then(function (rep) {
+            clearTimeout(minuteur);
             try {
               // On ne signale pas nos propres envois d'erreur : cela
               // créerait une boucle.
@@ -197,13 +253,15 @@
               if (!rep.ok && rep.status >= 400) {
                 envoyer({
                   type: rep.status >= 500 ? 'reseau' : 'rpc',
-                  message: 'HTTP ' + rep.status + ' sur ' + nettoyerUrl(url),
+                  message: natureHttp(rep.status) + ' (' + rep.status + ') sur '
+                    + nettoyerUrl(url),
                   source: nettoyerUrl(url)
                 });
               }
             } catch (_) {}
             return rep;
           }).catch(function (err) {
+            clearTimeout(minuteur);
             try {
               if (url.indexOf('signaler_erreur') < 0 && !interrompu(err)) {
                 envoyer({
@@ -231,6 +289,19 @@
       if (jeton) config.jeton = jeton;
     }
   };
+
+  // Un code HTTP seul ne dit rien à qui lit le journal : le traduire
+  // oriente vers la bonne cause.
+  function natureHttp(code) {
+    if (code === 401 || code === 403) return 'Session expirée ou accès refusé';
+    if (code === 404) return 'Ressource introuvable';
+    if (code === 409) return 'Conflit de données';
+    if (code === 413) return 'Fichier trop volumineux';
+    if (code === 429) return 'Trop de requêtes — limite atteinte';
+    if (code === 502 || code === 503 || code === 504) return 'Serveur indisponible';
+    if (code >= 500) return 'Erreur serveur';
+    return 'Requête refusée';
+  }
 
   // Quitter une page annule ses appels en cours : le navigateur les
   // rapporte comme des échecs, alors que rien n'est cassé. Les compter
