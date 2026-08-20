@@ -263,7 +263,8 @@
           }).catch(function (err) {
             clearTimeout(minuteur);
             try {
-              if (url.indexOf('signaler_erreur') < 0 && !interrompu(err)) {
+              if (url.indexOf('signaler_erreur') < 0
+                  && !interrompu(err, Date.now() - depart)) {
                 envoyer({
                   type: 'reseau',
                   message: 'Appel échoué : ' + (err && err.message || 'réseau'),
@@ -328,16 +329,26 @@
   // Quitter une page annule ses appels en cours : le navigateur les
   // rapporte comme des échecs, alors que rien n'est cassé. Les compter
   // masquerait les vraies pannes sous le bruit.
-  function interrompu(err) {
+  function interrompu(err, dureeMs) {
     if (!err) return false;
     if (err.name === 'AbortError') return true;
+
     var m = String(err.message || '').toLowerCase();
-    // La page se ferme ou change : l'appel n'avait plus de destinataire.
+    if (m.indexOf('aborted') >= 0
+        || m.indexOf('cancelled') >= 0
+        || m.indexOf('canceled') >= 0) return true;
+
+    // La page se ferme : l'appel n'avait plus de destinataire.
     if (global.document && global.document.hidden) return true;
-    return m.indexOf('aborted') >= 0
-      || m.indexOf('cancelled') >= 0
-      || m.indexOf('canceled') >= 0
-      || m.indexOf('network request failed') >= 0 && global.__quitte === true;
+    if (global.__quitte === true) return true;
+
+    // Un appel annulé par un changement d'écran échoue presque
+    // instantanément. Une vraie coupure réseau met plus longtemps :
+    // le navigateur tente d'abord de joindre le serveur.
+    if (dureeMs != null && dureeMs < 800
+        && m.indexOf('failed to fetch') >= 0) return true;
+
+    return false;
   }
 
   // On note le départ pour distinguer un appel interrompu d'une vraie
