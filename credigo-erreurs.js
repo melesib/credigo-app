@@ -207,7 +207,7 @@
           });
           xhr.addEventListener('load', function () {
             try {
-              if (xhr.status >= 400) {
+              if (xhr.status >= 400 && !attendu(xhr.__url, xhr.status)) {
                 envoyer({ type: xhr.status >= 500 ? 'reseau' : 'rpc',
                   message: natureHttp(xhr.status) + ' (' + xhr.status + ')',
                   source: nettoyerUrl(xhr.__url || '') });
@@ -250,7 +250,7 @@
               // On ne signale pas nos propres envois d'erreur : cela
               // créerait une boucle.
               if (url.indexOf('signaler_erreur') >= 0) return rep;
-              if (!rep.ok && rep.status >= 400) {
+              if (!rep.ok && rep.status >= 400 && !attendu(url, rep.status)) {
                 envoyer({
                   type: rep.status >= 500 ? 'reseau' : 'rpc',
                   message: natureHttp(rep.status) + ' (' + rep.status + ') sur '
@@ -289,6 +289,28 @@
       if (jeton) config.jeton = jeton;
     }
   };
+
+  // Certains appels échouent normalement et se rattrapent seuls : les
+  // compter ferait du bruit sans rien apprendre.
+  //
+  //   /auth/v1/token   — rafraîchissement de session, Supabase réessaie
+  //   /auth/v1/logout  — déconnexion, échoue si la session a déjà expiré
+  //   /auth/v1/user    — vérification de session au démarrage
+  //
+  // Une vraie panne d'authentification se voit autrement : l'utilisateur
+  // se retrouve sur l'écran de connexion.
+  function attendu(url, code) {
+    var u = String(url || '');
+    if (u.indexOf('/auth/v1/token') >= 0) return true;
+    if (u.indexOf('/auth/v1/logout') >= 0) return true;
+    if (u.indexOf('/auth/v1/user') >= 0 && code === 401) return true;
+    // Un 401 sur une lecture signifie souvent que la session vient
+    // d'expirer : le rafraîchissement suit immédiatement.
+    if (code === 401 && u.indexOf('/rest/v1/') >= 0) return true;
+    // Une ressource absente n'est pas une panne applicative.
+    if (code === 404 && u.indexOf('/storage/') >= 0) return true;
+    return false;
+  }
 
   // Un code HTTP seul ne dit rien à qui lit le journal : le traduire
   // oriente vers la bonne cause.
