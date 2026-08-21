@@ -8758,7 +8758,28 @@ function authLoginEmail() {
   if (window.CredigoDB && window.CredigoDB.ready) {
     toast('Connexion en cours…');
     window.credigoSupabaseSignIn(email, pwd).then(function(res) {
-      if (res.error) { toast('Erreur : ' + res.error); return; }
+      if (res.error) {
+        try {
+          window.CredigoDB.sb.rpc('signaler_echec_connexion', {
+            p_email: email,
+            p_motif: 'mot_de_passe',
+            p_ip: null,
+            p_navigateur: navigator.userAgent.slice(0, 200),
+            p_surface: (typeof authRole !== 'undefined' && authRole === 'f')
+              ? 'app_financeur' : 'app_entrepreneur'
+          }).then(function (r) {
+            // Le serveur renvoie le bon message : « identifiants
+            // incorrects » au début, un délai d'attente ensuite.
+            var d = r && r.data;
+            toast((d && d.message) || ('Erreur : ' + res.error));
+          }).catch(function () { toast('Erreur : ' + res.error); });
+        } catch (_) { toast('Erreur : ' + res.error); }
+        return;
+      }
+      // Connexion réussie : la trace ne sert plus, et ne pas la garder
+      // est plus sain que de la conserver « au cas où ».
+      try { window.CredigoDB.sb.rpc('effacer_tentatives', { p_email: email }); }
+      catch (_) { /* sans conséquence */ }
       var supaUser = res.authUser;
       var fullName = (supaUser.user_metadata && supaUser.user_metadata.full_name) || email.split('@')[0];
       var user = {
