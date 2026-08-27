@@ -3426,6 +3426,56 @@ function goSc(id, portal, el) {
   closeSidebar();
 }
 
+/* ═══ LE BOUTON RETOUR DU TÉLÉPHONE ═══
+   L'application affiche ses écrans dans une seule page : le navigateur
+   ne voit qu'une adresse et n'enregistre aucun historique. Appuyer sur
+   retour quittait donc l'application au lieu de revenir en arrière —
+   réflexe pourtant constant sur mobile.
+   On empile chaque écran dans l'historique, et on écoute le retour pour
+   revenir au précédent. L'écran d'accueil reste le premier : depuis
+   lui, retour quitte l'application, ce qui est attendu. */
+(function () {
+  var pile = [];
+  var enRetour = false;
+  // On enveloppe showScreen plutôt que de la modifier : elle comporte
+  // plusieurs sorties, et la toucher risquerait d'en casser une.
+  var afficher = window.showScreen;
+  window.showScreen = function (id) {
+    var r = afficher.apply(this, arguments);
+    // Un changement provoqué par le bouton retour ne doit pas empiler :
+    // sinon on tournerait en rond.
+    if (!enRetour && id && pile[pile.length - 1] !== id) {
+      pile.push(id);
+      try {
+        history.pushState({ ecran: id, n: pile.length }, '', location.pathname);
+      } catch (e) { /* certains navigateurs limitent : sans conséquence */ }
+    }
+    return r;
+  };
+  window.addEventListener('popstate', function (e) {
+    if (pile.length <= 1) return;   // l'accueil : laisser quitter
+    pile.pop();
+    var precedent = pile[pile.length - 1];
+    if (!precedent) return;
+    enRetour = true;
+    try { afficher(precedent); } catch (_) {}
+    enRetour = false;
+    // Le menu suit l'écran : sans cela, la surbrillance resterait sur
+    // la page qu'on vient de quitter.
+    try {
+      var portail = precedent.charAt(0) === 'f' ? 'f' : 'e';
+      var barre = document.querySelector(portail === 'e' ? '#sb-e' : '#sb-f');
+      if (barre) {
+        barre.querySelectorAll('.slink').forEach(function (l) {
+          l.classList.remove('on');
+        });
+        var lien = barre.querySelector('.slink[onclick*="' + precedent + '"]');
+        if (lien) lien.classList.add('on');
+      }
+    } catch (_) {}
+  });
+})();
+
 
 /* ═══════════════════════════════════════════ */
 /* ═══ LOGIQUE PARCOURS ENTREPRENEUR (refonte) ═══ */
