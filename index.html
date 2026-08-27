@@ -3264,7 +3264,7 @@ window.manifesterInteret = async function (cessionId) {
     if (!uid) { alert('Session expir\u00e9e.'); return; }
 
     var r = await db.rpc('manifester_interet', {
-      p_financeur_id: uid, p_cession_id: cessionId, p_note: null,
+      p_cession_id: cessionId, p_note: null,
     });
     var d = (r && r.data) || {};
     if (r.error || d.error) { alert(d.message || 'Une erreur est survenue.'); return; }
@@ -3284,7 +3284,7 @@ async function chargerMesCreances() {
     var uid = u && u.data && u.data.user && u.data.user.id;
     if (!uid) return;
 
-    var r = await db.rpc('get_creances_financeur', { p_financeur_id: uid });
+    var r = await db.rpc('get_creances_financeur');
     var d = (r && r.data) || {};
     var c = d.creances || [];
 
