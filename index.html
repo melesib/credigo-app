@@ -6544,7 +6544,8 @@ function renderDemoTickets() {
         .then(function (p) {
           if (!p || !p.data) { vide("Aucune requete pour l'instant."); return; }
           return db.from('support_tickets')
-            .select('id, subject, category, priority, status, message, created_at')
+            .select('id, subject, category, priority, status, message, created_at, '
+              + 'ticket_replies(message, created_at, author_staff_id, is_internal)')
             .eq('app_user_id', p.data.id)
             .order('created_at', { ascending: false })
             .limit(20)
@@ -6565,7 +6566,26 @@ function renderDemoTickets() {
                   categorie: x.category || 'general',
                   prio: x.priority || 'normale',
                   statut: x.status || 'ouvert',
-                  message: x.message || '',
+                  message: (function () {
+                    var q = '<div style="color:#6B7280;font-size:10.5px;'
+                      + 'font-weight:700;margin-bottom:3px">Votre demande</div>'
+                      + (x.message || '');
+                    var rep = (x.ticket_replies || [])
+                      .filter(function (m) { return !m.is_internal; })
+                      .sort(function (a, b) {
+                        return new Date(a.created_at) - new Date(b.created_at);
+                      });
+                    if (!rep.length) return q;
+                    return q + rep.map(function (m) {
+                      return '<div style="margin-top:10px;padding-top:9px;'
+                        + 'border-top:1px solid #E5E7EB">'
+                        + '<div style="color:#059669;font-size:10.5px;'
+                        + 'font-weight:700;margin-bottom:3px">'
+                        + (m.author_staff_id ? 'Reponse de Credigo' : 'Vous')
+                        + ' — ' + new Date(m.created_at).toLocaleDateString('fr-FR')
+                        + '</div>' + (m.message || '') + '</div>';
+                    }).join('');
+                  })(),
                   date: x.created_at
                     ? new Date(x.created_at).toLocaleDateString('fr-FR',
                         { day: '2-digit', month: 'long', year: 'numeric' })
