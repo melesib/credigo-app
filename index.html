@@ -6517,66 +6517,16 @@ function addTicketToList(portal, ticket) {
 }
 
 function renderDemoTickets() {
-  // Les vraies demandes de la personne connectee, non des exemples :
-  // voir des tickets qu'on n'a jamais ouverts fait douter du reste.
   ['e','f'].forEach(function(portal) {
-    var listEl = document.getElementById(portal + '-tickets-list');
-    if (!listEl) return;
-    var vide = function (texte) {
-      listEl.innerHTML = '<div style="text-align:center;padding:26px 20px;'
-        + 'font-size:13px;color:#9CA3AF;line-height:1.6">' + texte + '</div>';
-    };
-    if (!(window.CredigoDB && window.CredigoDB.ready && window.CredigoDB.sb)) {
-      vide("Aucune requete pour l'instant.");
+    const listEl = document.getElementById(portal + '-tickets-list');
+    if (!listEl || listEl.innerHTML.trim() !== '') return;
+
+    if (DEMO_TICKETS.length === 0) {
+      listEl.innerHTML = '<div style="text-align:center;padding:20px;font-size:13px;color:#9CA3AF">Aucune requête pour l\'instant.</div>';
       return;
     }
-    var db = window.CredigoDB.sb;
-    db.auth.getUser().then(function (u) {
-      var uid = u && u.data && u.data.user && u.data.user.id;
-      if (!uid) { vide("Aucune requete pour l'instant."); return; }
-      // Le profil du portail affiche : entrepreneur et financeur ont
-      // chacun leurs demandes.
-      return db.from('app_users').select('id')
-        .eq('auth_user_id', uid)
-        .eq('portal', portal === 'e' ? 'entrepreneur' : 'financeur')
-        .is('deleted_at', null)
-        .limit(1).maybeSingle()
-        .then(function (p) {
-          if (!p || !p.data) { vide("Aucune requete pour l'instant."); return; }
-          return db.from('support_tickets')
-            .select('id, subject, category, priority, status, message, created_at')
-            .eq('app_user_id', p.data.id)
-            .order('created_at', { ascending: false })
-            .limit(20)
-            .then(function (r) {
-              var t = (r && r.data) || [];
-              if (!t.length) {
-                vide("Aucune requete pour l'instant.<br>"
-                  + "Utilisez le formulaire ci-dessus pour nous ecrire.");
-                return;
-              }
-              listEl.innerHTML = '';
-              // addTicketToList insere en tete : on parcourt a l'envers
-              // pour que le plus recent finisse en premier.
-              t.slice().reverse().forEach(function (x) {
-                addTicketToList(portal, {
-                  id: x.id ? ('TKT-' + String(x.id).slice(0, 8)) : '-',
-                  sujet: x.subject || 'Sans objet',
-                  categorie: x.category || 'general',
-                  prio: x.priority || 'normale',
-                  statut: x.status || 'ouvert',
-                  message: x.message || '',
-                  date: x.created_at
-                    ? new Date(x.created_at).toLocaleDateString('fr-FR',
-                        { day: '2-digit', month: 'long', year: 'numeric' })
-                    : ''
-                });
-              });
-            });
-        });
-    }).catch(function () {
-      vide("Vos requetes n'ont pas pu etre chargees.");
-    });
+
+    DEMO_TICKETS.forEach(function(t) { addTicketToList(portal, t); });
   });
 }
 
