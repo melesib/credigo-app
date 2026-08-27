@@ -71,3 +71,8 @@
   from = "/q/*"
   to = "/quittance.html"
   status = 200
+# La page de présentation : /a-propos → qui nous sommes, et la FAQ.
+[[redirects]]
+  from = "/a-propos"
+  to = "/apropos.html"
+  status = 200
