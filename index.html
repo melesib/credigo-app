@@ -3411,7 +3411,26 @@ function switchTo(p) {
   if(swF){ swF.classList.toggle('sw-active',!e); }
   closeSidebar();
   currentPortal = p;
+  authRole = p;
   if(typeof updateNotifBadge==='function') updateNotifBadge();
+  // Le profil suit le rôle : changer d'espace sans recharger le compte
+  // laissait le financeur avec le KYC de l'entrepreneur.
+  if (authUser && window.credigoForceRefreshStatus && authUser.email) {
+    authUser.role = p;
+    window.credigoForceRefreshStatus(authUser.email, p).then(function (fr) {
+      if (!fr) return;
+      authUser.kycStatus = fr.kyc_status;
+      authUser.profileComplete = fr.profile_complete;
+      authUser.appUserId = fr.id;
+      authSaveSession(authUser);
+      if (typeof updateKycStatusBadges === 'function') {
+        updateKycStatusBadges(authUser.kycStatus);
+      }
+      // L'écran se redessine avec le bon statut : sans cela, il
+      // afficherait encore celui du profil précédent.
+      showScreen(p === 'e' ? 'e-home' : 'f-offers');
+    }).catch(function () {});
+  }
   showScreen(e?'e-home':'f-offers');
 }
 function goSc(id, portal, el) {
