@@ -1476,6 +1476,9 @@ textarea{resize:vertical;min-height:70px}
   <div id="f-offers-list">
     <div style="text-align:center;padding:30px;color:#9CA3AF;font-size:13px">Chargement…</div>
   </div>
+  <!-- L'invitation a etre prevenu : ne s'affiche que si le financeur
+       n'a pas encore choisi. -->
+  <div id="f-alerte-bloc"></div>
 </div>
 
 <!-- ═══ F-OFFER-DETAIL ═══ -->
@@ -3391,6 +3394,7 @@ function renderScreen(id) {
   if (id === 'e-profile') renderBankAccounts();
   if (id === 'e-support') renderMyTickets('e');
   if (id === 'f-support') renderMyTickets('f');
+  if (id === 'f-offers' && typeof renderAlerteFinanceur === 'function') renderAlerteFinanceur();
   if (id === 'e-home') renderAstuceSecurite();
   if (id === 'f-portfolio') renderFPortfolio();
   if (id === 'f-kyc-upload') restaurerKyc('f');
@@ -11983,6 +11987,72 @@ if (window.CredigoDB && window.CredigoDB.sb) {
         ? 'app_financeur' : 'app_entrepreneur'
     });
   }
+
+/* ═══ ETRE PREVENU DES NOUVELLES OFFRES ═══
+   Un financeur qui ignore qu'une creance est proposee ne peut pas la
+   saisir. L'invitation ne s'affiche que s'il n'a pas encore choisi :
+   la redemander a quelqu'un qui a deja repondu serait agacant. */
+async function renderAlerteFinanceur() {
+  var box = document.getElementById('f-alerte-bloc');
+  if (!box) return;
+  if (!(window.CredigoDB && window.CredigoDB.ready && window.CredigoDB.sb)) return;
+  try {
+    var r = await window.CredigoDB.sb.rpc('get_alerte_financeur');
+    var d = (r && r.data) || {};
+    if (d.ok === false || d.souscrit) { box.innerHTML = ''; return; }
+    box.innerHTML = '<div class="card" style="margin-top:14px;background:#F5F3FF;'
+      + 'border:1px solid #DDD6FE">'
+      + '<div style="font-size:14px;font-weight:800;margin-bottom:4px">'
+      + 'Etre prevenu des nouvelles offres</div>'
+      + '<div style="font-size:12.5px;color:#6B7280;margin-bottom:12px;line-height:1.6">'
+      + 'Nous vous signalons chaque creance publiee. Le message annonce '
+      + 'simplement qu\'une offre existe : le detail reste dans votre espace.</div>'
+      + '<label style="display:flex;align-items:center;gap:9px;margin-bottom:9px;'
+      + 'cursor:pointer;font-size:13.5px">'
+      + '<input type="checkbox" id="al-mail" checked style="width:17px;height:17px">'
+      + 'Par email</label>'
+      + '<input type="email" id="al-mail-val" placeholder="votre@email.ci" '
+      + 'value="' + (d.email_suggere || '') + '" '
+      + 'style="width:100%;padding:10px;border:1px solid #E5E7EB;border-radius:9px;'
+      + 'font-size:13.5px;font-family:inherit;margin-bottom:12px">'
+      + '<label style="display:flex;align-items:center;gap:9px;margin-bottom:9px;'
+      + 'cursor:pointer;font-size:13.5px">'
+      + '<input type="checkbox" id="al-wa" style="width:17px;height:17px">'
+      + 'Par WhatsApp</label>'
+      + '<input type="tel" id="al-wa-val" placeholder="+225 07 00 00 00 00" '
+      + 'value="' + (d.whatsapp_suggere || '') + '" '
+      + 'style="width:100%;padding:10px;border:1px solid #E5E7EB;border-radius:9px;'
+      + 'font-size:13.5px;font-family:inherit;margin-bottom:12px">'
+      + '<button id="al-ok" class="btn-p" style="width:100%;justify-content:center">'
+      + 'Valider</button>'
+      + '</div>';
+    document.getElementById('al-ok').addEventListener('click', async function () {
+      var b = this;
+      b.disabled = true;
+      b.textContent = 'Enregistrement...';
+      try {
+        var res = await window.CredigoDB.sb.rpc('souscrire_alertes', {
+          p_par_email: document.getElementById('al-mail').checked,
+          p_par_whatsapp: document.getElementById('al-wa').checked,
+          p_email: (document.getElementById('al-mail-val') || {}).value || null,
+          p_whatsapp: (document.getElementById('al-wa-val') || {}).value || null
+        });
+        var rd = (res && res.data) || {};
+        if (rd.ok === false) {
+          toast(rd.message || 'Enregistrement impossible.');
+          b.disabled = false; b.textContent = 'Valider';
+          return;
+        }
+        toast(rd.message || 'C\'est enregistre.');
+        box.innerHTML = '';
+      } catch (e) {
+        toast('Erreur : ' + e.message);
+        b.disabled = false; b.textContent = 'Valider';
+      }
+    });
+  } catch (e) { /* sans consequence : le bloc reste absent */ }
+}
+
 </script>
 </body>
 </html>
