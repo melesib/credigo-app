@@ -2766,7 +2766,9 @@ textarea{resize:vertical;min-height:70px}
   </div>
 </div>
 
-</div></div>
+</div>
+  <div id="f-my-tickets"></div>
+</div>
 <!-- ══ MODAL FORMULAIRE EN LIGNE ══ -->
 <div class="modal-ov" id="form-modal" onclick="closeFormModalOut(event)">
   <div class="modal-sheet" id="form-modal-sheet" onclick="event.stopPropagation()" style="max-width:600px;max-height:88vh;overflow-y:auto;-webkit-overflow-scrolling:touch;padding:20px 14px 60px;box-sizing:border-box;width:100%">
@@ -3386,7 +3388,8 @@ function renderScreen(id) {
   if (id === 'e-references') renderEReferences();
   if (id === 'e-notifs') renderENotifs();
   if (id === 'e-profile') renderBankAccounts();
-  if (id === 'e-support') renderMyTickets();
+  if (id === 'e-support') renderMyTickets('e');
+  if (id === 'f-support') renderMyTickets('f');
   if (id === 'e-home') renderAstuceSecurite();
   if (id === 'f-portfolio') renderFPortfolio();
   if (id === 'f-kyc-upload') restaurerKyc('f');
@@ -6417,7 +6420,7 @@ function sendSupportRequest(portal) {
       toast('Votre demande a bien \u00e9t\u00e9 envoy\u00e9e.');
       document.getElementById('support-subject-' + portal).value = '';
       document.getElementById('support-message-' + portal).value = '';
-      if (portal === 'e' && typeof renderMyTickets === 'function') renderMyTickets();
+      if (typeof renderMyTickets === 'function') renderMyTickets(portal);
     });
   } else {
     toast('Service indisponible. R\u00e9essayez plus tard.');
@@ -9475,8 +9478,11 @@ function renderAstuceSecurite() {
 // ── Mes requêtes de support et leurs réponses ──
 // (« Mes demandes » désigne les contrats ailleurs dans l'app.)
 var _ticketsCache = [];
-function renderMyTickets() {
-  var box = document.getElementById('e-my-tickets');
+function renderMyTickets(portail) {
+  // Le portail actif, non l'entrepreneur par defaut : le financeur a
+  // les memes demandes a suivre.
+  var p = portail || (typeof currentPortal !== 'undefined' ? currentPortal : 'e');
+  var box = document.getElementById((p === 'f' ? 'f' : 'e') + '-my-tickets');
   if (!box || typeof window.credigoGetMyTickets !== 'function') return;
 
   window.credigoGetMyTickets().then(function (res) {
@@ -9524,7 +9530,9 @@ function renderMyTickets() {
 }
 
 function openTicketThread(ticketId) {
-  var box = document.getElementById('e-my-tickets');
+  var box = document.getElementById(
+    ((typeof currentPortal !== 'undefined' && currentPortal === 'f') ? 'f' : 'e')
+    + '-my-tickets');
   if (!box || typeof window.credigoGetTicketThread !== 'function') return;
   box.innerHTML = '<div class="card"><div style="text-align:center;padding:20px;color:#9CA3AF">Chargement\u2026</div></div>';
 
