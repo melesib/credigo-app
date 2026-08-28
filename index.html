@@ -3425,7 +3425,7 @@ function switchTo(p) {
       if (!fr) return;
       authUser.kycStatus = fr.kyc_status;
       authUser.profileComplete = fr.profile_complete;
-      authUser.appUserId = fr.id;
+      authUser.dbUserId = fr.id;
       authSaveSession(authUser);
       if (typeof updateKycStatusBadges === 'function') {
         updateKycStatusBadges(authUser.kycStatus);
