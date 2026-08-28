@@ -6336,12 +6336,7 @@ function loadJsPDF(callback) {
 /* ══ SUPPORT ══ */
 
 // Tickets de démo
-const DEMO_TICKETS = [
-  { id:'TKT-001', sujet:'Délai de validation KYC', categorie:'kyc', prio:'urgente',
-    date:'05 juin 2026', statut:'En cours', reponse:'Votre dossier est en cours d\'examen par notre équipe de conformité. Réponse sous 24h.' },
-  { id:'TKT-002', sujet:'Question sur le remboursement anticipé', categorie:'remboursement', prio:'normale',
-    date:'02 juin 2026', statut:'Résolu', reponse:'Le remboursement anticipé est possible à tout moment depuis l\'écran Remboursements. Votre compte sera débloqué immédiatement.' },
-];
+const DEMO_TICKETS = [];
 
 function setPrio(portal, val) {
   const colors  = { normale:'#6B7280', urgente:'#D97706', critique:'#DC2626' };
