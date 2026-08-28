@@ -9572,7 +9572,9 @@ function openTicketThread(ticketId) {
             + '</div>')
       + '</div>';
 
-    document.getElementById('tk-back').addEventListener('click', renderMyTickets);
+    document.getElementById('tk-back').addEventListener('click', function () {
+      renderMyTickets();
+    });
 
     // Ouverture d'une pièce jointe : le lien est généré à la demande.
     Array.prototype.forEach.call(box.querySelectorAll('.tk-file'), function (el) {
