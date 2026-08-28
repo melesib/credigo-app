@@ -9524,9 +9524,13 @@ function renderMyTickets(portail) {
 }
 
 function openTicketThread(ticketId) {
-  var box = document.getElementById(
-    ((typeof currentPortal !== 'undefined' && currentPortal === 'f') ? 'f' : 'e')
-    + '-my-tickets');
+  var actif = (typeof currentPortal !== 'undefined' && currentPortal === 'f')
+    ? 'f' : 'e';
+  var box = document.getElementById(actif + '-my-tickets');
+  // L'autre conteneur se vide : deux fils ouverts en meme temps
+  // dupliqueraient les identifiants des champs.
+  var autre = document.getElementById((actif === 'f' ? 'e' : 'f') + '-my-tickets');
+  if (autre) autre.innerHTML = '';
   if (!box || typeof window.credigoGetTicketThread !== 'function') return;
   box.innerHTML = '<div class="card"><div style="text-align:center;padding:20px;color:#9CA3AF">Chargement\u2026</div></div>';
 
